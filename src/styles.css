@@ -1163,7 +1163,7 @@ a svg {
   --field-height: max(740px, calc(100svh - 241px));
 }
 .exhibition:not(.is-index) {
-  min-height: calc(var(--field-height) + var(--extra-rows, 0) * 360px);
+  min-height: calc(var(--field-height) + var(--extra-rows, 0) * 400px);
 }
 .project-field {
   height: var(--field-height);
@@ -1217,7 +1217,7 @@ a svg {
     --field-height: max(640px, calc(100vw + 220px));
   }
   .exhibition:not(.is-index) {
-    min-height: calc(var(--field-height) + var(--extra-count, 0) * 300px);
+    min-height: calc(var(--field-height) + var(--extra-count, 0) * 360px);
   }
   .print-position {
     left: var(--mx) !important;

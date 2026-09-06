@@ -183,8 +183,8 @@ export default function ProjectField({
           ...(index >= 3
             ? {
                 "--extra-x": `${6 + ((index - 3) % 3) * 31}%`,
-                "--extra-top": `calc(var(--field-height) + ${Math.floor((index - 3) / 3) * 360 + 30}px)`,
-                "--extra-mobile-top": `calc(var(--field-height) + ${(index - 3) * 300 + 20}px)`,
+                "--extra-top": `calc(var(--field-height) + ${Math.floor((index - 3) / 3) * 400 + 30}px)`,
+                "--extra-mobile-top": `calc(var(--field-height) + ${(index - 3) * 360 + 20}px)`,
               }
             : {}),
           zIndex:

@@ -84,5 +84,6 @@ Viteの`base`は`'./'`を使用します。画像とデータも相対パスで�
 - [NAGI — あの日の、海。](https://xenithone.github.io/nostalgic-sea/)
 - [AETHER — Orbital Station](https://xenithone.github.io/aether-orbital-station/)
 - [CHRONOSCOPE — Temporal Navigation Instrument](https://xenithone.github.io/chronoscope/)
+- [iro — 2D & 3D ペイントスタジオ](https://xenithone.github.io/web3d-painter/)
 
 制作・運営：[XenithONE](https://github.com/XenithONE)

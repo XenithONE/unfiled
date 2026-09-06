@@ -34,5 +34,17 @@
     "source": "https://github.com/XenithONE/nostalgic-sea",
     "cover": "images/nagi.webp",
     "accent": "#e56837"
+  },
+  {
+    "id": "iro",
+    "title": "iro",
+    "subtitle": "平面から、立体まで。",
+    "description": "2Dのキャンバスから3Dモデルの表面まで、ブラウザで自由に描く。油彩の混色やレイヤー、UV編集を備えたペイントスタジオ。思いついた色を、そのままかたちに。",
+    "category": "2D & 3D PAINT STUDIO",
+    "year": "2026",
+    "url": "https://xenithone.github.io/web3d-painter/",
+    "source": "https://github.com/XenithONE/web3d-painter",
+    "cover": "images/iro.webp",
+    "accent": "#3153c8"
   }
 ]
