@@ -86,5 +86,6 @@ Viteの`base`は`'./'`を使用します。画像とデータも相対パスで�
 - [CHRONOSCOPE — Temporal Navigation Instrument](https://xenithone.github.io/chronoscope/)
 - [iro — 2D & 3D ペイントスタジオ](https://xenithone.github.io/web3d-painter/)
 - [YOHAKU — 余白美術館](https://xenithone.github.io/yohaku-museum/)
+- [月の別荘 — Moon Villa](https://xenithone.github.io/moon-villa/)
 
 制作・運営：[XenithONE](https://github.com/XenithONE)

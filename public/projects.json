@@ -58,5 +58,17 @@
     "source": "https://github.com/XenithONE/yohaku-museum",
     "cover": "images/yohaku.webp",
     "accent": "#9b8052"
+  },
+  {
+    "id": "moon-villa",
+    "title": "月の別荘",
+    "subtitle": "月から、地球の記憶を。",
+    "description": "月面の別荘で、円窓越しに移りゆく地球を眺める。誕生から遠い未来へ流れる時間を、ラジオの音楽とともに。座ってくつろいだり、部屋を歩いたりできる、ノスタルジックな3D空間。",
+    "category": "LUNAR TIME EXPERIENCE",
+    "year": "2026",
+    "url": "https://xenithone.github.io/moon-villa/",
+    "source": "https://github.com/XenithONE/moon-villa",
+    "cover": "images/moon-villa.webp",
+    "accent": "#9e4b35"
   }
 ]
