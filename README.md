@@ -65,7 +65,7 @@ npm run preview
 
 画像は`public/images/`へ置き、`cover`には先頭の`/`を付けずに指定します。JSONの末尾の余分なカンマに注意してください。更新後は`npm run build`で確認し、`main`へpushすると公開内容も更新されます。
 
-表紙は、作品の空気感を表現するために制作したオリジナルの生成ビジュアルです。作品の実画面を示すスクリーンショットではありません。各作品のリンクから実際のサイトを開けます。
+表紙は、作品の空気感を表現するオリジナルの生成ビジュアルを使用しています。YOHAKUの表紙には実際の美術館の画面を使用しています。各作品のリンクから実際のサイトを開けます。
 
 ## GitHub Pagesへ公開する
 
@@ -85,5 +85,6 @@ Viteの`base`は`'./'`を使用します。画像とデータも相対パスで�
 - [AETHER — Orbital Station](https://xenithone.github.io/aether-orbital-station/)
 - [CHRONOSCOPE — Temporal Navigation Instrument](https://xenithone.github.io/chronoscope/)
 - [iro — 2D & 3D ペイントスタジオ](https://xenithone.github.io/web3d-painter/)
+- [YOHAKU — 余白美術館](https://xenithone.github.io/yohaku-museum/)
 
 制作・運営：[XenithONE](https://github.com/XenithONE)

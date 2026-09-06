@@ -46,5 +46,17 @@
     "source": "https://github.com/XenithONE/web3d-painter",
     "cover": "images/iro.webp",
     "accent": "#3153c8"
+  },
+  {
+    "id": "yohaku",
+    "title": "YOHAKU",
+    "subtitle": "一枚の絵から、はじまる美術館。",
+    "description": "天窓の光が差す展示室を、ゆっくり歩く。最初の作品は、ブラウザで一筆ずつ描いた『星月夜の富士』。手描きの署名まで眺められる、余白美術館。",
+    "category": "WALKABLE ART MUSEUM",
+    "year": "2026",
+    "url": "https://xenithone.github.io/yohaku-museum/",
+    "source": "https://github.com/XenithONE/yohaku-museum",
+    "cover": "images/yohaku.webp",
+    "accent": "#9b8052"
   }
 ]
