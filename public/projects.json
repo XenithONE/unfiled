@@ -1,0 +1,38 @@
+[
+  {
+    "id": "aether",
+    "title": "AETHER",
+    "subtitle": "まだ見ぬ軌道へ。",
+    "description": "宇宙ステーションを歩き、窓の向こうの地球を眺める。設備を操作して、別の宙域へワープする。ブラウザの中につくった、もうひとつの居場所。",
+    "category": "SPACE EXPLORATION",
+    "year": "2026",
+    "url": "https://xenithone.github.io/aether-orbital-station/",
+    "source": "https://github.com/XenithONE/aether-orbital-station",
+    "cover": "images/aether.webp",
+    "accent": "#457b7b"
+  },
+  {
+    "id": "chronoscope",
+    "title": "CHRONOSCOPE",
+    "subtitle": "時間は、行き先になる。",
+    "description": "計器に触れ、音に耳を澄ませ、4つの時代を渡っていく。Three.jsとWeb Audioでつくった、ブラウザで動く時間旅行装置。",
+    "category": "TIME EXPERIMENT",
+    "year": "2026",
+    "url": "https://xenithone.github.io/chronoscope/",
+    "source": "https://github.com/XenithONE/chronoscope",
+    "cover": "images/chronoscope.webp",
+    "accent": "#314d61"
+  },
+  {
+    "id": "nagi",
+    "title": "NAGI",
+    "subtitle": "あの日の、海。",
+    "description": "波の音、桟橋、どこか懐かしいラジオ。時刻や天気を変えながら、何もしない時間を過ごす。WebGPUで描く、記憶の中の海辺。",
+    "category": "INTERACTIVE LANDSCAPE",
+    "year": "2026",
+    "url": "https://xenithone.github.io/nostalgic-sea/",
+    "source": "https://github.com/XenithONE/nostalgic-sea",
+    "cover": "images/nagi.webp",
+    "accent": "#e56837"
+  }
+]
