@@ -82,5 +82,17 @@
     "source": "https://github.com/XenithONE/atelier-oil",
     "cover": "images/atelier.png",
     "accent": "#626b51"
+  },
+  {
+    "id": "ignis",
+    "title": "IGNIS",
+    "subtitle": "火山の鼓動を、目撃する。",
+    "description": "赤く流れる溶岩、火口から噴き上がる火山弾、空を覆う立体的な噴煙。PBRの岩肌と光が描く火山を、自由な視点で眺める。Three.jsで体験する、迫力ある火山噴火。",
+    "category": "WORLD",
+    "year": "2026",
+    "url": "https://xenithone.github.io/volcano-eruption/",
+    "source": "https://github.com/XenithONE/volcano-eruption",
+    "cover": "images/ignis.png",
+    "accent": "#ff713d"
   }
 ]

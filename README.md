@@ -65,7 +65,7 @@ npm run preview
 
 画像は`public/images/`へ置き、`cover`には先頭の`/`を付けずに指定します。JSONの末尾の余分なカンマに注意してください。更新後は`npm run build`で確認し、`main`へpushすると公開内容も更新されます。
 
-表紙は、作品の空気感を表現するオリジナルの生成ビジュアルを使用しています。YOHAKUの表紙には実際の美術館の画面を使用しています。各作品のリンクから実際のサイトを開けます。
+表紙は、作品の空気感を表現するオリジナルの生成ビジュアルを使用しています。YOHAKUとIGNISの表紙には実際の作品画面を使用しています。各作品のリンクから実際のサイトを開けます。
 
 ## GitHub Pagesへ公開する
 
@@ -88,5 +88,6 @@ Viteの`base`は`'./'`を使用します。画像とデータも相対パスで�
 - [YOHAKU — 余白美術館](https://xenithone.github.io/yohaku-museum/)
 - [月の別荘 — Moon Villa](https://xenithone.github.io/moon-villa/)
 - [atelier — 油彩のアトリエ](https://xenithone.github.io/atelier-oil/)
+- [IGNIS — 火山の鼓動を、目撃する。](https://xenithone.github.io/volcano-eruption/)
 
 制作・運営：[XenithONE](https://github.com/XenithONE)
