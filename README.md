@@ -87,5 +87,6 @@ Viteの`base`は`'./'`を使用します。画像とデータも相対パスで�
 - [iro — 2D & 3D ペイントスタジオ](https://xenithone.github.io/web3d-painter/)
 - [YOHAKU — 余白美術館](https://xenithone.github.io/yohaku-museum/)
 - [月の別荘 — Moon Villa](https://xenithone.github.io/moon-villa/)
+- [atelier — 油彩のアトリエ](https://xenithone.github.io/atelier-oil/)
 
 制作・運営：[XenithONE](https://github.com/XenithONE)

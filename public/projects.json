@@ -70,5 +70,17 @@
     "source": "https://github.com/XenithONE/moon-villa",
     "cover": "images/moon-villa.webp",
     "accent": "#9e4b35"
+  },
+  {
+    "id": "atelier",
+    "title": "atelier",
+    "subtitle": "絵具を混ぜ、筆跡を重ねる。",
+    "description": "平筆、丸筆、ナイフを手に、濡れた絵具を混ぜて描く。厚塗りの陰影、乾いた筆のかすれ、リネンの質感まで楽しめる油彩専用アトリエ。作品を保存して、また続きを。",
+    "category": "OIL PAINTING ATELIER",
+    "year": "2026",
+    "url": "https://xenithone.github.io/atelier-oil/",
+    "source": "https://github.com/XenithONE/atelier-oil",
+    "cover": "images/atelier.png",
+    "accent": "#626b51"
   }
 ]
