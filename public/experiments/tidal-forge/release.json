@@ -1,0 +1,67 @@
+{
+  "application": "TIDAL FORGE",
+  "sourceRevision": "2ee5e85defc72709d32d3a6baaa0eb9762cb2d8c",
+  "builtAtUtc": "2026-09-08T14:29:08.7797123Z",
+  "files": [
+    {
+      "path": "core.wasm",
+      "bytes": 44913,
+      "sha256": "5c65168554dc4e5acbe538ea743ce1b9cb3553a6abf65dfb2228ee4093e93d29"
+    },
+    {
+      "path": "index.html",
+      "bytes": 1016,
+      "sha256": "e1056c0a495f6def8cc9e0431f0355b4ed5a0c38be0aa020a78e0b7d84ea64f0"
+    },
+    {
+      "path": "assets/index-B8dQnrRA.css",
+      "bytes": 14058,
+      "sha256": "228e98887707fbb6e7ef45c6bfb22fc3b0352a2826856392936208cc4cfe12db"
+    },
+    {
+      "path": "assets/index-kNychREx.js",
+      "bytes": 235810,
+      "sha256": "460c51d56ae72f00c1186f54172655ae3e1a592214b382d9091e364f61591a98"
+    },
+    {
+      "path": "assets/physics-worker-DVTNcXE8.js",
+      "bytes": 1631,
+      "sha256": "8f9100fc307ddb643c51eef2183042e8ba1a33a7a6a507882912c406e9abaea8"
+    },
+    {
+      "path": "encounters/default.bin",
+      "bytes": 10551296,
+      "sha256": "fff6d9a9d5833ac050cd005456306826ebff248ff78108bb7d9fe2b86545a0a4"
+    },
+    {
+      "path": "encounters/default.json",
+      "bytes": 77330,
+      "sha256": "37700101c1c2e38a6eaa3485ea823294ca742a6f7078f00305b9e373aee5bcd2"
+    },
+    {
+      "path": "shaders/background.wgsl",
+      "bytes": 1908,
+      "sha256": "aa5c05bae787c75a1fcf5115f2c1ea002109a61d928fc18e3e78c3b3623abb8c"
+    },
+    {
+      "path": "shaders/blackhole.wgsl",
+      "bytes": 11367,
+      "sha256": "1d0ef2e17c57ae2de203d58a52b87de06edc52c9cb6f012d1fa684462df20b85"
+    },
+    {
+      "path": "shaders/bloom.wgsl",
+      "bytes": 2284,
+      "sha256": "6f911fa7f0500e4d49572b0e913e01b81f86294fadb742852b268fb6be621fdf"
+    },
+    {
+      "path": "shaders/composite.wgsl",
+      "bytes": 2303,
+      "sha256": "5cb99007e78fe96da197b770500c049a1c204268fc040c51407f6459b017d009"
+    },
+    {
+      "path": "shaders/galaxy.wgsl",
+      "bytes": 7004,
+      "sha256": "4737344e2447ce07a98e3c4e461701135f11ebd51de298c6f2c77b51b2a310ab"
+    }
+  ]
+}

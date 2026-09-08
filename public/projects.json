@@ -94,5 +94,16 @@
     "source": "https://github.com/XenithONE/volcano-eruption",
     "cover": "images/ignis.png",
     "accent": "#ff713d"
+  },
+  {
+    "id": "tidal-forge",
+    "title": "TIDAL FORGE",
+    "subtitle": "銀河が交わり、光が曲がる。",
+    "description": "銀河が引き合い、長い潮汐の尾が生まれる。衝突の時間を辿り、自分の条件で重力を計算する。Schwarzschild時空を進む光が描く大質量ブラックホールを、自由な視点で眺める。",
+    "category": "GRAVITY SIMULATION",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/experiments/tidal-forge/",
+    "cover": "images/tidal-forge.png",
+    "accent": "#8adcf4"
   }
 ]

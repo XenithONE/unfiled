@@ -6,7 +6,7 @@ export interface Project {
   category: string;
   year: string;
   url: string;
-  source: string;
+  source?: string;
   cover: string;
   accent: string;
 }

@@ -59,13 +59,13 @@ npm run preview
 | `category`    | 作品の分類名                            |
 | `year`        | 制作年                                  |
 | `url`         | 実際の作品を開くHTTPS URL               |
-| `source`      | 公開ソースコードのHTTPS URL             |
+| `source`      | 公開ソースコードのHTTPS URL（任意。省略するとソースへのリンクを表示しません） |
 | `cover`       | `public/`を基準とした表紙画像の相対パス |
 | `accent`      | 作品を表す色（例：`#8dd6c1`）           |
 
 画像は`public/images/`へ置き、`cover`には先頭の`/`を付けずに指定します。JSONの末尾の余分なカンマに注意してください。更新後は`npm run build`で確認し、`main`へpushすると公開内容も更新されます。
 
-表紙は、作品の空気感を表現するオリジナルの生成ビジュアルを使用しています。YOHAKUとIGNISの表紙には実際の作品画面を使用しています。各作品のリンクから実際のサイトを開けます。
+表紙は、作品の空気感を表現するオリジナルの生成ビジュアルを使用しています。YOHAKU、IGNIS、TIDAL FORGEの表紙には実際の作品画面を使用しています。TIDAL FORGEはWebGPUで描画したブラックホールのシーンPNGをそのまま掲載しています。各作品のリンクから実際のサイトを開けます。
 
 ## GitHub Pagesへ公開する
 
@@ -79,6 +79,8 @@ npm run preview
 
 Viteの`base`は`'./'`を使用します。画像とデータも相対パスで参照し、`/unfiled/`のようなプロジェクト配下から開ける構成です。
 
+TIDAL FORGEは、同じPagesサイト内の`experiments/tidal-forge/`で公開します。`public/experiments/tidal-forge/`にはアプリの配布用静的ビルドを置き、UNFILEDのビルド時にそのまま配信先へコピーします。更新時はこのフォルダーを新しい配布用ビルド一式で置き換えます。WASM、WGSLシェーダー、銀河衝突の軌道データを含むため、一部のファイルだけを更新しないでください。元のソースリポジトリは非公開のまま、作品紹介には公開ソースへのリンクを掲載しません。
+
 ## 掲載作品
 
 - [NAGI — あの日の、海。](https://xenithone.github.io/nostalgic-sea/)
@@ -89,5 +91,6 @@ Viteの`base`は`'./'`を使用します。画像とデータも相対パスで�
 - [月の別荘 — Moon Villa](https://xenithone.github.io/moon-villa/)
 - [atelier — 油彩のアトリエ](https://xenithone.github.io/atelier-oil/)
 - [IGNIS — 火山の鼓動を、目撃する。](https://xenithone.github.io/volcano-eruption/)
+- [TIDAL FORGE — 銀河が交わり、光が曲がる。](https://xenithone.github.io/unfiled/experiments/tidal-forge/)
 
 制作・運営：[XenithONE](https://github.com/XenithONE)

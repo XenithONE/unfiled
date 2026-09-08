@@ -2,3 +2,5 @@
 *.png binary
 *.webp binary
 *.jpg binary
+# Preserve published build bytes and their release.json SHA-256 values.
+public/experiments/tidal-forge/** -text

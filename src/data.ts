@@ -21,7 +21,6 @@ export async function loadProjects(signal: AbortSignal): Promise<Project[]> {
       "category",
       "year",
       "url",
-      "source",
       "cover",
       "accent",
     ]) {
@@ -29,6 +28,8 @@ export async function loadProjects(signal: AbortSignal): Promise<Project[]> {
         throw new Error(`作品の${key}を確認してください。`);
     }
     const project = item as unknown as Project;
+    if (item.source !== undefined && (typeof item.source !== "string" || !item.source))
+      throw new Error("作品のsourceを確認してください。");
     if (
       !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(project.id) ||
       ["about", "works"].includes(project.id)
@@ -39,7 +40,7 @@ export async function loadProjects(signal: AbortSignal): Promise<Project[]> {
     }
     if (seen.has(project.id)) throw new Error("作品のIDが重複しています。");
     seen.add(project.id);
-    for (const link of [project.url, project.source]) {
+    for (const link of [project.url, ...(project.source ? [project.source] : [])]) {
       if (new URL(link).protocol !== "https:")
         throw new Error("作品リンクにはHTTPSを指定してください。");
     }

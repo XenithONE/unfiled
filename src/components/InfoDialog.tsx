@@ -109,10 +109,10 @@ export default function InfoDialog({
             <figure className="info-dialog__figure">
               <img
                 src={assetUrl(project.cover)}
-                alt={`${project.title}の世界を表現したカバーアート`}
+                alt={`${project.title}のカバー画像`}
               />
               <figcaption>
-                <span>COVER ART</span>
+                <span>COVER</span>
                 <span>{project.year}</span>
               </figcaption>
             </figure>
@@ -148,7 +148,7 @@ export default function InfoDialog({
                   />
                   <span className="info-dialog__sr-only">（新しいタブ）</span>
                 </a>
-                <a
+                {project.source && <a
                   className="info-dialog__source"
                   href={project.source}
                   target="_blank"
@@ -161,7 +161,7 @@ export default function InfoDialog({
                     aria-hidden="true"
                   />
                   <span className="info-dialog__sr-only">（新しいタブ）</span>
-                </a>
+                </a>}
               </div>
             </div>
           </article>

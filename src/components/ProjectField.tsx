@@ -230,7 +230,7 @@ export default function ProjectField({
                         ? "地球を望む宇宙ステーションの円形窓"
                         : project.title === "CHRONOSCOPE"
                           ? "月夜の岩場に立つ観測塔"
-                          : `${project.title}のカバーアート`
+                          : `${project.title}のカバー画像`
                     }
                     draggable="false"
                     fetchPriority={index === 1 ? "high" : "auto"}
