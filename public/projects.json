@@ -105,5 +105,17 @@
     "url": "https://xenithone.github.io/unfiled/experiments/tidal-forge/",
     "cover": "images/tidal-forge.png",
     "accent": "#8adcf4"
+  },
+  {
+    "id": "pigment-worlds",
+    "title": "PIGMENT",
+    "subtitle": "絵の向こうへ、歩いていこう。",
+    "description": "ゴッホ、モネ、クリムト、ターナーから着想した4つの油彩世界へ。厚く盛った絵具のような草花のあいだを歩き、光る額縁の先へ旅する。12の色のかけらを集め、見つけた景色を写真に残す、小さな冒険。",
+    "category": "WORLD",
+    "year": "2026",
+    "url": "https://xenithone.github.io/pigment-worlds/",
+    "source": "https://github.com/XenithONE/pigment-worlds",
+    "cover": "images/pigment-worlds.webp",
+    "accent": "#d8b96f"
   }
 ]
