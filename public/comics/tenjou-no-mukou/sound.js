@@ -1,15 +1,31 @@
-// Original effects synthesized with Web Audio. No network audio or autoplay.
+// Local 48 kHz PCM foley masters with Web Audio mixing; synthesized fallback.
+// Recording sources and transformations: audio/CREDITS.md.
 export class ComicSound {
+  static async fetchFiles(base = new URL('./audio/', import.meta.url)) {
+    return Promise.all(['shatter','phone','wood','voice'].map(async name => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+      try {
+        const response = await fetch(new URL(`${name}.wav`, base), { signal: controller.signal });
+        if (!response.ok) throw new Error('Audio unavailable');
+        return [name, await response.arrayBuffer()];
+      } catch { return [name, null]; }
+      finally { clearTimeout(timeout); }
+    }));
+  }
   constructor(context) {
     this.context = context;
     this.enabled = true;
     this.sources = new Map();
+    this.buffers = new Map();
+    this.voice = null;
+    this.footstep = 0;
     this.master = context.createGain();
-    this.master.gain.value = 0.55;
+    this.master.gain.value = 0.82;
     const compressor = context.createDynamicsCompressor();
-    compressor.threshold.value = -14;
-    compressor.knee.value = 10;
-    compressor.ratio.value = 8;
+    compressor.threshold.value = -7;
+    compressor.knee.value = 5;
+    compressor.ratio.value = 6;
     compressor.attack.value = 0.003;
     compressor.release.value = 0.2;
     this.master.connect(compressor).connect(context.destination);
@@ -21,6 +37,39 @@ export class ComicSound {
       seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
       samples[i] = (seed / 4294967296) * 2 - 1;
     }
+  }
+  async load(files = ComicSound.fetchFiles()) {
+    const entries = await files;
+    await Promise.all(entries.map(async ([name, bytes]) => {
+      if (!bytes) return;
+      try { this.buffers.set(name, await this.context.decodeAudioData(bytes.slice(0))); }
+      catch { /* The per-cue synthesis remains usable if a recording fails. */ }
+    }));
+  }
+  sample(name, { gain = 1, delay = 0, rate = 1, pan = 0, loop = false, group = 'fx', lowpass = 18000 } = {}) {
+    if (!this.enabled || !this.buffers.has(name)) return null;
+    const ctx = this.context, at = ctx.currentTime + delay;
+    const source = ctx.createBufferSource();
+    source.buffer = this.buffers.get(name);
+    source.playbackRate.value = rate;
+    source.loop = loop;
+    if (loop && name === 'voice') { source.loopStart = .13; source.loopEnd = 2.12; }
+    const envelope = ctx.createGain();
+    envelope.gain.setValueAtTime(gain, at);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass'; filter.frequency.value = lowpass; filter.Q.value = .45;
+    const panner = ctx.createStereoPanner(); panner.pan.value = pan;
+    source.connect(filter).connect(envelope).connect(panner).connect(this.master);
+    this.track(source, [filter, envelope, panner], group);
+    source.start(at);
+    return { source, envelope, filter, panner };
+  }
+  setApproach(progress) {
+    if (!this.voice || !this.sources.has(this.voice.source)) return;
+    const t = this.context.currentTime;
+    this.voice.envelope.gain.setTargetAtTime(.08 + .94 * progress ** 1.25, t, .018);
+    this.voice.filter.frequency.setTargetAtTime(950 + 6550 * progress, t, .018);
+    this.voice.panner.pan.setTargetAtTime(-.16 * (1-progress), t, .018);
   }
   track(source, nodes, group) {
     this.sources.set(source, { nodes, group });
@@ -66,6 +115,35 @@ export class ComicSound {
   }
   play(cue) {
     if (!this.enabled) return;
+    if (cue === 'shatter' && this.sample('shatter', { gain: .97, group: 'shatter' })) return;
+    if (cue === 'phone') {
+      this.stop('phone');
+      if (this.sample('phone', { gain: 1.08, loop: true, group: 'phone', pan: .12 })) return;
+    }
+    if (cue === 'voice') {
+      this.stop('voice');
+      this.voice = this.sample('voice', { gain: .08, loop: true, group: 'voice', lowpass: 950 });
+      if (!this.voice) {
+        for (let i=0;i<14;i++) {
+          this.tone(88+i%3*9,.19,.15,i*.1,'sawtooth',54,'voice');
+          this.hiss(720,.15,.16,i*.1,2,'voice');
+        }
+      }
+      return;
+    }
+    if (['knock','ladder','step','attic'].includes(cue) && this.buffers.has('wood')) {
+      if (cue === 'ladder' || cue === 'knock') {
+        this.stop('wood');
+        this.sample('wood', { gain: cue === 'ladder' ? .78 : .45, rate: .91, pan: -.18, group: 'wood' });
+        this.sample('wood', { gain: cue === 'ladder' ? .88 : .50, delay: 1.16, rate: 1.06, pan: .17, group: 'wood' });
+      } else if (cue === 'step') {
+        this.stop('wood');
+        this.sample('wood', { gain: .50, rate: 1.05 + this.footstep++ % 3 * .08, pan: this.footstep % 2 ? -.2 : .2, group: 'wood' });
+      } else {
+        this.sample('wood', { gain: .32, rate: .8, lowpass: 2600, group: 'wood' });
+      }
+      return;
+    }
     if (cue === 'shatter') {
       this.tone(340, 0.13, 0.16, 0, 'triangle', 85);
       this.hiss(4200, 0.18, 0.42);
@@ -98,20 +176,22 @@ export class ComicSound {
     } else if (cue === 'rush') {
       this.hiss(1800, .18, .33); this.tone(320, .2, .12, 0, 'sawtooth', 680);
     } else if (cue === 'impact') {
-      this.stop();
-      this.tone(105, .85, .8, 0, 'sine', 31);
-      this.tone(440, .48, .21, 0, 'sawtooth', 95);
-      this.tone(467, .46, .16, 0, 'sawtooth', 119);
-      this.hiss(1800, .7, .55);
-      this.hiss(5100, .24, .32);
+      // Let the throat voice continue through the face close-up.
+      this.stop('wood'); this.stop('phone'); this.stop('fx');
+      this.tone(105, .58, .48, 0, 'sine', 31);
+      this.tone(440, .30, .09, 0, 'sawtooth', 95);
+      this.hiss(1800, .38, .23);
+      this.hiss(5100, .17, .12);
     }
   }
   setEnabled(enabled) {
     this.enabled = enabled;
-    this.master.gain.setTargetAtTime(enabled ? .55 : 0, this.context.currentTime, .012);
+    this.master.gain.cancelScheduledValues(this.context.currentTime);
+    this.master.gain.setTargetAtTime(enabled ? .82 : 0, this.context.currentTime, .012);
     if (!enabled) this.stop();
   }
   stop(group) {
+    if (!group || group === 'voice') this.voice = null;
     for (const [source, value] of this.sources) {
       if (!group || value.group === group) {
         try { source.stop(); } catch { /* Already ended. */ }

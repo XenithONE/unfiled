@@ -11,7 +11,7 @@
   <meta property="og:image" content="https://xenithone.github.io/unfiled/comics/tenjou-no-mukou/art/cover.webp">
   <meta property="og:url" content="https://xenithone.github.io/unfiled/comics/tenjou-no-mukou/">
   <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./comic.css">
+  <link rel="stylesheet" href="./comic.css?v=2">
   <link rel="preload" as="image" href="./art/cover.webp">
 </head>
 <body data-phase="idle">
@@ -54,12 +54,12 @@
       <figure class="panel listening-panel" data-cue="knock"><div class="plate listen-top" role="img" aria-label="天井の物音に気づき、はっと顔を上げる。"></div><span class="sfx knock-letter">コト。</span></figure>
       <div class="narration"><p>電話を切ったあとも、<br>その音だけが続いていた。</p><p>今度は、頭の上から。</p></div>
       <div class="narration narrow"><p>音は、押し入れの天井から聞こえた。</p></div>
-      <figure class="panel ladder-panel" data-cue="ladder"><div class="plate listen-bottom" role="img" aria-label="押し入れに立てた木のはしごを登り、懐中電灯で屋根裏の入口を照らす。"></div></figure>
+      <figure class="panel ladder-panel" data-cue="ladder"><span class="sfx creak-letter">ギィ……</span><div class="plate listen-bottom" role="img" aria-label="押し入れに立てた木のはしごを登り、懐中電灯で屋根裏の入口を照らす。"></div></figure>
       <div class="narration"><p>古いはしごを立てかけた。</p><p>一段。<br>もう、一段。</p></div>
       <figure class="panel entry-panel" data-cue="attic"><img src="./art/entry.webp" width="1254" height="1254" alt="はしごの上から屋根裏に顔を出す。懐中電灯の黄色い光が、梁と埃の向こうの暗闇へ伸びる。" loading="eager"></figure>
       <div class="narration long-pause"><p>埃の匂い。<br>湿った木の匂い。</p><p>奥まで、光を向ける。</p></div>
       <div class="narration discovery-lines"><p>……あれ。</p><p>あんなところに、<br>何か置いてあっただろうか。</p></div>
-      <figure class="panel discovery-panel" id="discovery"><div class="atlas-cell discovery-art" style="--col:0;--row:0" role="img" aria-label="屋根裏の奥。光の先に、うつむいた人影のようなものがうっすら見える。"></div><div class="flashlight-shade" aria-hidden="true"></div></figure>
+      <figure class="panel discovery-panel" id="discovery"><div class="atlas-cell discovery-art" style="--col:0;--row:0;background-image:url(./art/rush-1.webp)" role="img" aria-label="屋根裏の奥。光の先に、うつむいた人影のようなものがうっすら見える。"></div><div class="flashlight-shade" aria-hidden="true"></div></figure>
       <div class="narration last-thought"><p>人、みたいな——</p></div>
       <div id="loading-fallback" hidden><p class="narration">絵を読み込んでいます。</p><button id="continue-static" class="text-button" type="button">自動演出なしで続きを読む</button></div>
     </article>
@@ -71,6 +71,7 @@
         <h2 id="end-title">いま、どこから<br>読んでいる？</h2>
         <span class="end-mark" aria-hidden="true"></span>
         <div class="ending-links"><button id="replay" class="text-button" type="button">もう一度読む</button><a href="../../">リンク集へ</a></div>
+        <p class="audio-credits"><a href="./audio/CREDITS.md">音の素材・クレジット</a></p>
         <p class="colophon">天井のむこう <span>／</span> おわり</p>
         <button id="frames-toggle" class="quiet-button" type="button" aria-expanded="false" aria-controls="frame-gallery">コマをゆっくり見返す</button>
       </div>
@@ -81,6 +82,6 @@
   <button id="stop" type="button" hidden>演出をとめる <span>Esc</span></button>
   <div id="blackout" hidden aria-hidden="true"></div>
   <p id="reader-status" class="sr-only" role="status" aria-live="polite"></p>
-  <script type="module" src="./comic.js"></script>
+  <script type="module" src="./comic.js?v=2"></script>
 </body>
 </html>

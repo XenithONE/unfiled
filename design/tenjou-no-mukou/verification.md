@@ -1,4 +1,6 @@
-# 天井のむこう — verification
+# 天井のむこう — verification（初回9コマ版の記録）
+
+This document and `acceptance-results.json` preserve the initial release checks. The 36-frame revision uses `frames.js` and the recorded foley described in `frame-direction.md` and `audio/CREDITS.md`.
 
 ## Result
 

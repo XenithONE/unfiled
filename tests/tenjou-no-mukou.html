@@ -16,7 +16,7 @@ const phase=()=>doc().body.dataset.phase;
 const click=id=>doc().querySelector(id).click();
 const wheel=(deltaY)=>win().dispatchEvent(new (win().WheelEvent)('wheel',{deltaY,cancelable:true}));
 const key=(key)=>win().dispatchEvent(new (win().KeyboardEvent)('keydown',{key,cancelable:true}));
-async function load() {frame.removeAttribute('srcdoc');frame.src='/comics/tenjou-no-mukou/index.html?acceptance='+Date.now();await wait(()=>doc()?.querySelectorAll('.attack-step').length===9);await sleep(180);}
+async function load() {frame.removeAttribute('srcdoc');frame.src='/comics/tenjou-no-mukou/index.html?acceptance='+Date.now();await wait(()=>doc()?.querySelectorAll('.attack-step').length===36);await sleep(180);}
 function enable(){if(doc().querySelector('#motion-toggle').getAttribute('aria-pressed')!=='true')click('#motion-toggle');if(doc().querySelector('#sound-toggle').getAttribute('aria-pressed')==='true')click('#sound-toggle');}
 async function discover(){win().scrollTo({top:doc().documentElement.scrollHeight,behavior:'instant'});await wait(()=>phase()==='discovery');await sleep(450);}
 async function restart(){enable();click('#start');await sleep(100);await discover();}
@@ -37,12 +37,12 @@ document.querySelector('#run').onclick=async()=>{
   const observer=new MutationObserver(()=>{const f=doc().body.dataset.frame;if(f!==undefined&&!result.frames.some(x=>x.frame===Number(f)))result.frames.push({frame:Number(f),y:win().scrollY,t:performance.now()});});
   observer.observe(doc().body,{attributes:true,attributeFilter:['data-frame']});
   wheel(40);await wait(()=>phase()==='ending');observer.disconnect();
-  log('All nine different frames displayed in order',result.frames.map(x=>x.frame).join(',')==='0,1,2,3,4,5,6,7,8');
+  log('All 36 different frames displayed in order',result.frames.map(x=>x.frame).join(',')===Array.from({length:36},(_,i)=>i).join(','));
   log('Real page scroll advances for every frame',result.frames.every((x,i)=>i===0||x.y>result.frames[i-1].y+600));
   log('Ending releases automatic controls',!doc().documentElement.hasAttribute('data-controlled')&&doc().querySelector('#stop').hidden);
-  log('Final frame uses separate detailed artwork',getComputedStyle(doc().querySelector('#approach [data-frame="8"] .attack-art')).backgroundImage.includes('final.webp'));
+  log('Final frame uses separate detailed artwork',getComputedStyle(doc().querySelector('#approach [data-frame="35"] .attack-art')).backgroundImage.includes('final.webp'));
   const elapsed=result.frames.at(-1).t-result.frames[0].t;
-  log('Distinct frames retain readable holds',elapsed>1300&&elapsed<3000,Math.round(elapsed)+' ms before final hold');
+  log('36 frames arrive faster than the former 1.44 second sequence',elapsed>600&&elapsed<1350,Math.round(elapsed)+' ms before final hold');
   click('#replay');await sleep(100);log('Replay preserves explicit motion choice',phase()==='reading'&&doc().querySelector('#motion-toggle').getAttribute('aria-pressed')==='true');
   log('Replay preserves mute',doc().querySelector('#sound-toggle').getAttribute('aria-pressed')==='false');
   await discover();key('PageDown');await sleep(40);log('Keyboard starts approach',phase()==='attacking');
@@ -53,12 +53,17 @@ document.querySelector('#run').onclick=async()=>{
   click('#quiet-start');await sleep(80);log('Quiet reading disables sound and automatic motion',phase()==='static'&&doc().querySelector('#sound-toggle').getAttribute('aria-pressed')==='false');
   win().scrollTo({top:doc().querySelector('#discovery').offsetTop,behavior:'instant'});await sleep(80);wheel(100);await sleep(100);log('Quiet mode never takes over scroll',phase()==='static');
 
-  for(const cue of ['shatter','phone','silence','knock','ladder','attic','head','step','rush','impact']) {
-   const context=new OfflineAudioContext(1,48000*3,48000);const sound=new ComicSound(context);sound.play(cue);const rendered=await context.startRendering();const samples=rendered.getChannelData(0);let peak=0,sum=0;for(const value of samples){peak=Math.max(peak,Math.abs(value));sum+=value*value;}const rms=Math.sqrt(sum/samples.length);result.audio.push({cue,peak:Number(peak.toFixed(6)),rms:Number(rms.toFixed(6))});log('Audio '+cue+' is non-silent and unclipped',peak>0.0001&&peak<0.99&&Number.isFinite(rms));
+  const audioFiles=await ComicSound.fetchFiles();
+  log('All four PCM files download',audioFiles.every(([,bytes])=>bytes?.byteLength>100000));
+  for(const cue of ['shatter','phone','silence','knock','ladder','attic','head','step','rush','voice','impact']) {
+   const context=new OfflineAudioContext(1,48000*3,48000);const sound=new ComicSound(context);await sound.load(audioFiles);sound.play(cue);const rendered=await context.startRendering();const samples=rendered.getChannelData(0);let peak=0,sum=0;for(const value of samples){peak=Math.max(peak,Math.abs(value));sum+=value*value;}const rms=Math.sqrt(sum/samples.length);result.audio.push({cue,peak:Number(peak.toFixed(6)),rms:Number(rms.toFixed(6))});log('Audio '+cue+' is non-silent and unclipped',peak>0.0001&&peak<0.99&&Number.isFinite(rms));
   }
-  const muteContext=new OfflineAudioContext(1,48000,48000);const muted=new ComicSound(muteContext);muted.setEnabled(false);muted.play('impact');const silence=await muteContext.startRendering();log('Muted effect produces zero samples',silence.getChannelData(0).every(x=>x===0));
+  const phoneContext=new OfflineAudioContext(2,48000,48000);const phoneSound=new ComicSound(phoneContext);await phoneSound.load(audioFiles);phoneSound.play('phone');log('Telephone repeats until answered',[...phoneSound.sources.keys()].some(x=>x.loop));phoneSound.play('silence');log('Receiver stops the mechanical bell immediately',![...phoneSound.sources.values()].some(x=>x.group==='phone'));
+  const mixContext=new OfflineAudioContext(2,48000*2,48000);const mix=new ComicSound(mixContext);await mix.load(audioFiles);mix.play('voice');mix.setApproach(1);mix.play('impact');log('Final impact retains throat voice',!!mix.voice&&mix.sources.has(mix.voice.source));const mixRendered=await mixContext.startRendering();let mixPeak=0;for(let c=0;c<2;c++)for(const value of mixRendered.getChannelData(c))mixPeak=Math.max(mixPeak,Math.abs(value));log('Voice plus impact retains headroom',mixPeak>0.02&&mixPeak<.99,mixPeak.toFixed(5));
+  const muteContext=new OfflineAudioContext(1,48000,48000);const muted=new ComicSound(muteContext);await muted.load(audioFiles);muted.play('voice');muted.play('phone');muted.setEnabled(false);muted.play('impact');log('Mute cancels loops and scheduled sources',muted.sources.size===0);const silence=await muteContext.startRendering();log('Muted effect produces zero samples',silence.getChannelData(0).every(x=>x===0));
+  const fallbackContext=new OfflineAudioContext(1,48000,48000);const fallback=new ComicSound(fallbackContext);await fallback.load(Promise.resolve([['shatter',null],['phone',null],['wood',null],['voice',null]]));fallback.play('shatter');const fallRendered=await fallbackContext.startRendering();log('Audio download failure keeps fallback sound usable',fallRendered.getChannelData(0).some(x=>Math.abs(x)>.001));
   const original=await fetch('/comics/tenjou-no-mukou/index.html').then(r=>r.text());
-  frame.srcdoc=original.replace('<head>','<head><base href="/__missing_comic_assets__/">').replace('href="./comic.css"','href="/comics/tenjou-no-mukou/comic.css"').replace('src="./comic.js"','src="/comics/tenjou-no-mukou/comic.js"');
+  frame.srcdoc=original.replace('<head>','<head><base href="/__missing_comic_assets__/">').replace(/href="\.\/comic\.css[^"]*"/,'href="/comics/tenjou-no-mukou/comic.css"').replace(/src="\.\/comic\.js[^"]*"/,'src="/comics/tenjou-no-mukou/comic.js"');
   await wait(()=>doc()?.querySelector('#load-status')?.textContent.includes('読み込めません'));
   log('Missing art disables automatic sequence',doc().querySelector('#motion-toggle').getAttribute('aria-pressed')==='false');
   click('#quiet-start');log('Missing art leaves static narrative usable',phase()==='static'&&!doc().querySelector('#ending').hidden);

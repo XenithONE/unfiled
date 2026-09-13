@@ -1,19 +1,11 @@
-import { ComicSound } from './sound.js';
+import { ComicSound } from './sound.js?v=2';
+import { frames, attackAssets } from './frames.js';
 
 const $ = (selector) => document.querySelector(selector);
 const body = document.body;
 const motionQuery = matchMedia('(prefers-reduced-motion: reduce)');
-const frames = [
-  { cell: 0, hold: 240, caption: '奥に、うつむいた人影。' },
-  { cell: 1, hold: 250, cue: 'head', caption: '顔が、こちらを向く。' },
-  { cell: 2, hold: 210, cue: 'step', caption: '片手が、前の床板をつかむ。' },
-  { cell: 3, hold: 175, cue: 'step', caption: '身体を低くして、這い寄る。' },
-  { cell: 4, hold: 150, cue: 'step', caption: '膝を引きつけ、床を蹴る。' },
-  { cell: 5, hold: 125, cue: 'rush', caption: '片腕を伸ばしながら、飛びかかる。' },
-  { cell: 6, hold: 105, cue: 'rush', caption: '指が、こちらをつかもうと開く。' },
-  { cell: 7, hold: 85, cue: 'rush', caption: '顔と手が、目の前へ。' },
-  { cell: 8, hold: 720, cue: 'impact', caption: '——つかまえた。' },
-];
+const audioFiles = ComicSound.fetchFiles();
+body.dataset.audio = 'loading';
 let phase = 'idle';
 let started = false;
 let soundEnabled = true;
@@ -56,6 +48,8 @@ function artElement(index) {
   div.className = 'attack-art ' + (index === frames.length - 1 ? 'final-art' : 'atlas-cell');
   div.style.setProperty('--col', frames[index].cell % 3);
   div.style.setProperty('--row', Math.floor(frames[index].cell / 3));
+  if (frames[index].sheet) div.style.backgroundImage = `url('./art/rush-${frames[index].sheet}.webp')`;
+  else { div.style.backgroundSize = '130%'; div.style.backgroundPosition = '50% 35%'; }
   div.setAttribute('role', 'img');
   div.setAttribute('aria-label', frames[index].caption);
   return div;
@@ -68,7 +62,6 @@ frames.forEach((frame, index) => {
   const caption = document.createElement('figcaption');
   caption.textContent = `${String(index + 1).padStart(2, '0')}　${frame.caption}`;
   const art = artElement(index);
-  if (index === 5 || index === 6) art.style.transform = 'scaleX(-1)';
   figure.append(art, caption); gallery.append(figure);
 });
 const steps = [...approach.children];
@@ -84,7 +77,7 @@ function decodeAsset(src) {
     image.src = src;
   });
 }
-const artPromise = Promise.all(['attack', 'final', 'phone', 'listen'].map(name => decodeAsset(`./art/${name}.webp`)))
+const artPromise = Promise.all([...attackAssets, 'phone', 'listen'].map(name => decodeAsset(`./art/${name}.webp`)))
   .then(images => {
     // Retain decoded images for the entire reading session.
     artPromise.images = images;
@@ -108,6 +101,10 @@ async function unlockSound() {
       if (!AudioContextClass) throw new Error('Audio unavailable');
       audioContext = new AudioContextClass();
       synth = new ComicSound(audioContext);
+      void synth.load(audioFiles).then(() => {
+        body.dataset.audio = synth.buffers.size === 4 ? 'ready' : 'partial';
+        if (synth.buffers.size !== 4) status.textContent = '一部の音を読み込めなかったため、代わりの効果音で続けます。';
+      });
     }
     synth.setEnabled(true);
     if (audioContext.state === 'suspended') await audioContext.resume();
@@ -174,7 +171,11 @@ function displayFrame(index, now) {
   body.dataset.frame = String(index);
   scrollToElement(steps[index]);
   if (frames[index].cue) synth?.play(frames[index].cue);
-  frameDeadline = now + frames[index].hold;
+  synth?.setApproach(index / (frames.length - 1));
+  // Carry sub-refresh remainder forward but never skip a drawing after a slow frame.
+  frameDeadline = index === 0 || index === frames.length - 1
+    ? now + frames[index].hold
+    : Math.max(frameDeadline + frames[index].hold, now);
 }
 function advance(now) {
   if (phase !== 'attacking') return;
@@ -201,6 +202,7 @@ function attack() {
   document.documentElement.dataset.controlled = 'true';
   $('#stop').hidden = false;
   status.textContent = '人影がこちらへ近づいてきます。Escapeキーで演出を停止できます。';
+  synth?.play('voice');
   displayFrame(0, performance.now());
   raf = requestAnimationFrame(advance);
   return true;
