@@ -1,5 +1,5 @@
 import { ComicSound } from './sound.js?v=2';
-import { frames, attackAssets } from './frames.js';
+import { frames, attackAssets } from './frames.js?v=4';
 
 const $ = (selector) => document.querySelector(selector);
 const body = document.body;

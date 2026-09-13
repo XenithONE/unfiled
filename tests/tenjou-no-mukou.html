@@ -44,7 +44,7 @@ document.querySelector('#run').onclick=async()=>{
   log('Ending releases automatic controls',!doc().documentElement.hasAttribute('data-controlled')&&doc().querySelector('#stop').hidden);
   log('Final frame uses separate detailed artwork',getComputedStyle(doc().querySelector('#approach [data-frame="35"] .attack-art')).backgroundImage.includes('final.webp'));
   const elapsed=result.frames.at(-1).t-result.frames[0].t;
-  log('36 frames arrive faster than the former 1.44 second sequence',elapsed>600&&elapsed<1350,Math.round(elapsed)+' ms before final hold');
+  log('Faster approach retains all 36 frames within 0.8 seconds',elapsed>500&&elapsed<800,Math.round(elapsed)+' ms before final hold');
   click('#replay');await sleep(100);log('Replay enables motion without a setting',phase()==='reading'&&doc().body.dataset.motion==='on');
   log('Replay keeps audio running',doc().body.dataset.audioState==='running');
   await discover();key('PageDown');await sleep(40);log('Keyboard starts approach',phase()==='attacking');

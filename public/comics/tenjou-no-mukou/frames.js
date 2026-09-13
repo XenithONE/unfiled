@@ -22,10 +22,11 @@ const sequence = [
 ];
 
 const cues = new Map([[4,'head'],[10,'step'],[16,'step'],[21,'step'],[25,'rush'],[35,'impact']]);
+const approachSpeed = 1.3;
 export const frames = sequence.map(([sheet,cell,caption], index) => ({
   sheet, cell, caption, cue: cues.get(index),
-  // A short initial twitch gives way to near single-refresh frames (~0.93s to impact at 60Hz).
-  hold: index === 35 ? 560 : index < 8 ? 38 : index < 18 ? 26 : index < 27 ? 18 : 13,
+  // Speed up the approach to ~638ms; keep the final face/hand on screen for 560ms.
+  hold: index === 35 ? 560 : (index < 8 ? 38 : index < 18 ? 26 : index < 27 ? 18 : 13) / approachSpeed,
 }));
 
 export const attackAssets = ['rush-1','rush-2','rush-3','rush-4','final'];
