@@ -117,5 +117,17 @@
     "source": "https://github.com/XenithONE/pigment-worlds",
     "cover": "images/pigment-worlds.webp",
     "accent": "#d8b96f"
+  },
+  {
+    "id": "tenjou-no-mukou",
+    "title": "天井のむこう",
+    "subtitle": "両親がいなくなった家で、まだ音がする。",
+    "description": "実家の片付け。突然割れた茶碗、無言の電話、天井の物音。押し入れのはしごを登り、懐中電灯を向けた先に、何かがいる。カラー漫画と効果音、突然動き出す連続コマで読む、短編ホラー。",
+    "category": "HORROR WEBCOMIC",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/comics/tenjou-no-mukou/",
+    "source": "https://github.com/XenithONE/unfiled/tree/main/public/comics/tenjou-no-mukou",
+    "cover": "images/tenjou-no-mukou.webp",
+    "accent": "#ac6552"
   }
 ]

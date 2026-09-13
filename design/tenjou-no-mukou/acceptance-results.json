@@ -1,0 +1,284 @@
+{
+  "checks": [
+    {
+      "name": "OS reduced-motion default",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "No automatic attack before start",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "No horizontal overflow at 390",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "No horizontal overflow at 768",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "No horizontal overflow at 1366",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Start focuses narrative for keyboard reading",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Upward scroll does not trigger attack",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "All nine different frames displayed in order",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Real page scroll advances for every frame",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Ending releases automatic controls",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Final frame uses separate detailed artwork",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Distinct frames retain readable holds",
+      "ok": true,
+      "details": "1401 ms before final hold"
+    },
+    {
+      "name": "Replay preserves explicit motion choice",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Replay preserves mute",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Keyboard starts approach",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Escape cancels frames and timers",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Fresh upward finger swipe starts approach",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Visible stop switches to readable stills",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Hidden document cancels approach",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Visibility return does not rearm",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Orientation/width change cancels approach",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Quiet reading disables sound and automatic motion",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Quiet mode never takes over scroll",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Audio shatter is non-silent and unclipped",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Audio phone is non-silent and unclipped",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Audio silence is non-silent and unclipped",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Audio knock is non-silent and unclipped",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Audio ladder is non-silent and unclipped",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Audio attic is non-silent and unclipped",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Audio head is non-silent and unclipped",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Audio step is non-silent and unclipped",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Audio rush is non-silent and unclipped",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Audio impact is non-silent and unclipped",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Muted effect produces zero samples",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Missing art disables automatic sequence",
+      "ok": true,
+      "details": ""
+    },
+    {
+      "name": "Missing art leaves static narrative usable",
+      "ok": true,
+      "details": ""
+    }
+  ],
+  "frames": [
+    {
+      "frame": 0,
+      "y": 9012,
+      "t": 1788
+    },
+    {
+      "frame": 1,
+      "y": 9732,
+      "t": 2038.9000000022352
+    },
+    {
+      "frame": 2,
+      "y": 10452,
+      "t": 2289
+    },
+    {
+      "frame": 3,
+      "y": 11172,
+      "t": 2505.7000000029802
+    },
+    {
+      "frame": 4,
+      "y": 11892,
+      "t": 2689.10000000149
+    },
+    {
+      "frame": 5,
+      "y": 12612,
+      "t": 2839
+    },
+    {
+      "frame": 6,
+      "y": 13332,
+      "t": 2972.5
+    },
+    {
+      "frame": 7,
+      "y": 14052,
+      "t": 3089
+    },
+    {
+      "frame": 8,
+      "y": 14772,
+      "t": 3189.10000000149
+    }
+  ],
+  "audio": [
+    {
+      "cue": "shatter",
+      "peak": 0.105888,
+      "rms": 0.009373
+    },
+    {
+      "cue": "phone",
+      "peak": 0.149127,
+      "rms": 0.024536
+    },
+    {
+      "cue": "silence",
+      "peak": 0.002916,
+      "rms": 0.000114
+    },
+    {
+      "cue": "knock",
+      "peak": 0.192741,
+      "rms": 0.009112
+    },
+    {
+      "cue": "ladder",
+      "peak": 0.196324,
+      "rms": 0.01247
+    },
+    {
+      "cue": "attic",
+      "peak": 0.031582,
+      "rms": 0.004643
+    },
+    {
+      "cue": "head",
+      "peak": 0.068085,
+      "rms": 0.00192
+    },
+    {
+      "cue": "step",
+      "peak": 0.082109,
+      "rms": 0.004656
+    },
+    {
+      "cue": "rush",
+      "peak": 0.054103,
+      "rms": 0.001958
+    },
+    {
+      "cue": "impact",
+      "peak": 0.35025,
+      "rms": 0.03663
+    }
+  ],
+  "status": "passed"
+}

@@ -1,0 +1,69 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><title>天井のむこう — browser acceptance checks</title>
+<style>body{background:#171919;color:#e3e1d7;font:14px/1.7 system-ui;margin:24px}button{padding:14px 24px}pre{white-space:pre-wrap}iframe{display:block;border:1px solid #555;width:960px;height:720px;margin:24px 0}#results{max-width:1100px}.pass{color:#b6d5a9}.fail{color:#ff9d9d}</style>
+<h1>天井のむこう — browser acceptance checks</h1><p>Local-only regression harness. Runs the actual comic in a same-origin iframe, simulates input events, observes rendered DOM and scroll positions, and renders the production audio code offline.</p>
+<button id="run">Run checks</button><pre id="results"></pre><iframe id="app" title="Comic under test"></iframe>
+<script type="module">
+const soundModuleUrl = '/comics/tenjou-no-mukou/sound.js';
+const { ComicSound } = await import(/* @vite-ignore */ soundModuleUrl);
+const output = document.querySelector('#results');
+const frame = document.querySelector('#app');
+const result = { checks: [], frames: [], audio: [] };
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const wait = async (fn, timeout=7000) => { const start=performance.now(); while(!fn()){if(performance.now()-start>timeout)throw Error('Condition timed out');await sleep(20);} };
+const log = (name, ok, details='') => { result.checks.push({name,ok,details}); output.textContent=JSON.stringify(result,null,2); if(!ok)throw Error(name+': '+details); };
+const win=()=>frame.contentWindow, doc=()=>frame.contentDocument;
+const phase=()=>doc().body.dataset.phase;
+const click=id=>doc().querySelector(id).click();
+const wheel=(deltaY)=>win().dispatchEvent(new (win().WheelEvent)('wheel',{deltaY,cancelable:true}));
+const key=(key)=>win().dispatchEvent(new (win().KeyboardEvent)('keydown',{key,cancelable:true}));
+async function load() {frame.removeAttribute('srcdoc');frame.src='/comics/tenjou-no-mukou/index.html?acceptance='+Date.now();await wait(()=>doc()?.querySelectorAll('.attack-step').length===9);await sleep(180);}
+function enable(){if(doc().querySelector('#motion-toggle').getAttribute('aria-pressed')!=='true')click('#motion-toggle');if(doc().querySelector('#sound-toggle').getAttribute('aria-pressed')==='true')click('#sound-toggle');}
+async function discover(){win().scrollTo({top:doc().documentElement.scrollHeight,behavior:'instant'});await wait(()=>phase()==='discovery');await sleep(450);}
+async function restart(){enable();click('#start');await sleep(100);await discover();}
+function touch(type,y){const event=new (win().Event)(type,{bubbles:true,cancelable:true});Object.defineProperty(event,'touches',{value:[{clientY:y}]});win().dispatchEvent(event);}
+
+document.querySelector('#run').onclick=async()=>{
+ document.querySelector('#run').disabled=true;
+ try {
+  await load();
+  const reduced=win().matchMedia('(prefers-reduced-motion: reduce)').matches;
+  log('OS reduced-motion default',doc().querySelector('#motion-toggle').getAttribute('aria-pressed')===String(!reduced));
+  wheel(120); await sleep(80); log('No automatic attack before start',phase()==='idle');
+  for (const width of [390,768,1366]) {frame.style.width=width+'px';await sleep(80);log('No horizontal overflow at '+width,doc().documentElement.scrollWidth<=win().innerWidth);}
+  frame.style.width='960px';await sleep(80);
+  enable();click('#start');await sleep(100);
+  log('Start focuses narrative for keyboard reading',doc().activeElement.id==='story');
+  await discover();wheel(-50);await sleep(220);log('Upward scroll does not trigger attack',phase()==='discovery');
+  const observer=new MutationObserver(()=>{const f=doc().body.dataset.frame;if(f!==undefined&&!result.frames.some(x=>x.frame===Number(f)))result.frames.push({frame:Number(f),y:win().scrollY,t:performance.now()});});
+  observer.observe(doc().body,{attributes:true,attributeFilter:['data-frame']});
+  wheel(40);await wait(()=>phase()==='ending');observer.disconnect();
+  log('All nine different frames displayed in order',result.frames.map(x=>x.frame).join(',')==='0,1,2,3,4,5,6,7,8');
+  log('Real page scroll advances for every frame',result.frames.every((x,i)=>i===0||x.y>result.frames[i-1].y+600));
+  log('Ending releases automatic controls',!doc().documentElement.hasAttribute('data-controlled')&&doc().querySelector('#stop').hidden);
+  log('Final frame uses separate detailed artwork',getComputedStyle(doc().querySelector('#approach [data-frame="8"] .attack-art')).backgroundImage.includes('final.webp'));
+  const elapsed=result.frames.at(-1).t-result.frames[0].t;
+  log('Distinct frames retain readable holds',elapsed>1300&&elapsed<3000,Math.round(elapsed)+' ms before final hold');
+  click('#replay');await sleep(100);log('Replay preserves explicit motion choice',phase()==='reading'&&doc().querySelector('#motion-toggle').getAttribute('aria-pressed')==='true');
+  log('Replay preserves mute',doc().querySelector('#sound-toggle').getAttribute('aria-pressed')==='false');
+  await discover();key('PageDown');await sleep(40);log('Keyboard starts approach',phase()==='attacking');
+  key('Escape');const escapedY=win().scrollY;await sleep(1200);log('Escape cancels frames and timers',phase()==='static'&&!doc().documentElement.hasAttribute('data-controlled')&&win().scrollY===escapedY);
+  await restart();touch('touchstart',600);touch('touchmove',550);await sleep(50);log('Fresh upward finger swipe starts approach',phase()==='attacking');click('#stop');log('Visible stop switches to readable stills',phase()==='static'&&!doc().querySelector('#approach').hidden);
+  await restart();wheel(70);await sleep(40);Object.defineProperty(doc(),'hidden',{configurable:true,value:true});doc().dispatchEvent(new (win().Event)('visibilitychange'));log('Hidden document cancels approach',phase()==='static');delete doc().hidden;await sleep(200);log('Visibility return does not rearm',phase()==='static');
+  await restart();wheel(70);await sleep(40);frame.style.width='390px';await sleep(180);log('Orientation/width change cancels approach',phase()==='static');
+  click('#quiet-start');await sleep(80);log('Quiet reading disables sound and automatic motion',phase()==='static'&&doc().querySelector('#sound-toggle').getAttribute('aria-pressed')==='false');
+  win().scrollTo({top:doc().querySelector('#discovery').offsetTop,behavior:'instant'});await sleep(80);wheel(100);await sleep(100);log('Quiet mode never takes over scroll',phase()==='static');
+
+  for(const cue of ['shatter','phone','silence','knock','ladder','attic','head','step','rush','impact']) {
+   const context=new OfflineAudioContext(1,48000*3,48000);const sound=new ComicSound(context);sound.play(cue);const rendered=await context.startRendering();const samples=rendered.getChannelData(0);let peak=0,sum=0;for(const value of samples){peak=Math.max(peak,Math.abs(value));sum+=value*value;}const rms=Math.sqrt(sum/samples.length);result.audio.push({cue,peak:Number(peak.toFixed(6)),rms:Number(rms.toFixed(6))});log('Audio '+cue+' is non-silent and unclipped',peak>0.0001&&peak<0.99&&Number.isFinite(rms));
+  }
+  const muteContext=new OfflineAudioContext(1,48000,48000);const muted=new ComicSound(muteContext);muted.setEnabled(false);muted.play('impact');const silence=await muteContext.startRendering();log('Muted effect produces zero samples',silence.getChannelData(0).every(x=>x===0));
+  const original=await fetch('/comics/tenjou-no-mukou/index.html').then(r=>r.text());
+  frame.srcdoc=original.replace('<head>','<head><base href="/__missing_comic_assets__/">').replace('href="./comic.css"','href="/comics/tenjou-no-mukou/comic.css"').replace('src="./comic.js"','src="/comics/tenjou-no-mukou/comic.js"');
+  await wait(()=>doc()?.querySelector('#load-status')?.textContent.includes('読み込めません'));
+  log('Missing art disables automatic sequence',doc().querySelector('#motion-toggle').getAttribute('aria-pressed')==='false');
+  click('#quiet-start');log('Missing art leaves static narrative usable',phase()==='static'&&!doc().querySelector('#ending').hidden);
+  output.className='pass';result.status='passed';
+ }catch(error){result.status='failed';result.error=String(error);output.className='fail';}
+ output.textContent=JSON.stringify(result,null,2);document.body.dataset.result=result.status;document.querySelector('#run').disabled=false;
+};
+</script></html>

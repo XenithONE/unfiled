@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#080909">
+  <title>天井のむこう — 音と動きのある短編漫画</title>
+  <meta name="description" content="両親がいなくなった家で、まだ音がする。片付け、無言電話、押し入れのはしご。そして屋根裏の暗闇。音とコマ送りで読むオリジナル短編ホラー漫画。">
+  <meta property="og:title" content="天井のむこう">
+  <meta property="og:description" content="両親がいなくなった家で、まだ音がする。音と動きのある短編漫画。">
+  <meta property="og:image" content="https://xenithone.github.io/unfiled/comics/tenjou-no-mukou/art/cover.webp">
+  <meta property="og:url" content="https://xenithone.github.io/unfiled/comics/tenjou-no-mukou/">
+  <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./comic.css">
+  <link rel="preload" as="image" href="./art/cover.webp">
+</head>
+<body data-phase="idle">
+  <a class="skip-link" href="#story">本文へ</a>
+  <header class="toolbar">
+    <a class="back" href="../../" aria-label="UNFILEDのリンク集へ戻る"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H4m6-6-6 6 6 6"/></svg><span>UNFILED</span></a>
+    <span class="running-title" aria-hidden="true">天井のむこう</span>
+    <div class="toolbar-actions">
+      <button id="motion-toggle" type="button" aria-pressed="true">動き <span>ON</span></button>
+      <button id="sound-toggle" type="button" aria-pressed="true">音 <span>ON</span><i class="sound-bars" aria-hidden="true"><b></b><b></b><b></b></i></button>
+    </div>
+  </header>
+
+  <main>
+    <section class="cover" aria-labelledby="title">
+      <img class="cover-art" src="./art/cover.webp" width="1536" height="1024" alt="誰もいない実家。開いた押し入れから木のはしごが屋根裏へ伸びている。" fetchpriority="high">
+      <div class="cover-copy">
+        <h1 id="title"><span>天井の</span><span>むこう</span></h1>
+        <p class="tagline">両親がいなくなった家で、<wbr>まだ音がする。</p>
+        <button class="start-button" id="start" type="button">読みはじめる<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18m-6-6 6 6 6-6"/></svg></button>
+        <p class="cover-note">音と動きのある短編漫画</p>
+        <button class="quiet-button" id="quiet-start" type="button">音・自動演出なしで読む</button>
+        <p id="load-status" class="load-status" role="status"></p>
+      </div>
+      <a class="scroll-invitation" href="#story">下へ、ゆっくり。<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18m-6-6 6 6 6-6"/></svg></a>
+    </section>
+
+    <article id="story" class="story" aria-label="天井のむこう 本文" tabindex="-1">
+      <div class="narration opening-lines"><p>父と母を見送って、ひと月。</p><p>実家の片付けは、<br>思っていたよりも進まなかった。</p></div>
+      <figure class="panel wide"><img src="./art/sorting.webp" width="1536" height="1024" alt="父と母の遺影が並ぶ部屋で、ひとり段ボールに思い出を詰めている。" loading="eager"></figure>
+      <div class="narration"><p>捨てるもの。残すもの。</p><p>ひとつ決めるたびに、手が止まる。</p></div>
+      <div class="narration narrow"><p>そのとき。</p></div>
+      <figure class="panel shatter-panel" data-cue="shatter"><img src="./art/shatter.webp" width="1536" height="1024" alt="誰も触れていない茶碗が落ち、床で割れる。陶器の破片が飛び散る。" loading="eager"><span class="sfx shatter-letter" aria-label="パリン！">パリンッ</span></figure>
+      <div class="narration"><p>「……触ってない、よな」</p><p>母が使っていた茶碗だった。</p></div>
+      <div class="silence" aria-hidden="true"></div>
+      <figure class="panel phone-panel" data-cue="phone"><div class="plate phone-top" role="img" aria-label="薄暗い廊下にある古い電話が、突然鳴り始める。"></div><span class="sfx phone-letter" aria-label="ジリリリリ">ジリリリリ</span></figure>
+      <div class="narration small-gap"><p>もう、この家に電話をかける人なんて。</p></div>
+      <figure class="panel phone-answer" data-cue="silence"><div class="plate phone-bottom" role="img" aria-label="受話器を耳に当てる。相手は何も話さない。"></div><span class="dialogue">……もしもし？</span></figure>
+      <div class="narration long-pause"><p>返事は、なかった。</p><p class="muted">ただ、遠くで何かを引きずるような音。</p></div>
+      <figure class="panel listening-panel" data-cue="knock"><div class="plate listen-top" role="img" aria-label="天井の物音に気づき、はっと顔を上げる。"></div><span class="sfx knock-letter">コト。</span></figure>
+      <div class="narration"><p>電話を切ったあとも、<br>その音だけが続いていた。</p><p>今度は、頭の上から。</p></div>
+      <div class="narration narrow"><p>音は、押し入れの天井から聞こえた。</p></div>
+      <figure class="panel ladder-panel" data-cue="ladder"><div class="plate listen-bottom" role="img" aria-label="押し入れに立てた木のはしごを登り、懐中電灯で屋根裏の入口を照らす。"></div></figure>
+      <div class="narration"><p>古いはしごを立てかけた。</p><p>一段。<br>もう、一段。</p></div>
+      <figure class="panel entry-panel" data-cue="attic"><img src="./art/entry.webp" width="1254" height="1254" alt="はしごの上から屋根裏に顔を出す。懐中電灯の黄色い光が、梁と埃の向こうの暗闇へ伸びる。" loading="eager"></figure>
+      <div class="narration long-pause"><p>埃の匂い。<br>湿った木の匂い。</p><p>奥まで、光を向ける。</p></div>
+      <div class="narration discovery-lines"><p>……あれ。</p><p>あんなところに、<br>何か置いてあっただろうか。</p></div>
+      <figure class="panel discovery-panel" id="discovery"><div class="atlas-cell discovery-art" style="--col:0;--row:0" role="img" aria-label="屋根裏の奥。光の先に、うつむいた人影のようなものがうっすら見える。"></div><div class="flashlight-shade" aria-hidden="true"></div></figure>
+      <div class="narration last-thought"><p>人、みたいな——</p></div>
+      <div id="loading-fallback" hidden><p class="narration">絵を読み込んでいます。</p><button id="continue-static" class="text-button" type="button">自動演出なしで続きを読む</button></div>
+    </article>
+
+    <section id="approach" hidden aria-label="近づいてくる人影の連続コマ"></section>
+    <section class="ending" id="ending" hidden aria-labelledby="end-title">
+      <div class="ending-copy">
+        <p class="ending-line">電話の向こうで聞こえたのは、<br>こちらへ這ってくる音だった。</p>
+        <h2 id="end-title">いま、どこから<br>読んでいる？</h2>
+        <span class="end-mark" aria-hidden="true"></span>
+        <div class="ending-links"><button id="replay" class="text-button" type="button">もう一度読む</button><a href="../../">リンク集へ</a></div>
+        <p class="colophon">天井のむこう <span>／</span> おわり</p>
+        <button id="frames-toggle" class="quiet-button" type="button" aria-expanded="false" aria-controls="frame-gallery">コマをゆっくり見返す</button>
+      </div>
+    </section>
+    <section id="frame-gallery" class="frame-gallery" hidden aria-label="急接近の連続コマ"></section>
+    <noscript><div class="narration"><p>音と自動演出を使うにはJavaScriptを有効にしてください。<br>このまま漫画の絵を読むこともできます。</p><img class="noscript-finale" src="./art/attack.webp" alt="屋根裏の人影が、九つの異なる姿勢でこちらに這い寄り、顔を寄せ、手を伸ばしてくる。"><a href="../../">リンク集へ戻る</a></div></noscript>
+  </main>
+  <button id="stop" type="button" hidden>演出をとめる <span>Esc</span></button>
+  <div id="blackout" hidden aria-hidden="true"></div>
+  <p id="reader-status" class="sr-only" role="status" aria-live="polite"></p>
+  <script type="module" src="./comic.js"></script>
+</body>
+</html>

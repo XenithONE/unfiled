@@ -93,5 +93,8 @@ TIDAL FORGEは、同じPagesサイト内の`experiments/tidal-forge/`で公開�
 - [IGNIS — 火山の鼓動を、目撃する。](https://xenithone.github.io/volcano-eruption/)
 - [TIDAL FORGE — 銀河が交わり、光が曲がる。](https://xenithone.github.io/unfiled/experiments/tidal-forge/)
 - [PIGMENT — 絵の向こうへ、歩いていこう。](https://xenithone.github.io/pigment-worlds/)
+- [天井のむこう — 両親がいなくなった家で、まだ音がする。](https://xenithone.github.io/unfiled/comics/tenjou-no-mukou/)
+
+「天井のむこう」は `public/comics/tenjou-no-mukou/` にある独立した静的Web漫画です。HTMLの台詞、オリジナルのカラー漫画画像、Web Audioで合成した陶器・電話・木の物音・急接近の効果音を使用します。「読みはじめる」のクリックで音を有効にし、人影を見たあとの新しい下向きスクロールで9コマの自動演出を開始します。最後は顔と片手の大きな専用画像に切り替わります。画面を離れる、停止ボタンを押す、Escapeを押すと演出を終了できます。動きを減らす端末設定、音の切り替え、静止画での読書、再読にも対応しています。
 
 制作・運営：[XenithONE](https://github.com/XenithONE)
