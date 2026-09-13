@@ -22,10 +22,10 @@ const sequence = [
 ];
 
 const cues = new Map([[4,'head'],[10,'step'],[16,'step'],[21,'step'],[25,'rush'],[35,'impact']]);
-const approachSpeed = 1.3;
+const approachSpeed = 2.4;
 export const frames = sequence.map(([sheet,cell,caption], index) => ({
   sheet, cell, caption, cue: cues.get(index),
-  // Speed up the approach to ~638ms; keep the final face/hand on screen for 560ms.
+  // Target ~346ms; each pose still gets a refresh, with a 560ms final face/hand hold.
   hold: index === 35 ? 560 : (index < 8 ? 38 : index < 18 ? 26 : index < 27 ? 18 : 13) / approachSpeed,
 }));
 

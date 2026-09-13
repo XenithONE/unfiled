@@ -1,5 +1,5 @@
 import { ComicSound } from './sound.js?v=2';
-import { frames, attackAssets } from './frames.js?v=5';
+import { frames, attackAssets } from './frames.js?v=6';
 import { ApproachScene } from './approach.js?v=5';
 
 const $ = (selector) => document.querySelector(selector);
