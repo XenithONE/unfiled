@@ -14,3 +14,13 @@ body[data-phase="attacking"] .toolbar{visibility:hidden}#stop{position:fixed;z-i
 .audio-credits{font-family:var(--sans);font-size:10px;color:var(--muted);margin-top:22px}.audio-credits a{text-decoration:underline;text-underline-offset:4px}
 
 .creak-letter{right:9%;top:24%;writing-mode:vertical-rl;font-size:clamp(25px,4vw,42px);letter-spacing:.17em}
+
+/* The foreground crosses a single scrolling floor instead of full-screen panels. */
+#approach{position:relative;background:#000}
+#approach.is-running{height:360svh;overflow:clip}
+#approach.is-running>.attack-step{display:none}
+.approach-floor,.ghost-viewport{display:none}
+#approach.is-running>.approach-floor{display:block;position:absolute;inset:-45svh 0 0;background:url('./art/floor-runway.webp') center top/max(100%,90svh) 100% no-repeat;filter:brightness(.64) saturate(.8);will-change:opacity}
+#approach.is-running>.ghost-viewport{display:block;position:sticky;top:0;width:100%;height:100svh;overflow:hidden;pointer-events:none}
+.ghost-canvas{display:block;width:100%;height:100%;background:transparent}
+html[data-controlled],body[data-phase="attacking"],body[data-phase="blackout"]{background:#000}

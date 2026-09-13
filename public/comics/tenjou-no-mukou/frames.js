@@ -29,4 +29,5 @@ export const frames = sequence.map(([sheet,cell,caption], index) => ({
   hold: index === 35 ? 560 : (index < 8 ? 38 : index < 18 ? 26 : index < 27 ? 18 : 13) / approachSpeed,
 }));
 
-export const attackAssets = ['rush-1','rush-2','rush-3','rush-4','final'];
+export const attackAssets = ['rush-1','rush-2','rush-3','rush-4','final',
+  'ghost-rush-1','ghost-rush-2','ghost-rush-3','ghost-rush-4','ghost-final','floor-runway'];

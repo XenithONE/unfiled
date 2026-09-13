@@ -7,7 +7,7 @@ const soundModuleUrl = '/comics/tenjou-no-mukou/sound.js';
 const { ComicSound } = await import(/* @vite-ignore */ soundModuleUrl);
 const output = document.querySelector('#results');
 const frame = document.querySelector('#app');
-const result = { checks: [], frames: [], audio: [] };
+const result = { checks: [], frames: [], motion: [], audio: [] };
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const wait = async (fn, timeout=7000) => { const start=performance.now(); while(!fn()){if(performance.now()-start>timeout)throw Error('Condition timed out');await sleep(20);} };
 const log = (name, ok, details='') => { result.checks.push({name,ok,details}); output.textContent=JSON.stringify(result,null,2); if(!ok)throw Error(name+': '+details); };
@@ -38,9 +38,16 @@ document.querySelector('#run').onclick=async()=>{
   await discover();wheel(-50);await sleep(220);log('Upward scroll does not trigger attack',phase()==='discovery');
   const observer=new MutationObserver(()=>{const f=doc().body.dataset.frame;if(f!==undefined&&!result.frames.some(x=>x.frame===Number(f)))result.frames.push({frame:Number(f),y:win().scrollY,t:performance.now()});});
   observer.observe(doc().body,{attributes:true,attributeFilter:['data-frame']});
-  wheel(40);await wait(()=>phase()==='ending');observer.disconnect();
+  wheel(40);
+  const sample=()=>{if(phase()!=='attacking')return;const stage=doc().querySelector('#approach');result.motion.push({frame:Number(doc().body.dataset.frame),y:win().scrollY,floor:Number(stage.dataset.floor),height:Number(stage.dataset.ghostHeight),ghostY:Number(stage.dataset.ghostY)});win().requestAnimationFrame(sample);};
+  win().requestAnimationFrame(sample);await wait(()=>phase()==='ending');observer.disconnect();
   log('All 36 different frames displayed in order',result.frames.map(x=>x.frame).join(',')===Array.from({length:36},(_,i)=>i).join(','));
-  log('Real page scroll advances for every frame',result.frames.every((x,i)=>i===0||x.y>result.frames[i-1].y+600));
+  log('Real page scroll advances for every frame',result.frames.every((x,i)=>i===0||x.y>result.frames[i-1].y));
+  log('Floor scroll continues between pose changes',result.motion.some((x,i)=>i>0&&x.frame===result.motion[i-1].frame&&x.y>result.motion[i-1].y));
+  log('Ghost grows throughout approach',result.motion.every((x,i)=>i===0||x.height>=result.motion[i-1].height));
+  log('Floor disappears while ghost remains visible',result.motion.some(x=>x.frame>=25&&x.floor===0&&x.height>400));
+  log('Continuous floor travels over two viewport heights',result.motion.at(-1).y-result.motion[0].y>win().innerHeight*2);
+  log('Last ghost fills the viewport',result.motion.at(-1).height>win().innerHeight);
   log('Ending releases automatic controls',!doc().documentElement.hasAttribute('data-controlled')&&doc().querySelector('#stop').hidden);
   log('Final frame uses separate detailed artwork',getComputedStyle(doc().querySelector('#approach [data-frame="35"] .attack-art')).backgroundImage.includes('final.webp'));
   const elapsed=result.frames.at(-1).t-result.frames[0].t;
@@ -54,6 +61,9 @@ document.querySelector('#run').onclick=async()=>{
   await restart();wheel(70);await sleep(40);frame.style.width='390px';await sleep(180);log('Orientation/width change cancels approach',phase()==='static');
   click('#replay');await wait(()=>doc().body.dataset.audioState==='running');log('Reading again after cancellation restores both effects',phase()==='reading'&&doc().body.dataset.motion==='on'&&doc().body.dataset.audioState==='running');
 
+  for(const name of ['rush-1','rush-2','rush-3','rush-4','final']) {
+    const img=new Image();img.src='/comics/tenjou-no-mukou/art/ghost-'+name+'.webp';await img.decode();const canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);const rgba=ctx.getImageData(0,0,canvas.width,canvas.height).data;let clear=0,solid=0;for(let i=3;i<rgba.length;i+=4){if(rgba[i]===0)clear++;if(rgba[i]>220)solid++;}log('Ghost '+name+' has real transparency and visible artwork',clear>canvas.width*canvas.height*.1&&solid>canvas.width*canvas.height*.02);
+  }
   const audioFiles=await ComicSound.fetchFiles();
   log('All four PCM files download',audioFiles.every(([,bytes])=>bytes?.byteLength>100000));
   for(const cue of ['shatter','phone','silence','knock','ladder','attic','head','step','rush','voice','impact']) {

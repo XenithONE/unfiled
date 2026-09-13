@@ -1,5 +1,6 @@
 import { ComicSound } from './sound.js?v=2';
-import { frames, attackAssets } from './frames.js?v=4';
+import { frames, attackAssets } from './frames.js?v=5';
+import { ApproachScene } from './approach.js?v=5';
 
 const $ = (selector) => document.querySelector(selector);
 const body = document.body;
@@ -17,6 +18,7 @@ let raf = 0;
 let blackoutTimer = 0;
 let frameIndex = -1;
 let frameDeadline = 0;
+let frameStartedAt = 0;
 let discoverySince = 0;
 let armedAt = 0;
 let lastWheel = -Infinity;
@@ -59,6 +61,7 @@ frames.forEach((frame, index) => {
   figure.append(art, caption); gallery.append(figure);
 });
 const steps = [...approach.children];
+const scene = new ApproachScene(approach, frames);
 
 function decodeAsset(src) {
   return new Promise((resolve, reject) => {
@@ -75,6 +78,7 @@ const artPromise = Promise.all([...attackAssets, 'phone', 'listen'].map(name => 
   .then(images => {
     // Retain decoded images for the entire reading session.
     artPromise.images = images;
+    scene.setImages(new Map(images.map(image => [new URL(image.src).pathname.split('/').at(-1).replace('.webp', ''), image])));
     artReady = true;
     $('#load-status').textContent = '';
     $('#loading-fallback').hidden = true;
@@ -139,6 +143,7 @@ function cancelAnimation() {
   clearTimeout(blackoutTimer); blackoutTimer = 0;
   $('#stop').hidden = true; $('#blackout').hidden = true;
   document.documentElement.removeAttribute('data-controlled');
+  scene.stop();
   synth?.stop();
 }
 function showStatic() {
@@ -165,8 +170,8 @@ function finishAttack() {
 }
 function displayFrame(index, now) {
   frameIndex = index;
+  frameStartedAt = now;
   body.dataset.frame = String(index);
-  scrollToElement(steps[index]);
   if (frames[index].cue) synth?.play(frames[index].cue);
   synth?.setApproach(index / (frames.length - 1));
   // Carry sub-refresh remainder forward but never skip a drawing after a slow frame.
@@ -187,6 +192,8 @@ function advance(now) {
       return;
     }
   }
+  const subframe = Math.min(1, Math.max(0, (now - frameStartedAt) / frames[frameIndex].hold));
+  scene.draw(frameIndex, Math.min(1, (frameIndex + subframe) / (frames.length - 1)));
   raf = requestAnimationFrame(advance);
 }
 function attack() {
@@ -200,6 +207,7 @@ function attack() {
   $('#stop').hidden = false;
   status.textContent = '人影がこちらへ近づいてきます。Escapeキーで演出を停止できます。';
   synth?.play('voice');
+  scene.start();
   displayFrame(0, performance.now());
   raf = requestAnimationFrame(advance);
   return true;
