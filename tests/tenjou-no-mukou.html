@@ -17,9 +17,8 @@ const click=id=>doc().querySelector(id).click();
 const wheel=(deltaY)=>win().dispatchEvent(new (win().WheelEvent)('wheel',{deltaY,cancelable:true}));
 const key=(key)=>win().dispatchEvent(new (win().KeyboardEvent)('keydown',{key,cancelable:true}));
 async function load() {frame.removeAttribute('srcdoc');frame.src='/comics/tenjou-no-mukou/index.html?acceptance='+Date.now();await wait(()=>doc()?.querySelectorAll('.attack-step').length===36);await sleep(180);}
-function enable(){if(doc().querySelector('#motion-toggle').getAttribute('aria-pressed')!=='true')click('#motion-toggle');if(doc().querySelector('#sound-toggle').getAttribute('aria-pressed')==='true')click('#sound-toggle');}
 async function discover(){win().scrollTo({top:doc().documentElement.scrollHeight,behavior:'instant'});await wait(()=>phase()==='discovery');await sleep(450);}
-async function restart(){enable();click('#start');await sleep(100);await discover();}
+async function restart(){click('#start');await sleep(100);await discover();}
 function touch(type,y){const event=new (win().Event)(type,{bubbles:true,cancelable:true});Object.defineProperty(event,'touches',{value:[{clientY:y}]});win().dispatchEvent(event);}
 
 document.querySelector('#run').onclick=async()=>{
@@ -27,11 +26,14 @@ document.querySelector('#run').onclick=async()=>{
  try {
   await load();
   const reduced=win().matchMedia('(prefers-reduced-motion: reduce)').matches;
-  log('OS reduced-motion default',doc().querySelector('#motion-toggle').getAttribute('aria-pressed')===String(!reduced));
+  log('Motion is initially enabled without changing settings',doc().body.dataset.motion==='on','OS reduced-motion='+reduced);
+  log('No sound/motion switches or quiet-start option',!doc().querySelector('#motion-toggle,#sound-toggle,#quiet-start'));
+  log('Narrative waits for the audio-start gesture',doc().querySelector('#story').hidden);
   wheel(120); await sleep(80); log('No automatic attack before start',phase()==='idle');
   for (const width of [390,768,1366]) {frame.style.width=width+'px';await sleep(80);log('No horizontal overflow at '+width,doc().documentElement.scrollWidth<=win().innerWidth);}
   frame.style.width='960px';await sleep(80);
-  enable();click('#start');await sleep(100);
+  click('#start');await wait(()=>doc().body.dataset.audioState==='running');
+  log('Start activates audio and motion together',doc().body.dataset.audioState==='running'&&doc().body.dataset.motion==='on'&&!doc().querySelector('#story').hidden);
   log('Start focuses narrative for keyboard reading',doc().activeElement.id==='story');
   await discover();wheel(-50);await sleep(220);log('Upward scroll does not trigger attack',phase()==='discovery');
   const observer=new MutationObserver(()=>{const f=doc().body.dataset.frame;if(f!==undefined&&!result.frames.some(x=>x.frame===Number(f)))result.frames.push({frame:Number(f),y:win().scrollY,t:performance.now()});});
@@ -43,15 +45,14 @@ document.querySelector('#run').onclick=async()=>{
   log('Final frame uses separate detailed artwork',getComputedStyle(doc().querySelector('#approach [data-frame="35"] .attack-art')).backgroundImage.includes('final.webp'));
   const elapsed=result.frames.at(-1).t-result.frames[0].t;
   log('36 frames arrive faster than the former 1.44 second sequence',elapsed>600&&elapsed<1350,Math.round(elapsed)+' ms before final hold');
-  click('#replay');await sleep(100);log('Replay preserves explicit motion choice',phase()==='reading'&&doc().querySelector('#motion-toggle').getAttribute('aria-pressed')==='true');
-  log('Replay preserves mute',doc().querySelector('#sound-toggle').getAttribute('aria-pressed')==='false');
+  click('#replay');await sleep(100);log('Replay enables motion without a setting',phase()==='reading'&&doc().body.dataset.motion==='on');
+  log('Replay keeps audio running',doc().body.dataset.audioState==='running');
   await discover();key('PageDown');await sleep(40);log('Keyboard starts approach',phase()==='attacking');
   key('Escape');const escapedY=win().scrollY;await sleep(1200);log('Escape cancels frames and timers',phase()==='static'&&!doc().documentElement.hasAttribute('data-controlled')&&win().scrollY===escapedY);
   await restart();touch('touchstart',600);touch('touchmove',550);await sleep(50);log('Fresh upward finger swipe starts approach',phase()==='attacking');click('#stop');log('Visible stop switches to readable stills',phase()==='static'&&!doc().querySelector('#approach').hidden);
-  await restart();wheel(70);await sleep(40);Object.defineProperty(doc(),'hidden',{configurable:true,value:true});doc().dispatchEvent(new (win().Event)('visibilitychange'));log('Hidden document cancels approach',phase()==='static');delete doc().hidden;await sleep(200);log('Visibility return does not rearm',phase()==='static');
+  await restart();wheel(70);await sleep(40);Object.defineProperty(doc(),'hidden',{configurable:true,value:true});doc().dispatchEvent(new (win().Event)('visibilitychange'));log('Hidden document cancels approach',phase()==='static');await wait(()=>doc().body.dataset.audioState==='suspended');delete doc().hidden;doc().dispatchEvent(new (win().Event)('visibilitychange'));await wait(()=>doc().body.dataset.audioState==='running');log('Visibility return resumes sound without a switch',doc().body.dataset.audioState==='running');log('Visibility return does not rearm',phase()==='static');
   await restart();wheel(70);await sleep(40);frame.style.width='390px';await sleep(180);log('Orientation/width change cancels approach',phase()==='static');
-  click('#quiet-start');await sleep(80);log('Quiet reading disables sound and automatic motion',phase()==='static'&&doc().querySelector('#sound-toggle').getAttribute('aria-pressed')==='false');
-  win().scrollTo({top:doc().querySelector('#discovery').offsetTop,behavior:'instant'});await sleep(80);wheel(100);await sleep(100);log('Quiet mode never takes over scroll',phase()==='static');
+  click('#replay');await wait(()=>doc().body.dataset.audioState==='running');log('Reading again after cancellation restores both effects',phase()==='reading'&&doc().body.dataset.motion==='on'&&doc().body.dataset.audioState==='running');
 
   const audioFiles=await ComicSound.fetchFiles();
   log('All four PCM files download',audioFiles.every(([,bytes])=>bytes?.byteLength>100000));
@@ -65,8 +66,8 @@ document.querySelector('#run').onclick=async()=>{
   const original=await fetch('/comics/tenjou-no-mukou/index.html').then(r=>r.text());
   frame.srcdoc=original.replace('<head>','<head><base href="/__missing_comic_assets__/">').replace(/href="\.\/comic\.css[^"]*"/,'href="/comics/tenjou-no-mukou/comic.css"').replace(/src="\.\/comic\.js[^"]*"/,'src="/comics/tenjou-no-mukou/comic.js"');
   await wait(()=>doc()?.querySelector('#load-status')?.textContent.includes('読み込めません'));
-  log('Missing art disables automatic sequence',doc().querySelector('#motion-toggle').getAttribute('aria-pressed')==='false');
-  click('#quiet-start');log('Missing art leaves static narrative usable',phase()==='static'&&!doc().querySelector('#ending').hidden);
+  log('Missing art disables automatic sequence',doc().body.dataset.motion==='off');
+  click('#start');log('Missing art leaves static narrative usable',phase()==='static'&&!doc().querySelector('#ending').hidden);
   output.className='pass';result.status='passed';
  }catch(error){result.status='failed';result.error=String(error);output.className='fail';}
  output.textContent=JSON.stringify(result,null,2);document.body.dataset.result=result.status;document.querySelector('#run').disabled=false;

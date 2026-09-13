@@ -3,13 +3,11 @@ import { frames, attackAssets } from './frames.js';
 
 const $ = (selector) => document.querySelector(selector);
 const body = document.body;
-const motionQuery = matchMedia('(prefers-reduced-motion: reduce)');
 const audioFiles = ComicSound.fetchFiles();
 body.dataset.audio = 'loading';
 let phase = 'idle';
 let started = false;
-let soundEnabled = true;
-let motionEnabled = !motionQuery.matches;
+let motionEnabled = true;
 let synth;
 let audioContext;
 let artReady = false;
@@ -35,12 +33,8 @@ const gallery = $('#frame-gallery');
 const discovery = $('#discovery');
 
 function setPhase(next) { phase = next; body.dataset.phase = next; }
-function syncControls() {
+function syncMotion() {
   body.dataset.motion = motionEnabled ? 'on' : 'off';
-  $('#motion-toggle').setAttribute('aria-pressed', String(motionEnabled));
-  $('#motion-toggle span').textContent = motionEnabled ? 'ON' : 'OFF';
-  $('#sound-toggle').setAttribute('aria-pressed', String(soundEnabled));
-  $('#sound-toggle span').textContent = soundEnabled ? 'ON' : 'OFF';
 }
 
 function artElement(index) {
@@ -87,19 +81,19 @@ const artPromise = Promise.all([...attackAssets, 'phone', 'listen'].map(name => 
   }).catch(() => {
     artFailed = true;
     motionEnabled = false;
-    syncControls();
+    syncMotion();
     $('#load-status').textContent = '一部の絵を読み込めませんでした。自動演出なしで読めます。';
     status.textContent = '絵の読み込みに失敗したため、自動演出を停止しました。';
     if (started) showStatic();
   });
 
 async function unlockSound() {
-  if (!soundEnabled) return;
   try {
     if (!audioContext) {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       if (!AudioContextClass) throw new Error('Audio unavailable');
       audioContext = new AudioContextClass();
+      audioContext.addEventListener('statechange', () => { body.dataset.audioState = audioContext.state; });
       synth = new ComicSound(audioContext);
       void synth.load(audioFiles).then(() => {
         body.dataset.audio = synth.buffers.size === 4 ? 'ready' : 'partial';
@@ -108,8 +102,9 @@ async function unlockSound() {
     }
     synth.setEnabled(true);
     if (audioContext.state === 'suspended') await audioContext.resume();
+    body.dataset.audioState = audioContext.state;
   } catch {
-    soundEnabled = false; syncControls();
+    body.dataset.audioState = 'unavailable';
     status.textContent = 'このブラウザでは音を開始できませんでした。漫画はそのまま読めます。';
   }
 }
@@ -117,8 +112,9 @@ async function unlockSound() {
 function scrollToElement(element) {
   window.scrollTo({ top: element.getBoundingClientRect().top + scrollY, left: 0, behavior: 'instant' });
 }
-function begin(quiet = false) {
+function begin() {
   cancelAnimation();
+  $('#story').hidden = false;
   consumed = false; started = true; cuesSeen.clear();
   discoverySince = 0; armedAt = 0; frameIndex = -1;
   delete body.dataset.frame;
@@ -126,15 +122,16 @@ function begin(quiet = false) {
   approach.hidden = true; gallery.hidden = true; ending.hidden = true;
   $('#frames-toggle').setAttribute('aria-expanded', 'false');
   $('#loading-fallback').hidden = true;
-  if (quiet) { soundEnabled = false; motionEnabled = false; }
-  syncControls();
-  synth?.stop(); synth?.setEnabled(soundEnabled);
+  // Every reading starts with both effects enabled, including replay after a stop.
+  motionEnabled = !artFailed;
+  syncMotion();
+  synth?.stop(); synth?.setEnabled(true);
   void unlockSound();
   setPhase('reading');
   if (!motionEnabled || artFailed) showStatic();
   scrollToElement($('#story'));
   $('#story').focus({ preventScroll: true });
-  status.textContent = motionEnabled ? '読み始めました。下へスクロールして読んでください。' : '音と自動演出を抑えて読み始めました。';
+  status.textContent = motionEnabled ? '音と動きのある漫画を読み始めました。下へスクロールして読んでください。' : '絵の読み込みに失敗したため、自動演出なしで読み始めました。';
 }
 
 function cancelAnimation() {
@@ -153,7 +150,7 @@ function stopAttack(reason = '演出を停止しました。コマを自分の�
   const wasAttacking = phase === 'attacking' || phase === 'blackout';
   const savedFrame = Math.max(0, frameIndex);
   cancelAnimation();
-  consumed = true; motionEnabled = false; syncControls();
+  consumed = true; motionEnabled = false; syncMotion();
   showStatic();
   if (wasAttacking) scrollToElement(steps[savedFrame]);
   status.textContent = reason;
@@ -245,7 +242,7 @@ window.addEventListener('wheel', event => {
   if (event.deltaY > 0 && freshGesture && eligibleForAttack() && attack()) event.preventDefault();
 }, { passive: false });
 window.addEventListener('keydown', event => {
-  if (event.key === 'Escape' && isControlled()) { event.preventDefault(); stopAttack(); $('#motion-toggle').focus({ preventScroll: true }); return; }
+  if (event.key === 'Escape' && isControlled()) { event.preventDefault(); stopAttack(); $('#story').focus({ preventScroll: true }); return; }
   const scrollKeys = ['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', ' ', 'Home', 'End'];
   const interactive = event.target.closest?.('button,a,input,select,textarea,[contenteditable]');
   if (isControlled() && scrollKeys.includes(event.key) && !interactive) { event.preventDefault(); return; }
@@ -265,41 +262,22 @@ window.addEventListener('touchmove', event => {
 }, { passive: false });
 
 $('#start').addEventListener('click', () => begin());
-$('#quiet-start').addEventListener('click', () => begin(true));
 $('.scroll-invitation').addEventListener('click', event => { event.preventDefault(); begin(); });
+$('.skip-link').addEventListener('click', event => {
+  event.preventDefault();
+  if (!started) begin();
+  else { scrollToElement($('#story')); $('#story').focus({ preventScroll: true }); }
+});
 $('#replay').addEventListener('click', () => {
   document.querySelectorAll('.is-struck').forEach(el => el.classList.remove('is-struck'));
   begin();
 });
 $('#stop').addEventListener('click', () => stopAttack());
-$('#continue-static').addEventListener('click', () => { motionEnabled = false; syncControls(); showStatic(); $('#loading-fallback').hidden = true; });
-$('#sound-toggle').addEventListener('click', () => {
-  soundEnabled = !soundEnabled;
-  synth?.setEnabled(soundEnabled);
-  syncControls();
-  if (soundEnabled) void unlockSound();
-});
-$('#motion-toggle').addEventListener('click', () => {
-  if (isControlled()) { stopAttack(); return; }
-  motionEnabled = !motionEnabled && !artFailed;
-  syncControls();
-  if (started && !motionEnabled) { synth?.stop(); showStatic(); }
-  else if (started && !consumed && phase === 'static') {
-    approach.hidden = true; ending.hidden = true;
-    setPhase('reading'); armedAt = performance.now(); updateReading();
-  }
-});
+$('#continue-static').addEventListener('click', () => { motionEnabled = false; syncMotion(); showStatic(); $('#loading-fallback').hidden = true; });
 $('#frames-toggle').addEventListener('click', () => {
   gallery.hidden = !gallery.hidden;
   $('#frames-toggle').setAttribute('aria-expanded', String(!gallery.hidden));
   if (!gallery.hidden) scrollToElement(gallery);
-});
-motionQuery.addEventListener('change', event => {
-  if (event.matches) {
-    motionEnabled = false; syncControls();
-    if (isControlled()) stopAttack('端末の動きを減らす設定に合わせ、自動演出を停止しました。');
-    else if (started) showStatic();
-  }
 });
 window.addEventListener('resize', () => {
   // Mobile browser chrome changes height while scrolling; only actual width/orientation changes cancel.
@@ -314,11 +292,14 @@ document.addEventListener('visibilitychange', () => {
     void audioContext?.suspend().catch(() => {});
   } else {
     armedAt = performance.now();
-    // Audio resumes only after the next explicit user gesture.
+    if (started) void unlockSound();
   }
 });
-window.addEventListener('pointerdown', () => {
-  if (started && soundEnabled && audioContext?.state === 'suspended') void unlockSound();
-}, { passive: true });
-window.addEventListener('pagehide', () => { cancelAnimation(); if (started) { consumed = true; motionEnabled = false; syncControls(); showStatic(); } void audioContext?.suspend().catch(() => {}); });
-syncControls();
+function resumeSound() {
+  if (started && audioContext?.state === 'suspended') void unlockSound();
+}
+window.addEventListener('pointerdown', resumeSound, { passive: true });
+window.addEventListener('keydown', resumeSound, { passive: true });
+window.addEventListener('touchend', resumeSound, { passive: true });
+window.addEventListener('pagehide', () => { cancelAnimation(); if (started) { consumed = true; motionEnabled = false; syncMotion(); showStatic(); } void audioContext?.suspend().catch(() => {}); });
+syncMotion();

@@ -11,7 +11,7 @@
   <meta property="og:image" content="https://xenithone.github.io/unfiled/comics/tenjou-no-mukou/art/cover.webp">
   <meta property="og:url" content="https://xenithone.github.io/unfiled/comics/tenjou-no-mukou/">
   <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./comic.css?v=2">
+  <link rel="stylesheet" href="./comic.css?v=3">
   <link rel="preload" as="image" href="./art/cover.webp">
 </head>
 <body data-phase="idle">
@@ -19,10 +19,6 @@
   <header class="toolbar">
     <a class="back" href="../../" aria-label="UNFILEDのリンク集へ戻る"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H4m6-6-6 6 6 6"/></svg><span>UNFILED</span></a>
     <span class="running-title" aria-hidden="true">天井のむこう</span>
-    <div class="toolbar-actions">
-      <button id="motion-toggle" type="button" aria-pressed="true">動き <span>ON</span></button>
-      <button id="sound-toggle" type="button" aria-pressed="true">音 <span>ON</span><i class="sound-bars" aria-hidden="true"><b></b><b></b><b></b></i></button>
-    </div>
   </header>
 
   <main>
@@ -33,13 +29,12 @@
         <p class="tagline">両親がいなくなった家で、<wbr>まだ音がする。</p>
         <button class="start-button" id="start" type="button">読みはじめる<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18m-6-6 6 6 6-6"/></svg></button>
         <p class="cover-note">音と動きのある短編漫画</p>
-        <button class="quiet-button" id="quiet-start" type="button">音・自動演出なしで読む</button>
         <p id="load-status" class="load-status" role="status"></p>
       </div>
       <a class="scroll-invitation" href="#story">下へ、ゆっくり。<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18m-6-6 6 6 6-6"/></svg></a>
     </section>
 
-    <article id="story" class="story" aria-label="天井のむこう 本文" tabindex="-1">
+    <article id="story" class="story" aria-label="天井のむこう 本文" tabindex="-1" hidden>
       <div class="narration opening-lines"><p>父と母を見送って、ひと月。</p><p>実家の片付けは、<br>思っていたよりも進まなかった。</p></div>
       <figure class="panel wide"><img src="./art/sorting.webp" width="1536" height="1024" alt="父と母の遺影が並ぶ部屋で、ひとり段ボールに思い出を詰めている。" loading="eager"></figure>
       <div class="narration"><p>捨てるもの。残すもの。</p><p>ひとつ決めるたびに、手が止まる。</p></div>
@@ -77,11 +72,11 @@
       </div>
     </section>
     <section id="frame-gallery" class="frame-gallery" hidden aria-label="急接近の連続コマ"></section>
-    <noscript><div class="narration"><p>音と自動演出を使うにはJavaScriptを有効にしてください。<br>このまま漫画の絵を読むこともできます。</p><img class="noscript-finale" src="./art/attack.webp" alt="屋根裏の人影が、九つの異なる姿勢でこちらに這い寄り、顔を寄せ、手を伸ばしてくる。"><a href="../../">リンク集へ戻る</a></div></noscript>
+    <noscript><style>#story[hidden]{display:block!important}</style><div class="narration"><p>音と自動演出を使うにはJavaScriptを有効にしてください。<br>このまま漫画の絵を読むこともできます。</p><img class="noscript-finale" src="./art/attack.webp" alt="屋根裏の人影が、九つの異なる姿勢でこちらに這い寄り、顔を寄せ、手を伸ばしてくる。"><a href="../../">リンク集へ戻る</a></div></noscript>
   </main>
   <button id="stop" type="button" hidden>演出をとめる <span>Esc</span></button>
   <div id="blackout" hidden aria-hidden="true"></div>
   <p id="reader-status" class="sr-only" role="status" aria-live="polite"></p>
-  <script type="module" src="./comic.js?v=2"></script>
+  <script type="module" src="./comic.js?v=3"></script>
 </body>
 </html>
