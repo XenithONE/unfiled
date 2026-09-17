@@ -94,6 +94,11 @@ TIDAL FORGEは、同じPagesサイト内の`experiments/tidal-forge/`で公開�
 - [TIDAL FORGE — 銀河が交わり、光が曲がる。](https://xenithone.github.io/unfiled/experiments/tidal-forge/)
 - [PIGMENT — 絵の向こうへ、歩いていこう。](https://xenithone.github.io/pigment-worlds/)
 - [天井のむこう — 両親がいなくなった家で、まだ音がする。](https://xenithone.github.io/unfiled/comics/tenjou-no-mukou/)
+- [RUSTWHIRL — 敵の攻撃を、自分の武器に。](https://xenithone.github.io/unfiled/games/rustwhirl/)
+
+RUSTWHIRL ENDLESS 0.4は `public/games/rustwhirl/` から配信する独立したGodot製Webゲームです。無限WAVE、7種の通常敵、12種の装備、5WAVEごとのボス、端末内の上位5記録を備えます。WASM・PCK・JavaScript・音声ワークレットを一式で管理し、既存のPagesワークフローが `dist/games/rustwhirl/` へコピーして公開します。シングルスレッド版なので追加の分離ヘッダーやService Workerは不要です。公開前に戦闘・進行・保存・UIの115項目を検証済みです。
+
+更新はローカルの `game/rustwhirl` プロジェクトで `tools/build_web.ps1` を実行し、最新メニューのキャプチャを `builds/web-captures/menu.png` に生成した後、このリポジトリの `tools/sync-rustwhirl.ps1` を実行します。同期スクリプトは配布物のSHA-256を確認してからコピーします。作品一覧の紹介は `public/projects.json`、同梱の操作説明とライセンスはゲームフォルダー内の `README_JA.md` と `THIRD_PARTY_NOTICES.txt` です。スコアはブラウザ内保存で、オンライン共通ランキングではありません。
 
 「天井のむこう」は `public/comics/tenjou-no-mukou/` にある独立した静的Web漫画です。HTMLの台詞、オリジナルのカラー漫画画像、CC0収録素材を編集した割れ物・機械式電話・床板の軋み・喉の声と、Web Audioの効果音を使用します。「読みはじめる」のクリックで音を有効にし、人影を見たあとの新しい下向きスクロールで36コマの高速自動演出を開始します。最後は顔と片手の大きな専用画像に切り替わります。画面を離れる、停止ボタンを押す、Escapeを押すと演出を終了できます。音・動きの切り替えは設けず、毎回の「読みはじめる」で両方を有効にしてから本文を表示します。端末の動きを減らす設定では自動的にOFFにしません。停止後の再読でも両方が有効に戻ります。
 

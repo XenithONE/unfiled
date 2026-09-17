@@ -4,3 +4,5 @@
 *.jpg binary
 # Preserve published build bytes and their release.json SHA-256 values.
 public/experiments/tidal-forge/** -text
+# Preserve the verified Godot Web release payload byte for byte.
+public/games/rustwhirl/** -text

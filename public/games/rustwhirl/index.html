@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#172e34">
+<meta name="description" content="敵弾を吸い込み、ガラクタごと投げ返せ。RUSTWHIRL ENDLESSは、どこまで生き残れるかを競う磁力アクションゲーム。">
+<title>RUSTWHIRL ENDLESS — 磁力回収屋</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,'Noto Sans JP',sans-serif;background:#172e34;color:#f8e9c7}*{box-sizing:border-box}body{margin:0;min-height:100svh;display:flex;flex-direction:column;align-items:center}header,footer{width:min(100%,1440px);padding:12px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px}header{font-size:13px;letter-spacing:.12em}a{color:#e4b960}button{font:inherit;color:#f8e9c7;background:#285058;border:1px solid #79928a;padding:8px 14px;cursor:pointer}button:focus-visible,a:focus-visible{outline:3px solid #e4b960;outline-offset:4px}main{position:relative;width:min(100vw,calc((100svh - 128px)*1.6),1440px);aspect-ratio:1.6;background:#15272a}canvas{display:block;width:100%;height:100%;outline:none;touch-action:none}#loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:#172e34;text-align:center}h1{font-size:clamp(26px,6vw,70px);letter-spacing:.06em;margin:0 0 10px;color:#edba5d}#loading p{line-height:1.8;max-width:38em}progress{width:min(420px,85%);accent-color:#edba5d;margin:20px 0}#error{color:#ffc7b0;white-space:pre-wrap}#retry{display:none}footer{font-size:12px;line-height:1.8;flex-wrap:wrap}footer p{margin:0}.mobile{display:none}#stage:fullscreen{width:100vw;height:100vh;aspect-ratio:auto;display:flex;align-items:center;justify-content:center}#stage:fullscreen canvas{width:min(100vw,160vh);height:min(100vh,62.5vw)}@media(pointer:coarse){.desktop{display:none}.mobile{display:block}}@media(max-width:680px){header,footer{padding:10px 14px;letter-spacing:0}header span{font-size:10px}main{width:100vw}footer{font-size:11px}#loading p{font-size:12px;margin:8px}#loading h1{font-size:26px}progress{margin:8px}#start{padding:10px 24px}}@media(max-height:550px) and (orientation:landscape){header,footer{display:none}main{width:min(100vw,160svh)}}
+</style>
+
+</head>
+<body>
+<header><a href="../..">← 作品一覧</a><span>RUSTWHIRL / ENDLESS 0.4</span><button id="fullscreen" type="button">全画面</button></header>
+<main id="stage" aria-label="RUSTWHIRL ゲーム画面">
+<canvas id="canvas" width="1440" height="900" tabindex="0" aria-label="磁力回収屋。WASDで移動、右ボタン長押しで吸引、離して投擲、Spaceで回避。">WebGL 2対応ブラウザで開いてください。</canvas>
+<section id="loading" aria-live="polite"><h1>RUSTWHIRL</h1><p>敵の攻撃を、自分の武器に。<br>限界まで回収し、生き残れ。</p><button id="start" type="button">ゲームを起動</button><progress id="progress" max="100" value="0" hidden></progress><p id="status">12種の装備・7種の敵・5 WAVEごとの大型破砕機</p><p id="error" role="alert"></p><button id="retry" type="button" onclick="location.reload()">再読み込み</button></section>
+</main>
+<footer><p class="desktop">WASD 移動 · 左クリック / J 振る · 右クリック / K 長押しで吸引、離して投擲 · Space 回避 · Esc / P 休憩</p><p class="mobile">横向き推奨。左パッドで移動、右の吸引を長押し→離して投擲。敵は自動照準。</p><p>スマートフォンは横向き推奨 · 記録はこのブラウザに保存 · <a href="THIRD_PARTY_NOTICES.txt">素材・ライセンス</a></p></footer>
+<noscript>このゲームの実行にはJavaScriptが必要です。</noscript>
+<script src="index.js"></script>
+<script>
+'use strict';
+const config={"args":[],"canvasResizePolicy":0,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":20394120,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const engine=new Engine(config);
+const canvas=document.getElementById('canvas');
+canvas.addEventListener('contextmenu',event=>event.preventDefault());
+document.getElementById('fullscreen').addEventListener('click',()=>{
+  if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+  else document.getElementById('stage').requestFullscreen?.().catch(()=>{});
+});
+document.getElementById('start').addEventListener('click',async()=>{
+ const start=document.getElementById('start'),progress=document.getElementById('progress'),status=document.getElementById('status');
+ start.disabled=true;start.hidden=true;progress.hidden=false;status.textContent='工房を準備しています… 初回はデータを読み込みます。';
+ try{
+  const missing=Engine.getMissingFeatures({threads:false});
+  if(missing.length)throw new Error('必要なブラウザ機能がありません: '+missing.join(', '));
+  await engine.startGame({canvas,onProgress:(current,total)=>{
+    if(total>0){progress.value=current;progress.max=total;status.textContent='読み込み '+Math.round(current/total*100)+'%';}
+  }});
+  document.getElementById('loading').remove();canvas.focus();
+ }catch(error){
+  console.error(error);status.textContent='起動できませんでした。';document.getElementById('error').textContent=String(error.message||error);document.getElementById('retry').style.display='block';progress.hidden=true;
+ }
+});
+</script>
+</body>
+</html>
+

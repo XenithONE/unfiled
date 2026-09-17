@@ -129,5 +129,16 @@
     "source": "https://github.com/XenithONE/unfiled/tree/main/public/comics/tenjou-no-mukou",
     "cover": "images/tenjou-no-mukou.webp",
     "accent": "#ac6552"
+  },
+  {
+    "id": "rustwhirl",
+    "title": "RUSTWHIRL",
+    "subtitle": "敵の攻撃を、自分の武器に。",
+    "description": "敵弾を吸い込み、ガラクタごと投げ返す磁力アクション。12種の装備を組み合わせ、7種の敵と5WAVEごとの大型破砕機に挑む。強くなり続ける敵を相手に、どこまで生き残れるか。最高スコアと到達WAVEを更新する、終わりのない回収稼業。",
+    "category": "ENDLESS SURVIVAL GAME",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/games/rustwhirl/",
+    "cover": "images/rustwhirl.png",
+    "accent": "#c58f34"
   }
 ]
