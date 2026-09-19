@@ -1,3 +1,18 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-export default defineConfig({ plugins: [react()], base: "./" });
+
+// The hub is a React app; games/* are extra static entry pages built by the
+// same Vite run (multi-page). Relative base keeps every page portable under
+// /unfiled/.
+export default defineConfig({
+  plugins: [react()],
+  base: "./",
+  build: {
+    rollupOptions: {
+      input: {
+        main: "index.html",
+        rakugaki: "games/rakugaki/index.html",
+      },
+    },
+  },
+});

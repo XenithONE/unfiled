@@ -95,6 +95,7 @@ TIDAL FORGEは、同じPagesサイト内の`experiments/tidal-forge/`で公開�
 - [PIGMENT — 絵の向こうへ、歩いていこう。](https://xenithone.github.io/pigment-worlds/)
 - [天井のむこう — 両親がいなくなった家で、まだ音がする。](https://xenithone.github.io/unfiled/comics/tenjou-no-mukou/)
 - [RUSTWHIRL — 敵の攻撃を、自分の武器に。](https://xenithone.github.io/unfiled/games/rustwhirl/)
+- [RAKUGAKI — ノートの山道を、ありえない速さで。](https://xenithone.github.io/unfiled/games/rakugaki/)
 
 RUSTWHIRL ENDLESS 0.4は `public/games/rustwhirl/` から配信する独立したGodot製Webゲームです。無限WAVE、7種の通常敵、12種の装備、5WAVEごとのボス、端末内の上位5記録を備えます。WASM・PCK・JavaScript・音声ワークレットを一式で管理し、既存のPagesワークフローが `dist/games/rustwhirl/` へコピーして公開します。シングルスレッド版なので追加の分離ヘッダーやService Workerは不要です。公開前に戦闘・進行・保存・UIの115項目を検証済みです。
 
@@ -103,5 +104,9 @@ RUSTWHIRL ENDLESS 0.4は `public/games/rustwhirl/` から配信する独立し�
 「天井のむこう」は `public/comics/tenjou-no-mukou/` にある独立した静的Web漫画です。HTMLの台詞、オリジナルのカラー漫画画像、CC0収録素材を編集した割れ物・機械式電話・床板の軋み・喉の声と、Web Audioの効果音を使用します。「読みはじめる」のクリックで音を有効にし、人影を見たあとの新しい下向きスクロールで36コマの高速自動演出を開始します。最後は顔と片手の大きな専用画像に切り替わります。画面を離れる、停止ボタンを押す、Escapeを押すと演出を終了できます。音・動きの切り替えは設けず、毎回の「読みはじめる」で両方を有効にしてから本文を表示します。端末の動きを減らす設定では自動的にOFFにしません。停止後の再読でも両方が有効に戻ります。
 
 接近演出は1本の長い床を実際に自動スクロールし、背景から切り抜いた幽霊を36姿勢で動かします。床は途中から闇に消え、最後は黒背景に顔と伸ばした手が画面いっぱいに迫ります。接近速度は基準の2.4倍設定（前版は1.3倍）。透過素材・生成指示・再現手順は `design/tenjou-no-mukou/frame-direction.md` にあります。
+
+RAKUGAKIは `games/rakugaki/` にソースを置く、Three.js製の手描き風3Dダウンヒル・スケボーゲームです。UNFILED本体と同じViteビルドの追加ページ（`vite.config.ts` の `rollupOptions.input`）として `dist/games/rakugaki/` に出力され、既存のPagesワークフローがそのまま公開します。外部アセットは使わず、地形・ヘアピンの山道・ガードレール・松・岩はすべてコードで生成し、効果音もWeb Audioで合成します。手描きの見た目は、トゥーン素材の描画に加えて、法線と深度から輪郭線を引き、暗部にハッチングと紙の質感を重ね、輪郭を毎秒12回揺らす後処理で作っています。
+
+操作は矢印キー（曲がる・押す・ブレーキ）、SPACE長押し→離してオーリー、J / K / Lでフリップ、SHIFTでタック加速と空中グラブ、Rで道に戻る、ESCで休憩です。スマートフォンでは画面のジョイスティックとボタンで遊べます。崖を飛び越えて下の道に着地するとSHORTCUT、壁を走るとWALL RIDE、ガードレールやパイプの上でグラインド、ブーストパッドで加速します。着地までがワンコンボで、ゴール時のタイムとスコアの自己ベストはブラウザ内に保存します。表紙 `public/images/rakugaki.webp` は実際のゲーム画面です。型検査は `npm run check`、開発は `npm run dev` で `/games/rakugaki/` を開きます。
 
 制作・運営：[XenithONE](https://github.com/XenithONE)

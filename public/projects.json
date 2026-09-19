@@ -140,5 +140,17 @@
     "url": "https://xenithone.github.io/unfiled/games/rustwhirl/",
     "cover": "images/rustwhirl.png",
     "accent": "#c58f34"
+  },
+  {
+    "id": "rakugaki",
+    "title": "RAKUGAKI",
+    "subtitle": "ノートの山道を、ありえない速さで。",
+    "description": "らくがきのスケーターが、ヘアピンの続く山道を猛スピードで下る。崖を飛び越えるショートカット、ガードレールのグラインド、壁走り、ブーストパッド。着地までがワンコンボ。トゥーンシェードと揺れる手描きの輪郭線で描いた、ゴールまでのタイムとスコアを競うダウンヒル。",
+    "category": "HAND-DRAWN DOWNHILL GAME",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/games/rakugaki/",
+    "source": "https://github.com/XenithONE/unfiled/tree/main/games/rakugaki",
+    "cover": "images/rakugaki.webp",
+    "accent": "#62c2b0"
   }
 ]

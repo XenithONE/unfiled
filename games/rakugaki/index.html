@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f4f0e6" />
+    <meta
+      name="description"
+      content="ノートの山道を、ありえない速さで。トゥーンシェードと手描き風の輪郭線で描いた、ブラウザで遊べる3Dダウンヒル・スケボーゲーム。崖を飛び越えるショートカット、ガードレールのグラインド、壁走りでスコアとタイムを競う。"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="RAKUGAKI — ノートの山道を、ありえない速さで。" />
+    <meta
+      property="og:description"
+      content="手描き風トゥーンシェードの3Dダウンヒル・スケボー。ヘアピンの山道を猛スピードで下り、崖を飛んでショートカット。"
+    />
+    <meta property="og:url" content="https://xenithone.github.io/unfiled/games/rakugaki/" />
+    <meta property="og:image" content="https://xenithone.github.io/unfiled/images/rakugaki.webp" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="canonical" href="https://xenithone.github.io/unfiled/games/rakugaki/" />
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg" />
+    <title>RAKUGAKI — ノートの山道を、ありえない速さで。</title>
+  </head>
+  <body>
+    <div id="game">
+      <canvas id="c" aria-label="RAKUGAKI ゲーム画面"></canvas>
+
+      <div id="hud" class="hud" aria-hidden="true">
+        <div class="hud-top">
+          <div class="stat">
+            <span class="label">SCORE</span>
+            <span class="value" id="score">0</span>
+          </div>
+          <div class="stat stat--time">
+            <span class="label">TIME</span>
+            <span class="value" id="time">0:00.0</span>
+            <span class="dist" id="dist"></span>
+          </div>
+          <div class="stat stat--best">
+            <span class="label">BEST</span>
+            <span class="value" id="best">0</span>
+          </div>
+        </div>
+        <div id="speedo" class="speedo">
+          <span class="speedo__value" id="speed">0</span>
+          <span class="speedo__unit">km/h</span>
+        </div>
+        <div id="combo" class="combo">
+          <div class="combo__names" id="comboNames"></div>
+          <div class="combo__math" id="comboMath"></div>
+        </div>
+        <div id="popups" class="popups"></div>
+        <div id="balance" class="balance" hidden>
+          <div class="balance-track"><div id="balanceKnob" class="balance-knob"></div></div>
+        </div>
+        <div id="message" class="message" hidden>
+          <div id="messageMain"></div>
+          <div id="messageSub"></div>
+        </div>
+        <p class="hint" id="hint">
+          ← → 曲がる ・ ↑ 押す ・ ↓ ブレーキ ・ SPACE 長押し→離してオーリー ・ J / K / L フリップ ・ SHIFT タック / グラブ ・ R 道に戻る ・ ESC 休憩
+        </p>
+        <div class="touch" id="touch" hidden>
+          <div class="joy" data-joy>
+            <div class="joy__knob" data-knob>MOVE</div>
+          </div>
+          <div class="buttons">
+            <button class="tbtn" type="button" data-btn="kickflip">KICK<br />FLIP</button>
+            <button class="tbtn" type="button" data-btn="heelflip">HEEL<br />FLIP</button>
+            <button class="tbtn" type="button" data-btn="shove">SHOVE</button>
+            <button class="tbtn tbtn--big" type="button" data-btn="jump">OLLIE</button>
+            <button class="tbtn" type="button" data-btn="crouch">TUCK<br />GRAB</button>
+          </div>
+          <button class="tbtn tbtn--reset" type="button" data-btn="reset">道に<br />戻る</button>
+        </div>
+      </div>
+
+      <section id="title" class="overlay" aria-labelledby="titleName">
+        <div class="card">
+          <p class="eyebrow">UNFILED / GAMES</p>
+          <h1 class="title__name" id="titleName">RAKUGAKI</h1>
+          <p class="title__tag">ノートの山道を、ありえない速さで。</p>
+          <p class="title__desc">
+            らくがきのスケーターが、ヘアピンの続く山道を猛スピードで下る。<br />
+            崖を飛び越えてショートカット、ガードレールを削り、壁を走り、ゴールまでノンストップ。
+          </p>
+          <div class="actions">
+            <button class="btn btn--primary" type="button" id="startBtn">滑り出す</button>
+          </div>
+          <dl class="controls">
+            <dt><span class="kbd">←</span><span class="kbd">→</span></dt>
+            <dd>曲がる（空中では回転）</dd>
+            <dt><span class="kbd">↑</span> / <span class="kbd">↓</span></dt>
+            <dd>押して加速 / ブレーキ</dd>
+            <dt><span class="kbd">SPACE</span></dt>
+            <dd>長押しでしゃがみ、離してオーリー</dd>
+            <dt><span class="kbd">J</span><span class="kbd">K</span><span class="kbd">L</span></dt>
+            <dd>キックフリップ / ヒールフリップ / ショービット</dd>
+            <dt><span class="kbd">SHIFT</span></dt>
+            <dd>タックで加速、空中でグラブ</dd>
+            <dt><span class="kbd">R</span> / <span class="kbd">ESC</span></dt>
+            <dd>道に戻る / 休憩</dd>
+          </dl>
+          <div class="title__foot">
+            <a href="../../">← UNFILED</a>
+            <span class="best">BEST <span id="titleBest">0</span></span>
+            <button class="btn btn--ghost" type="button" data-mute aria-pressed="false">音: ON</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="pause" class="overlay" hidden aria-labelledby="pauseTitle">
+        <div class="card">
+          <p class="eyebrow">PAUSED</p>
+          <h2 id="pauseTitle">ひとやすみ</h2>
+          <p class="title__desc">崖の手前のガードレールの切れ目が、飛び出すところ。<br />着地までがワンコンボ。</p>
+          <div class="actions">
+            <button class="btn btn--primary" type="button" id="resumeBtn">つづける</button>
+            <button class="btn" type="button" data-quit>タイトルへ</button>
+          </div>
+          <div class="title__foot">
+            <a href="../../">← UNFILED</a>
+            <button class="btn btn--ghost" type="button" data-mute aria-pressed="false">音: ON</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="results" class="overlay" hidden aria-labelledby="resultsTitle">
+        <div class="card">
+          <p class="eyebrow">GOAL</p>
+          <h2 id="resultsTitle">ゴール！</h2>
+          <p class="result__time" id="resultTime">0:00.0</p>
+          <p class="result__score"><span id="resultScore">0</span><span class="result__unit"> pt</span></p>
+          <p class="result__record" id="resultRecord" hidden></p>
+          <p class="result__best" id="resultBest"></p>
+          <div class="actions">
+            <button class="btn btn--primary" type="button" id="retryBtn">もう一回</button>
+            <button class="btn" type="button" data-quit>タイトルへ</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="fallback" class="overlay" hidden>
+        <div class="card">
+          <h2>このブラウザでは動きません</h2>
+          <p class="title__desc">WebGL 2 に対応したブラウザ（Chrome / Edge / Firefox / Safari 15 以降）で開いてください。</p>
+          <div class="actions"><a class="btn" href="../../">← UNFILED</a></div>
+        </div>
+      </section>
+    </div>
+    <noscript>
+      <main style="font-family: sans-serif; padding: 2rem">
+        <h1>RAKUGAKI</h1>
+        <p>ノートの山道を、ありえない速さで。遊ぶには JavaScript を有効にしてください。</p>
+        <p><a href="../../">← UNFILED</a></p>
+      </main>
+    </noscript>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
