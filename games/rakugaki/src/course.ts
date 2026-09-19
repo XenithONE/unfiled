@@ -32,6 +32,7 @@ export const SURF = {
   water: 3,
   berm: 4,
   torn: 5,
+  ice: 6,
 } as const;
 export type Surface = (typeof SURF)[keyof typeof SURF];
 
@@ -84,12 +85,23 @@ export interface TerrainSample {
   bump: number;
 }
 
-export type RailKind = "rail" | "pipe" | "coping" | "wire";
+export type RailKind = "rail" | "pipe" | "coping" | "wire" | "rainbow" | "loop";
 export interface Rail {
   id: number;
   a: THREE.Vector3;
   b: THREE.Vector3;
   kind: RailKind;
+  /** loop rails: centre of the circle (undefined on the lead-in / lead-out) */
+  center?: THREE.Vector3;
+  /** rainbow rails: index along the arc for colouring */
+  hue?: number;
+}
+export interface Sticker {
+  id: number;
+  x: number;
+  y: number;
+  z: number;
+  label: string;
 }
 export interface Obstacle {
   x: number;
@@ -153,7 +165,7 @@ export interface FlatZone {
   cap: boolean;
 }
 export interface Landmark {
-  kind: "summit" | "waterfall" | "tunnel" | "village" | "lake" | "torii" | "pipe" | "trap" | "finishKicker";
+  kind: "summit" | "waterfall" | "tunnel" | "village" | "lake" | "torii" | "pipe" | "trap" | "finishKicker" | "ring" | "loop";
   x: number;
   z: number;
   y: number;
@@ -194,6 +206,8 @@ export interface Course {
   landmarks: Landmark[];
   bumps: { piece: number; t0: number; t1: number; tag: string }[];
   boulder: Obstacle;
+  stickers: Sticker[];
+  penguins: { x: number; z: number; y: number; rot: number }[];
   pines: { x: number; z: number; y: number; s: number }[];
   rocks: { x: number; z: number; y: number; s: number; rot: number }[];
   sheep: { x: number; z: number; y: number; rot: number }[];
@@ -530,7 +544,7 @@ export function buildCourse(): Course {
       out.h = hh + bump;
       out.bump = bump;
       out.road = 1;
-      out.surface = bump < -0.5 ? SURF.torn : SURF.road;
+      out.surface = bump < -0.5 ? SURF.torn : best === 0 && nb.t > 24 && nb.t < 58 ? SURF.ice : SURF.road;
       return out;
     }
 
@@ -787,6 +801,59 @@ export function buildCourse(): Course {
     }
   }
 
+  {
+    // rainbow rail: from the end of the summit straight, over hairpin 1, down onto straight 2
+    const p0 = straight(0);
+    const p2 = straight(2);
+    const ramp0 = railAt(p0.s0 + 114, 0, 0.3);
+    const A = railAt(p0.s0 + 120, 0, 0.9);
+    const B = railAt(p2.s0 + 12, 0, 0.7);
+    rails.push({ id: railId++, a: ramp0, b: A, kind: "rainbow", hue: 0 });
+    const segs = 14;
+    let prev = A;
+    for (let i = 1; i <= segs; i++) {
+      const u = i / segs;
+      const cur = new THREE.Vector3().lerpVectors(A, B, u);
+      cur.y += 12 * Math.sin(Math.PI * u);
+      rails.push({ id: railId++, a: prev, b: cur, kind: "rainbow", hue: i });
+      prev = cur;
+    }
+  }
+  {
+    // loop-the-loop on straight 3: lead-in, a 6 m circle standing on the road, lead-out
+    const p4 = straight(4);
+    roadPoint(p4.s0 + 78, rp);
+    // the loop's plane is skewed 30 degrees off the road so the camera behind can see the circle
+    const skew = (30 * Math.PI) / 180;
+    const fwd = new THREE.Vector3(
+      rp.dx * Math.cos(skew) - rp.dz * Math.sin(skew),
+      0,
+      rp.dx * Math.sin(skew) + rp.dz * Math.cos(skew),
+    );
+    const upv = new THREE.Vector3(0, 1, 0);
+    const R = 6;
+    const centre = railAt(p4.s0 + 78, 0, R + 0.5);
+    landmarks.push({ kind: "loop", x: centre.x, z: centre.z, y: centre.y, yaw: Math.atan2(fwd.x, fwd.z), s: p4.s0 + 78, data: R });
+    const bottom = centre.clone().addScaledVector(upv, -R);
+    const lead0 = railAt(p4.s0 + 66, 0, 0.3);
+    const lead1 = railAt(p4.s0 + 72, 0, 0.5);
+    rails.push({ id: railId++, a: lead0, b: lead1, kind: "loop" });
+    rails.push({ id: railId++, a: lead1, b: bottom.clone(), kind: "loop" });
+    const segs = 18;
+    let prev = bottom.clone();
+    for (let i = 1; i <= segs; i++) {
+      const th = (i / segs) * TAU;
+      const cur = centre.clone().addScaledVector(fwd, Math.sin(th) * R + (i / segs) * 0.8).addScaledVector(upv, -Math.cos(th) * R);
+      rails.push({ id: railId++, a: prev, b: cur, kind: "loop", center: centre.clone().addScaledVector(fwd, (i / segs) * 0.8) });
+      prev = cur;
+    }
+    const out0 = prev.clone();
+    const out1 = railAt(p4.s0 + 86, 0, 0.5);
+    const out2 = railAt(p4.s0 + 92, 0, 0.3);
+    rails.push({ id: railId++, a: out0, b: out1, kind: "loop" });
+    rails.push({ id: railId++, a: out1, b: out2, kind: "loop" });
+  }
+
   // ---- boost pads, obstacles, signs, gates ----
   const boosts: BoostPad[] = [];
   let boostId = 0;
@@ -814,7 +881,7 @@ export function buildCourse(): Course {
     }
     pad(p.s0 + 22);
     if (p.index !== 2 && p.index !== 6) pad(p.s0 + 96, p.index % 4 === 0 ? 1.4 : -1.4);
-    if (p.index >= 2 && p.index !== 6 && p.index !== 8) rock(p.s0 + 48 + (p.index % 3) * 8, p.index % 4 === 0 ? -2.3 : 2.3);
+    if (p.index >= 2 && p.index !== 4 && p.index !== 6 && p.index !== 8) rock(p.s0 + 48 + (p.index % 3) * 8, p.index % 4 === 0 ? -2.3 : 2.3);
     if (p.index === 8) rock(p.s0 + 80, 2.1);
   }
   const signs: SignSpot[] = [];
@@ -877,6 +944,40 @@ export function buildCourse(): Course {
     landmarks.push({ kind: "trap", x: rp.x, z: rp.z, y: rp.h, yaw: Math.atan2(rp.dx, rp.dz), s: p12.s0 + 96 });
     roadPoint(p12.s0 + 112, rp);
     landmarks.push({ kind: "finishKicker", x: rp.x, z: rp.z, y: rp.h + 3.5, yaw: Math.atan2(rp.dx, rp.dz), s: p12.s0 + 112 });
+  }
+
+  {
+    const p12 = straight(12);
+    const ring = railAt(p12.s0 + 112 + 24, 0, 0);
+    roadPoint(p12.s0 + 112, rp);
+    landmarks.push({ kind: "ring", x: ring.x, z: ring.z, y: rp.h + 3.5 + 3.2, yaw: Math.atan2(rp.dx, rp.dz), s: p12.s0 + 136 });
+  }
+  const stickers: Sticker[] = [];
+  {
+    const at = (label: string, v: THREE.Vector3) => stickers.push({ id: stickers.length, x: v.x, y: v.y, z: v.z, label });
+    at("山頂の小屋", railAt(straight(0).s0 + 8, 0, 2.4));
+    at("裂け目の底", railAt(straight(2).s0 + 102, 0, 1.5));
+    const rainbow = rails.filter((r) => r.kind === "rainbow");
+    at("虹のてっぺん", rainbow[Math.floor(rainbow.length / 2)].b.clone().add(new THREE.Vector3(0, 1.2, 0)));
+    const loopTop = rails.find((r) => r.kind === "loop" && r.center && r.b.y > r.center.y + 5);
+    if (loopTop) at("ループの頂点", loopTop.b.clone().add(new THREE.Vector3(0, -0.3, 0)));
+    const chute = chutes[0];
+    at("シュートの途中", new THREE.Vector3(chute.ax + chute.dx * chute.length * 0.5, 0, chute.az + chute.dz * chute.length * 0.5));
+    at("ハーフパイプの壁", railAt(straight(6).s0 + 45, w - 0.4, 3.6));
+    const wires = rails.filter((r) => r.kind === "wire");
+    at("ジップラインの真ん中", wires[1].b.clone().add(new THREE.Vector3(0, 1.0, 0)));
+    at("五番目の鳥居", railAt(straight(8).s0 + 38, 0, 3.0));
+    at("鉛筆の中", railAt(straight(10).s0 + 76, 0, 2.2));
+    at("島のボウル", new THREE.Vector3(arcOf(6).cx, 0, arcOf(6).cz));
+    for (const st of stickers) if (st.y === 0) st.y = height(st.x, st.z) + 1.2;
+  }
+  const penguins: Course["penguins"] = [];
+  {
+    const p0 = straight(0);
+    for (let i = 0; i < 6; i++) {
+      const sp = railAt(p0.s0 + 30 + i * 5, (i % 2 === 0 ? 1 : -1) * (w + 2.2 + (i % 3)), 0);
+      penguins.push({ x: sp.x, z: sp.z, y: sp.y, rot: (i * 1.3) % TAU });
+    }
   }
 
   // ---- scattered pines, rocks, sheep, snowmen ----
@@ -954,7 +1055,7 @@ export function buildCourse(): Course {
     railAt,
     totalLength,
     startS: 2,
-    finishS: totalLength - 22,
+    finishS: totalLength - 10,
     pieces,
     rails,
     obstacles,
@@ -966,6 +1067,8 @@ export function buildCourse(): Course {
     landmarks,
     bumps: bumpIndex,
     boulder,
+    stickers,
+    penguins,
     pines,
     rocks,
     sheep,
@@ -1002,6 +1105,7 @@ export function buildTerrainGeometry(course: Course, cell: number): THREE.Buffer
   const cBerm = new THREE.Color(0xf2b8a0);
   const cBerm2 = new THREE.Color(0xf7cdbb);
   const cWater = new THREE.Color(0x8fc4ec);
+  const cIce = new THREE.Color(0xcfe6f6);
   const c = new THREE.Color();
   let i = 0;
   for (let j = 0; j < vz; j++) {
@@ -1049,6 +1153,7 @@ export function buildTerrainGeometry(course: Course, cell: number): THREE.Buffer
     if (sf === SURF.road) c.copy(cAsphalt);
     else if (sf === SURF.torn) c.copy(cTorn);
     else if (sf === SURF.water) c.copy(cWater);
+    else if (sf === SURF.ice) c.copy(cIce);
     else if (sf === SURF.berm) c.copy(((lat[v] - ROAD_HALF_WIDTH) * 0.8) % 1 < 0.5 ? cBerm : cBerm2);
     else if (sf === SURF.dirt) c.copy(cDirt).lerp(cDirt2, noise2(x * 0.1, z * 0.1));
     else if (ny > 0.78) c.copy(cGrass).lerp(cGrass2, noise2(x * 0.08, z * 0.08));

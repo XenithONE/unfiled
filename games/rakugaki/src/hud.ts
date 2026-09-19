@@ -47,6 +47,7 @@ export class Hud {
   private readonly resultBest = $("resultBest");
   private readonly resultRecord = $("resultRecord");
   private readonly titleBest = $("titleBest");
+  private readonly titleStickers = $("titleStickers");
   private readonly touch = $("touch");
   private readonly hint = $("hint");
   private readonly muteButtons = document.querySelectorAll<HTMLButtonElement>("[data-mute]");
@@ -68,6 +69,10 @@ export class Hud {
       .forEach((b) => b.addEventListener("click", () => this.onQuit?.()));
     $("retryBtn").addEventListener("click", () => this.onRetry?.());
     this.muteButtons.forEach((b) => b.addEventListener("click", () => this.onMute?.()));
+  }
+
+  setStickers(found: number, total: number): void {
+    this.titleStickers.textContent = `ステッカー ${found} / ${total}`;
   }
 
   setTouchVisible(visible: boolean): void {

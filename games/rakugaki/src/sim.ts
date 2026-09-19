@@ -45,6 +45,7 @@ export type SimEvent =
   | { type: "sketchy" }
   | { type: "boost"; label: string }
   | { type: "trap"; kmh: number }
+  | { type: "sticker"; id: number; label: string }
   | { type: "respawn" }
   | { type: "sound"; name: SoundName };
 
@@ -55,7 +56,8 @@ const PUSH_MAX = 15;
 export const PUSH_TIME = 0.6;
 const BRAKE = 12;
 const DRIFT_BRAKE = 3;
-const ROLL = { road: 0.18, dirt: 0.5, grass: 1.3, berm: 0.25, skim: 0.3, sink: 6 };
+const ROLL = { road: 0.18, dirt: 0.5, grass: 1.3, berm: 0.25, skim: 0.3, sink: 6, ice: 0.04 };
+const GRIP_ICE = 2.4;
 const DRAG = 0.00125;
 const TUCK_DRAG = 0.5;
 const TUCK_ACC = 0.8;
@@ -95,6 +97,10 @@ export class Skater {
   rail: Rail | null = null;
   railName = "";
   readonly railDir = new THREE.Vector3();
+  /** the "up" of whatever the skater stands on: the loop rail turns it upside down */
+  readonly railUp = new THREE.Vector3(0, 1, 0);
+  /** sticker ids collected this run */
+  readonly stickers = new Set<number>();
   balance = 0;
   grindTime = 0;
   airTime = 0;
@@ -150,9 +156,15 @@ export class Skater {
   private bowlTimer = 0;
   private skimTimer = 0;
   private rockHopDone = false;
+  private loopDone = false;
+  private ringDone = false;
+  private iceTime = 0;
+  private iceDone = false;
   private readonly gatesPassed = new Set<number>();
   private readonly takeoff = new THREE.Vector3();
   private readonly trickCounts = new Map<string, number>();
+  /** how often each trick was used this run: repeats pay less, variety pays more */
+  private readonly runCounts = new Map<string, number>();
   private readonly padCooldown = new Map<number, number>();
   private readonly missCooldown = new Map<number, number>();
   private readonly prev = new THREE.Vector3();
@@ -209,10 +221,13 @@ export class Skater {
     this.padCooldown.clear();
     this.missCooldown.clear();
     this.gatesPassed.clear();
+    this.runCounts.clear();
     this.gateCount = 0;
     this.gateSlow = false;
     this.trapDone = false;
     this.rockHopDone = false;
+    this.ringDone = false;
+    this.iceDone = false;
     this.padChain = 0;
     this.padTimer = 0;
     this.bowlTimer = 0;
@@ -314,6 +329,14 @@ export class Skater {
     this.checkNearMisses(course, ev);
     this.checkGates(course, ev);
     this.checkLandmarks(course, ev);
+    for (const st of course.stickers) {
+      if (this.stickers.has(st.id)) continue;
+      if (Math.hypot(this.pos.x - st.x, this.pos.y + 0.8 - st.y, this.pos.z - st.z) > 2.0) continue;
+      this.stickers.add(st.id);
+      this.addTrick("STICKER", 100, ev);
+      ev.push({ type: "sticker", id: st.id, label: st.label });
+      ev.push({ type: "sound", name: "bank" });
+    }
     this.lastS = this.sample.s;
 
     // Fell off the world or wedged somewhere: back to the road.
@@ -336,6 +359,7 @@ export class Skater {
     if (sf === SURF.dirt) return ROLL.dirt;
     if (sf === SURF.berm) return ROLL.berm;
     if (sf === SURF.water) return this.speed > 12 ? ROLL.skim : ROLL.sink;
+    if (sf === SURF.ice) return ROLL.ice;
     return ROLL.grass;
   }
 
@@ -365,7 +389,15 @@ export class Skater {
     if (hs > 0.01) {
       const along = this.vel.x * fx + this.vel.z * fz;
       const sgn = along >= 0 ? 1 : -1;
-      const grip = this.drifting ? GRIP_DRIFT : GRIP_LOW + (GRIP_HIGH - GRIP_LOW) * clamp(hs / 35, 0, 1);
+      const onIce = this.sample.surface === SURF.ice;
+      const grip = onIce ? GRIP_ICE : this.drifting ? GRIP_DRIFT : GRIP_LOW + (GRIP_HIGH - GRIP_LOW) * clamp(hs / 35, 0, 1);
+      if (onIce && Math.abs(this.steerF) > 0.3 && hs > 8) {
+        this.iceTime += h;
+        if (!this.iceDone && this.iceTime > 0.5) {
+          this.iceDone = true;
+          this.addTrick("ICE SLIDE", 50, ev);
+        }
+      } else this.iceTime = 0;
       const k = 1 - Math.exp(-grip * h);
       this.vel.x += (fx * hs * sgn - this.vel.x) * k;
       this.vel.z += (fz * hs * sgn - this.vel.z) * k;
@@ -411,6 +443,11 @@ export class Skater {
     this.resolveContact(course, ev);
     this.resolveObstacles(course, ev);
     if (!this.grounded || this.bail > 0) return;
+    // Sky rails (rainbow, loop) start at road level: just ride onto them.
+    if (this.sample.road > 0.5 && this.speed > 6) {
+      this.tryCatchRail(course, ev, true);
+      if (this.rail) return;
+    }
 
     // Wall / berm rides and the bank-on-solid-ground rule.
     if (this.normal.y < 0.55 && this.speed > 6) {
@@ -504,6 +541,13 @@ export class Skater {
     // Late flips finish faster near the ground.
     this.advanceFlips(h * (1 + 2 * clamp((0.3 - tl) / 0.3, 0, 1)));
 
+    // Ring of fire above the finish kicker.
+    const ring = course.landmarks.find((l) => l.kind === "ring");
+    if (ring && !this.ringDone && Math.hypot(this.pos.x - ring.x, this.pos.y - ring.y, this.pos.z - ring.z) < 3.2) {
+      this.ringDone = true;
+      this.addTrick("RING OF FIRE", 300, ev);
+      ev.push({ type: "sound", name: "boost" });
+    }
     // Rock hop: flying over the rolling boulder.
     const b = course.boulder;
     if (b.active && !this.rockHopDone && Math.hypot(this.pos.x - b.x, this.pos.z - b.z) < b.r + 1.2) {
@@ -521,7 +565,18 @@ export class Skater {
   private stepRail(h: number, inp: InputState, course: Course, ev: SimEvent[]): void {
     const rail = this.rail!;
     this.drifting = false;
-    if (rail.kind !== "wire") {
+    const sky = rail.kind === "wire" || rail.kind === "rainbow" || rail.kind === "loop";
+    if (rail.center) {
+      this.railUp.copy(this.pos).sub(rail.center).normalize();
+      if (!this.loopDone && this.railUp.y < -0.7) {
+        this.loopDone = true;
+        this.addTrick("LOOP THE LOOP", 500, ev);
+        ev.push({ type: "sound", name: "bigbank" });
+      }
+    } else {
+      this.railUp.set(0, 1, 0);
+    }
+    if (!sky) {
       const difficulty = 1 + this.grindTime * 0.08;
       this.balanceDrift = clamp(this.balanceDrift + (Math.random() - 0.5) * 3 * h, -1, 1);
       this.balance += (this.balanceDrift * 0.35 * difficulty + inp.steer * 2.6) * h;
@@ -538,9 +593,10 @@ export class Skater {
       }
     }
     let s = this.vel.dot(this.railDir);
-    s -= G * this.railDir.y * h;
+    if (rail.kind !== "loop") s -= G * this.railDir.y * h;
     s *= Math.max(0, 1 - 0.08 * h);
-    if (Math.abs(s) < 3) s = (s < 0 ? -1 : 1) * 3;
+    const minS = rail.kind === "loop" ? 12 : 3;
+    if (Math.abs(s) < minS) s = (s < 0 ? -1 : 1) * minS;
     this.vel.copy(this.railDir).multiplyScalar(s);
     this.pos.addScaledVector(this.vel, h);
 
@@ -574,7 +630,7 @@ export class Skater {
     this.grindTick += h;
     if (this.grindTick >= 0.5) {
       this.grindTick -= 0.5;
-      this.comboScore += rail.kind === "wire" ? 40 : rail.kind === "coping" ? 20 : 15;
+      this.comboScore += rail.kind === "wire" ? 40 : rail.kind === "rainbow" ? 30 : rail.kind === "coping" ? 20 : 15;
     }
     this.groundedTime = 0;
     this.advanceFlips(h);
@@ -703,9 +759,10 @@ export class Skater {
     this.clearAir();
   }
 
-  private tryCatchRail(course: Course, ev: SimEvent[]): void {
-    if (this.vel.y > 0.5) return;
+  private tryCatchRail(course: Course, ev: SimEvent[], fromGround = false): void {
+    if (!fromGround && this.vel.y > 0.5) return;
     for (const r of course.rails) {
+      if (fromGround && r.kind !== "rainbow" && r.kind !== "loop") continue;
       if (r.id === this.railCooldownId && this.railCooldown > 0) continue;
       const abx = r.b.x - r.a.x;
       const abz = r.b.z - r.a.z;
@@ -715,11 +772,13 @@ export class Skater {
       if (t < 0 || t > 1) continue;
       const cx = r.a.x + abx * t;
       const cz = r.a.z + abz * t;
-      const catchR = r.kind === "wire" ? 1.2 : RAIL_CATCH_R;
+      const catchR = r.kind === "wire" || r.kind === "rainbow" ? 1.2 : RAIL_CATCH_R;
       if (Math.hypot(this.pos.x - cx, this.pos.z - cz) > catchR) continue;
       const ry = r.a.y + (r.b.y - r.a.y) * t;
       const dy = this.pos.y - ry;
-      if (dy < -0.3 || dy > (r.kind === "wire" ? 1.4 : 0.9)) continue;
+      if (fromGround) {
+        if (dy < -0.7 || dy > 0.5) continue;
+      } else if (dy < -0.3 || dy > (r.kind === "wire" || r.kind === "rainbow" ? 1.4 : 0.9)) continue;
 
       this.flipAngle = this.flipTarget;
       this.shoveAngle = this.shoveTarget;
@@ -741,6 +800,13 @@ export class Skater {
       if (r.kind === "wire") {
         this.railName = "ZIPLINE";
         pts = 300;
+      } else if (r.kind === "rainbow") {
+        this.railName = "RAINBOW RIDE";
+        pts = 250;
+      } else if (r.kind === "loop") {
+        this.railName = "LOOP ENTRY";
+        pts = 60;
+        this.loopDone = false;
       } else if (r.kind === "coping") {
         this.railName = "COPING GRIND";
         pts = 90;
@@ -901,6 +967,7 @@ export class Skater {
       this.railCooldownId = this.rail.id;
       this.railCooldown = 0.4;
     }
+    this.railUp.set(0, 1, 0);
     this.rail = null;
     this.railName = "";
     this.grounded = false;
@@ -971,6 +1038,7 @@ export class Skater {
     else if (this.airTime > 1.3) this.addTrick("BIG AIR", 120, ev);
     if (this.maxAirY - this.takeoffY > 6) this.addTrick("SKY HIGH", 150, ev);
     if (this.takeoffY - this.pos.y > 8 && this.airTime > 0.6) this.addTrick("CLIFF DROP", 200, ev);
+    if (this.takeoff.distanceTo(this.pos) > 40) this.addTrick("MEGA LEAP", 600, ev);
     const landedPiece = this.sample.piece;
     const skipped = landedPiece - this.takeoffPiece;
     const onRoad = this.sample.road > 0.5;
@@ -1002,10 +1070,18 @@ export class Skater {
     }
   }
 
+  /** Finish line: flying bonus, then bank whatever is pending. */
+  finish(ev: SimEvent[]): void {
+    if (this.inAir) this.addTrick("FLYING FINISH", 500, ev);
+    this.bank(ev);
+  }
+
   private addTrick(name: string, base: number, ev: SimEvent[]): void {
     const c = this.trickCounts.get(name) ?? 0;
-    const pts = Math.max(10, Math.round((base * Math.pow(0.5, c)) / 10) * 10);
+    const r = this.runCounts.get(name) ?? 0;
+    const pts = Math.max(10, Math.round((base * Math.pow(0.5, c) * Math.pow(0.8, r)) / 10) * 10);
     this.trickCounts.set(name, c + 1);
+    this.runCounts.set(name, r + 1);
     this.comboScore += pts;
     this.comboCount += 1;
     this.combo.push(name);

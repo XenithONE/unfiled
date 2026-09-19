@@ -7,6 +7,8 @@ export interface Environment {
   group: THREE.Group;
   /** Advance animations. `skaterS` drives the rockfall trigger; `finished` starts the confetti. */
   update(dt: number, t: number, skaterS: number, finished: boolean): void;
+  /** Hide the stickers already found (they still spin for the ones left). */
+  setStickers(found: Set<number>): void;
 }
 
 interface Bird {
@@ -52,7 +54,42 @@ export function buildEnvironment(course: Course, toon: ToonFactory): Environment
   const wireGeo = new THREE.CylinderGeometry(0.04, 0.04, 1, 6);
   const a = new THREE.Vector3();
   const b = new THREE.Vector3();
+  const rainbowMats = [0xf2685f, 0xf3a25e, 0xf3d15e, 0x9bd47f, 0x62c2b0, 0x7aa4e6, 0xb197e3].map((c) =>
+    toon(c, { emissive: c, emissiveIntensity: 0.25 }),
+  );
+  const loopMat = toon(0xf2685f);
+  const loopGeo = new THREE.CylinderGeometry(0.42, 0.42, 1, 10);
   for (const r of course.rails) {
+    if (r.kind === "rainbow") {
+      // seven thin bands side by side make the arc read as a rainbow
+      const dir = new THREE.Vector3().subVectors(r.b, r.a).normalize();
+      const side = new THREE.Vector3(-dir.z, 0, dir.x).normalize();
+      for (let k = 0; k < 7; k++) {
+        const off = (k - 3) * 0.32;
+        const a2 = r.a.clone().addScaledVector(side, off);
+        const b2 = r.b.clone().addScaledVector(side, off);
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 1, 6), rainbowMats[k]);
+        placeBetween(band, a2, b2);
+        group.add(band);
+      }
+      continue;
+    }
+    if (r.kind === "loop") {
+      const tube = shadowed(new THREE.Mesh(loopGeo, loopMat));
+      placeBetween(tube, r.a, r.b);
+      group.add(tube);
+      if (r.center) {
+        // spokes to the ground make the loop stand up
+        const mid = new THREE.Vector3().lerpVectors(r.a, r.b, 0.5);
+        if (mid.y > r.center.y - 1 && Math.abs(mid.y - r.center.y) < 5.5) {
+          const foot = new THREE.Vector3(mid.x, course.height(mid.x, mid.z), mid.z);
+          const strut = new THREE.Mesh(postGeo, postMat);
+          placeBetween(strut, foot, mid);
+          group.add(strut);
+        }
+      }
+      continue;
+    }
     const geo = r.kind === "pipe" ? pipeGeo : r.kind === "coping" ? copingGeo : r.kind === "wire" ? wireGeo : railGeo;
     const mat = r.kind === "pipe" ? pipeMat : r.kind === "coping" ? toon(0xd9d3c7) : r.kind === "wire" ? ink : railMat;
     const tube = shadowed(new THREE.Mesh(geo, mat));
@@ -211,7 +248,7 @@ export function buildEnvironment(course: Course, toon: ToonFactory): Environment
     group.add(g);
   };
   gate(course.startS + 12, 0x62c2b0);
-  gate(course.finishS - 14, 0xf2685f);
+  gate(course.finishS - 22, 0xf2685f);
 
   // ---- summit tower and flags ----
   {
@@ -683,6 +720,127 @@ export function buildEnvironment(course: Course, toon: ToonFactory): Environment
     }
   };
 
+  // ---- loop-the-loop frame: a big ink ring with candy stripes and two legs ----
+  {
+    const lm = course.landmarks.find((l) => l.kind === "loop");
+    if (lm) {
+      const R = lm.data ?? 6;
+      const frame = new THREE.Group();
+      const ring = shadowed(new THREE.Mesh(new THREE.TorusGeometry(R + 0.55, 0.32, 8, 40), ink));
+      frame.add(ring);
+      for (let i = 0; i < 12; i++) {
+        const ang = (i / 12) * Math.PI * 2;
+        const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.9, 0.7), i % 2 ? yellow : white);
+        stripe.position.set(Math.cos(ang) * (R + 0.55), Math.sin(ang) * (R + 0.55), 0);
+        stripe.rotation.z = ang;
+        frame.add(stripe);
+      }
+      frame.position.set(lm.x, lm.y, lm.z);
+      frame.rotation.y = lm.yaw - Math.PI / 2;
+      group.add(frame);
+      const side = new THREE.Vector3(Math.cos(lm.yaw), 0, -Math.sin(lm.yaw));
+      for (const sgn of [-1, 1]) {
+        const top = new THREE.Vector3(lm.x, lm.y + R * 0.5, lm.z).addScaledVector(side, sgn * 0.9);
+        const foot = new THREE.Vector3(top.x, course.height(top.x, top.z) - 0.3, top.z);
+        const leg = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 1, 6), postMat));
+        placeBetween(leg, foot, top);
+        group.add(leg);
+      }
+    }
+  }
+
+  // ---- stickers: spinning stars ----
+  const stickerMeshes = new Map<number, THREE.Group>();
+  {
+    const shape = new THREE.Shape();
+    for (let i = 0; i < 10; i++) {
+      const ang = (i / 10) * Math.PI * 2 - Math.PI / 2;
+      const rad = i % 2 === 0 ? 0.9 : 0.4;
+      if (i === 0) shape.moveTo(Math.cos(ang) * rad, Math.sin(ang) * rad);
+      else shape.lineTo(Math.cos(ang) * rad, Math.sin(ang) * rad);
+    }
+    shape.closePath();
+    const starGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.12, bevelEnabled: false });
+    const starMat = toon(0xf3d15e, { emissive: 0x9a7a10, emissiveIntensity: 0.6, side: THREE.DoubleSide });
+    for (const st of course.stickers) {
+      const g = new THREE.Group();
+      const star = new THREE.Mesh(starGeo, starMat);
+      star.position.z = -0.06;
+      const halo = new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.05, 6, 20), ink);
+      g.add(star, halo);
+      g.position.set(st.x, st.y, st.z);
+      group.add(g);
+      stickerMeshes.set(st.id, g);
+    }
+    updaters.push((_dt, t) => {
+      for (const [id, g] of stickerMeshes) {
+        g.rotation.y = t * 1.6 + id;
+        g.position.y = course.stickers[id].y + Math.sin(t * 2 + id) * 0.25;
+      }
+    });
+  }
+
+  // ---- ring of fire above the finish kicker ----
+  {
+    const lm = course.landmarks.find((l) => l.kind === "ring");
+    if (lm) {
+      const ring = new THREE.Group();
+      const hoop = new THREE.Mesh(new THREE.TorusGeometry(3.2, 0.28, 8, 28), toon(0x2a2733));
+      ring.add(hoop);
+      const flameMat = toon(0xf2685f, { emissive: 0xd9451f, emissiveIntensity: 0.6 });
+      const flameMat2 = toon(0xf3d15e, { emissive: 0xc79a10, emissiveIntensity: 0.6 });
+      const flames: THREE.Mesh[] = [];
+      for (let i = 0; i < 18; i++) {
+        const ang = (i / 18) * Math.PI * 2;
+        const f = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.3, 5), i % 2 ? flameMat : flameMat2);
+        f.position.set(Math.cos(ang) * 3.2, Math.sin(ang) * 3.2, 0);
+        f.rotation.z = ang - Math.PI / 2;
+        ring.add(f);
+        flames.push(f);
+      }
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1, 6), ink);
+      const foot = new THREE.Vector3(lm.x, course.height(lm.x, lm.z), lm.z);
+      placeBetween(post, foot, new THREE.Vector3(lm.x, lm.y - 3.4, lm.z));
+      group.add(post);
+      ring.position.set(lm.x, lm.y, lm.z);
+      ring.rotation.y = lm.yaw;
+      group.add(ring);
+      updaters.push((_dt, t) => {
+        flames.forEach((f, i) => {
+          f.scale.y = 0.8 + Math.abs(Math.sin(t * 9 + i * 1.7)) * 0.7;
+        });
+      });
+    }
+  }
+
+  // ---- penguins on the summit ----
+  for (const pg of course.penguins) {
+    const g = new THREE.Group();
+    const body = shadowed(new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 8), ink));
+    body.scale.set(1, 1.35, 1);
+    body.position.y = 0.55;
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 8), white);
+    belly.scale.set(1, 1.3, 0.7);
+    belly.position.set(0, 0.5, 0.2);
+    const head = shadowed(new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), ink));
+    head.position.y = 1.15;
+    const beak = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.3, 5), toon(0xf08a3c));
+    beak.position.set(0, 1.12, 0.3);
+    beak.rotation.x = Math.PI / 2;
+    const feetGeo = new THREE.BoxGeometry(0.22, 0.06, 0.32);
+    const footL = new THREE.Mesh(feetGeo, toon(0xf08a3c));
+    footL.position.set(-0.15, 0.03, 0.1);
+    const footR = new THREE.Mesh(feetGeo, toon(0xf08a3c));
+    footR.position.set(0.15, 0.03, 0.1);
+    g.add(body, belly, head, beak, footL, footR);
+    g.position.set(pg.x, pg.y, pg.z);
+    g.rotation.y = pg.rot;
+    group.add(g);
+    updaters.push((_dt, t) => {
+      g.rotation.z = Math.sin(t * 3 + pg.rot) * 0.08;
+    });
+  }
+
   // ---- far mountains ----
   const cxCourse = (course.extent.x0 + course.extent.x1) / 2;
   const czCourse = (course.extent.z0 + course.extent.z1) / 2;
@@ -809,6 +967,9 @@ export function buildEnvironment(course: Course, toon: ToonFactory): Environment
   const finishKicker = course.landmarks.find((l) => l.kind === "finishKicker");
   return {
     group,
+    setStickers(found) {
+      for (const [id, g] of stickerMeshes) g.visible = !found.has(id);
+    },
     update(dt, t, skaterS, finished) {
       for (const u of updaters) u(dt, t);
       rockfall?.(skaterS);

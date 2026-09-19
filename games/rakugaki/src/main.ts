@@ -108,6 +108,17 @@ function boot(): void {
   r3.setMotion(!reduced());
   reducedQuery.addEventListener("change", () => r3.setMotion(!reduced()));
   const tunnel = course.landmarks.find((l) => l.kind === "tunnel");
+  const stickerKey = "rakugaki:stickers";
+  const loadStickers = (): Set<number> => {
+    try {
+      return new Set<number>(JSON.parse(localStorage.getItem(stickerKey) ?? "[]") as number[]);
+    } catch {
+      return new Set<number>();
+    }
+  };
+  const foundStickers = loadStickers();
+  hud.setStickers(foundStickers.size, course.stickers.length);
+  env.setStickers(foundStickers);
 
   // ---- camera ----
   let camYaw = skater.yaw;
@@ -175,6 +186,7 @@ function boot(): void {
   const startGame = (): void => {
     sfx.unlock();
     skater.resetRun(course);
+    skater.stickers.clear();
     runTime = 0;
     finishTimer = 0;
     milestone = 0;
@@ -301,6 +313,17 @@ function boot(): void {
           hud.popup(`SPEED TRAP ${Math.round(e.kmh)} km/h!`, "boost");
           if (e.kmh > loadNumber("rakugaki:best:trap")) saveNumber("rakugaki:best:trap", Math.round(e.kmh));
           break;
+        case "sticker":
+          foundStickers.add(e.id);
+          try {
+            localStorage.setItem(stickerKey, JSON.stringify([...foundStickers]));
+          } catch {
+            /* ignore */
+          }
+          hud.setStickers(foundStickers.size, course.stickers.length);
+          hud.showMessage(`ステッカー：${e.label}`, `${foundStickers.size} / ${course.stickers.length}`, 1.4);
+          env.setStickers(foundStickers);
+          break;
         case "respawn":
           hud.showMessage("道に戻った", "", 0.9);
           resetCamera();
@@ -322,7 +345,11 @@ function boot(): void {
       handleEvents();
       if (phase === "playing") {
         runTime += dt;
-        if (skater.sample.s >= course.finishS && skater.sample.d < 8) finishRun();
+        if (skater.sample.s >= course.finishS && skater.sample.d < 8) {
+          skater.finish(events);
+          handleEvents();
+          finishRun();
+        }
         const kmh = skater.kmh;
         if (milestone < MILESTONES.length && kmh >= MILESTONES[milestone]) {
           hud.popup(`${MILESTONES[milestone]} km/h!`, "boost");

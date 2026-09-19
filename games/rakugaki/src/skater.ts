@@ -171,8 +171,8 @@ export class SkaterRig {
   update(sk: Skater, dt: number, t: number): void {
     this.smoothYaw += angleDiff(this.smoothYaw, sk.yaw) * (1 - Math.exp(-16 * dt));
     const inAir = sk.inAir;
-    const targetN = sk.grounded ? sk.normal : UP;
-    this.tilt.lerp(targetN, 1 - Math.exp(-(sk.grounded ? 12 : 3) * dt)).normalize();
+    const targetN = sk.grounded ? sk.normal : sk.rail ? sk.railUp : UP;
+    this.tilt.lerp(targetN, 1 - Math.exp(-(sk.grounded || sk.rail ? 12 : 3) * dt)).normalize();
     this.root.position.copy(sk.pos);
     qTilt.setFromUnitVectors(UP, this.tilt);
     qYaw.setFromAxisAngle(UP, this.smoothYaw);
