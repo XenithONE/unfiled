@@ -189,8 +189,8 @@ export class SkaterRig {
 
     // lean into turns, nose up in the air
     const hs = sk.horizontalSpeed;
-    const rollTarget = sk.rail ? 0 : sk.steer * 0.3 * clamp(hs / 6, 0, 1) * (inAir ? 0.4 : 1);
-    this.roll = damp(this.roll, rollTarget, 10, dt);
+    const rollTarget = sk.rail ? 0 : sk.steer * (sk.drifting ? 0.55 : 0.3) * clamp(hs / 6, 0, 1) * (inAir ? 0.4 : 1);
+    this.roll = damp(this.roll, rollTarget, 10, dt) + Math.sin(t * 40) * 0.25 * sk.wobble;
     this.pitch = damp(this.pitch, inAir ? -0.1 : 0, 6, dt);
 
     // bail tumble

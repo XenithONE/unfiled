@@ -221,6 +221,12 @@ button {
   animation-name: pop-bail;
 }
 
+.pop--sketchy {
+  color: var(--ink-soft);
+  font-size: clamp(20px, 3vw, 30px);
+  letter-spacing: 0.12em;
+}
+
 @keyframes pop-rise {
   0% {
     opacity: 0;

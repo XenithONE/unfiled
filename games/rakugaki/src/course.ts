@@ -12,7 +12,7 @@ const STRAIGHT_GRADE = 0.085;
 const ARC_R = 14;
 const ARC_GRADE = 0.12;
 const DIAG = 0.15;
-const BANK = 0.2;
+export const BANK = 0.3;
 const DEG = Math.PI / 180;
 const CUT_TAN = Math.tan(65 * DEG);
 const CUT_H = 4;
@@ -21,6 +21,19 @@ const FILL_TAN = Math.tan(68 * DEG);
 const FILL_H = 10;
 const FILL_SLOPE = Math.tan(18 * DEG);
 const INFLUENCE = 45;
+const BERM_K = 0.35;
+export const SNOW_LINE = -24;
+
+/** Surface codes carried by TerrainSample.surface and the mesh colours. */
+export const SURF = {
+  grass: 0,
+  road: 1,
+  dirt: 2,
+  water: 3,
+  berm: 4,
+  torn: 5,
+} as const;
+export type Surface = (typeof SURF)[keyof typeof SURF];
 
 interface PieceBase {
   index: number;
@@ -29,7 +42,7 @@ interface PieceBase {
   h0: number;
   grade: number;
 }
-interface Straight extends PieceBase {
+export interface Straight extends PieceBase {
   kind: "straight";
   ax: number;
   az: number;
@@ -38,13 +51,17 @@ interface Straight extends PieceBase {
   /** sign of the cross product on the uphill (mountain) side */
   uphillSign: number;
 }
-interface Arc extends PieceBase {
+export interface Arc extends PieceBase {
   kind: "arc";
   cx: number;
   cz: number;
   R: number;
   a0: number;
   sweep: number;
+  /** berm height on the outside of the bend */
+  bermTop: number;
+  /** true for the last hairpin: the island is a dirt bowl you can cut through */
+  bowlIsland: boolean;
 }
 export type Piece = Straight | Arc;
 
@@ -52,17 +69,22 @@ export interface TerrainSample {
   h: number;
   /** 1 on the asphalt, 0 elsewhere */
   road: number;
+  surface: Surface;
   /** signed lateral offset from the centreline (m), positive toward the uphill side */
   lat: number;
   /** distance along the whole course (m) of the nearest road point */
   s: number;
+  /** distance along the nearest piece (m) */
+  t: number;
   /** nearest piece index */
   piece: number;
   /** lateral distance to the nearest centreline (m) */
   d: number;
+  /** additive road feature height at this point (kickers, dips, pipe walls) */
+  bump: number;
 }
 
-export type RailKind = "rail" | "pipe";
+export type RailKind = "rail" | "pipe" | "coping" | "wire";
 export interface Rail {
   id: number;
   a: THREE.Vector3;
@@ -73,8 +95,10 @@ export interface Obstacle {
   x: number;
   z: number;
   r: number;
-  kind: "rock" | "pine";
+  kind: "rock" | "pine" | "post" | "boulder";
   id: number;
+  /** dynamic obstacles are switched on and moved by the environment animation */
+  active: boolean;
 }
 export interface BoostPad {
   x: number;
@@ -90,6 +114,7 @@ export interface SignSpot {
   y: number;
   yaw: number;
   left: boolean;
+  kind: "chevron" | "hop" | "gap" | "rockfall" | "shortcut";
 }
 export interface RoadPoint {
   x: number;
@@ -97,6 +122,44 @@ export interface RoadPoint {
   h: number;
   dx: number;
   dz: number;
+}
+export interface SpeedGate {
+  id: number;
+  s: number;
+  x: number;
+  z: number;
+  y: number;
+  yaw: number;
+  minSpeed: number;
+}
+export interface Chute {
+  ax: number;
+  az: number;
+  bx: number;
+  bz: number;
+  hA: number;
+  hB: number;
+  length: number;
+  dx: number;
+  dz: number;
+}
+export interface FlatZone {
+  x: number;
+  z: number;
+  r: number;
+  level: number;
+  surface: Surface;
+  /** true: only lower the terrain (lake); false: blend toward the level (plateau) */
+  cap: boolean;
+}
+export interface Landmark {
+  kind: "summit" | "waterfall" | "tunnel" | "village" | "lake" | "torii" | "pipe" | "trap" | "finishKicker";
+  x: number;
+  z: number;
+  y: number;
+  yaw: number;
+  s: number;
+  data?: number;
 }
 
 interface Bump {
@@ -106,6 +169,8 @@ interface Bump {
   lat0: number;
   lat1: number;
   f: (u: number, v: number) => number;
+  /** what this bump is, for awards and colours */
+  tag: string;
 }
 
 export interface Course {
@@ -113,6 +178,8 @@ export interface Course {
   height(x: number, z: number): number;
   normal(x: number, z: number, out: THREE.Vector3): THREE.Vector3;
   roadPoint(s: number, out: RoadPoint): RoadPoint;
+  /** world position at (s, lateral offset toward the uphill side) plus `up` above the terrain */
+  railAt(s: number, lat: number, up: number): THREE.Vector3;
   totalLength: number;
   startS: number;
   finishS: number;
@@ -121,13 +188,25 @@ export interface Course {
   obstacles: Obstacle[];
   boosts: BoostPad[];
   signs: SignSpot[];
+  gates: SpeedGate[];
+  chutes: Chute[];
+  zones: FlatZone[];
+  landmarks: Landmark[];
+  bumps: { piece: number; t0: number; t1: number; tag: string }[];
+  boulder: Obstacle;
   pines: { x: number; z: number; y: number; s: number }[];
   rocks: { x: number; z: number; y: number; s: number; rot: number }[];
+  sheep: { x: number; z: number; y: number; rot: number }[];
+  snowmen: { x: number; z: number; y: number; rot: number }[];
   extent: { x0: number; x1: number; z0: number; z1: number };
 }
 
 const TAU = Math.PI * 2;
 const wrap = (a: number): number => ((a % TAU) + TAU) % TAU;
+const smooth = (a: number, b: number, x: number): number => {
+  const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
 
 function hash2(x: number, z: number): number {
   const s = Math.sin(x * 127.1 + z * 311.7) * 43758.5453;
@@ -203,7 +282,7 @@ function nearestArc(p: Arc, x: number, z: number, o: Near): void {
   o.h = p.h0 - p.grade * t;
   o.s = p.s0 + t;
   o.side = dist >= p.R ? 1 : -1;
-  o.lat = (dist - p.R);
+  o.lat = dist - p.R;
   o.dist = dist;
   o.onArc = onArc;
 }
@@ -215,6 +294,15 @@ function cutProfile(e: number): number {
 function fillProfile(e: number): number {
   const cliff = Math.min(e, FILL_H / FILL_TAN);
   return -(cliff * FILL_TAN + Math.max(0, e - FILL_H / FILL_TAN) * FILL_SLOPE);
+}
+/** Parabolic berm that steepens into the retaining wall: hit it fast and you ride it, not stop. */
+function bermProfile(e: number, top: number): number {
+  const eb = Math.sqrt(top / BERM_K);
+  if (e <= eb) return BERM_K * e * e;
+  const rest = e - eb;
+  const wallLeft = Math.max(0, (CUT_H + 0.8 - top) / CUT_TAN);
+  const wall = Math.min(rest, wallLeft);
+  return top + wall * CUT_TAN + Math.max(0, rest - wallLeft) * CUT_SLOPE;
 }
 
 export function buildCourse(): Course {
@@ -249,7 +337,6 @@ export function buildCourse(): Course {
     s += STRAIGHT_LEN;
     if (i === N_STRAIGHTS - 1) break;
 
-    // Hairpin toward -z. Pick the perpendicular that points downhill.
     let px = dz;
     let pz = -dx;
     if (pz > 0) {
@@ -262,7 +349,6 @@ export function buildCourse(): Course {
     const nextDx = -dirSign / n;
     const nextDz = -DIAG / n;
     const theta = Math.acos(Math.max(-1, Math.min(1, dx * nextDx + dz * nextDz)));
-    // Choose the sweep sign whose end tangent matches the next heading.
     let sweep = theta;
     {
       const endA = a0 + sweep;
@@ -271,6 +357,7 @@ export function buildCourse(): Course {
       if (tx * nextDx + tz * nextDz < 0.99) sweep = -theta;
     }
     const len = ARC_R * theta;
+    const hairpin = i + 1; // 1..6
     pieces.push({
       kind: "arc",
       index: index++,
@@ -283,6 +370,8 @@ export function buildCourse(): Course {
       R: ARC_R,
       a0,
       sweep,
+      bermTop: hairpin === 2 || hairpin === 5 ? 4.3 : 3.15,
+      bowlIsland: hairpin === 6,
     });
     const a1 = a0 + sweep;
     x = cx + Math.cos(a1) * ARC_R;
@@ -292,6 +381,8 @@ export function buildCourse(): Course {
     dirSign = -dirSign;
   }
   const totalLength = s;
+  const straight = (i: number): Straight => pieces[i] as Straight;
+  const arcOf = (hairpin: number): Arc => pieces[hairpin * 2 - 1] as Arc;
 
   // ---- extent ----
   let minX = Infinity;
@@ -313,72 +404,100 @@ export function buildCourse(): Course {
       consider(p.cx + p.R, p.cz + p.R);
     }
   }
-  const extent = { x0: minX - 70, x1: maxX + 70, z0: minZ - 60, z1: maxZ + 60 };
+  const extent = { x0: minX - 75, x1: maxX + 75, z0: minZ - 70, z1: maxZ + 60 };
 
-  // ---- road bumps ----
+  // ---- road features ----
   const bumps: Bump[] = [];
-  const kicker = (piece: number, t0: number, len: number, H: number, lat0 = -w, lat1 = w) =>
-    bumps.push({
+  const add = (b: Bump) => bumps.push(b);
+  const kicker = (piece: number, t0: number, len: number, H: number, tag = "kicker") =>
+    add({
       piece,
       t0,
       t1: t0 + len,
-      lat0,
-      lat1,
+      lat0: -w,
+      lat1: w,
+      tag,
       f: (u) => (u < 0.97 ? (H * u) / 0.97 : H * (1 - (u - 0.97) / 0.03)),
     });
   const log = (piece: number, t0: number) =>
-    bumps.push({
+    add({
       piece,
       t0,
-      t1: t0 + 1.2,
+      t1: t0 + 2.6,
       lat0: -w,
       lat1: w,
-      f: (u) => 0.42 * Math.sqrt(Math.max(0, 1 - (2 * u - 1) * (2 * u - 1))),
+      tag: "log",
+      f: (u) => 0.32 * (0.5 - 0.5 * Math.cos(TAU * u)),
     });
-  const rollers = (piece: number, t0: number, count: number) =>
-    bumps.push({
+  const rollers = (piece: number, t0: number, count: number, spacing: number, amp: number) =>
+    add({
       piece,
       t0,
-      t1: t0 + count * 9,
+      t1: t0 + count * spacing,
       lat0: -w,
       lat1: w,
-      f: (u) => 0.55 * (0.5 - 0.5 * Math.cos(u * count * TAU)),
+      tag: "rollers",
+      f: (u) => amp * (0.5 - 0.5 * Math.cos(u * count * TAU)),
     });
-  /** Wedge rising toward the cliff edge (downhill side is lat < 0). */
-  const cliffKicker = (piece: number, t0: number, len: number, H: number) =>
-    bumps.push({
+  /** Wedge rising toward the cliff edge (downhill side is lat < 0), with a run-up along the road. */
+  const cliffKicker = (piece: number, t0: number, len: number, H: number, tag = "cliff") =>
+    add({
       piece,
       t0,
       t1: t0 + len,
       lat0: -w,
       lat1: -w + 3.6,
-      f: (_u, v) => H * (1 - v),
+      tag,
+      f: (u, v) => H * (1 - v) * Math.min(1, u / 0.35),
     });
 
+  // summit roll-in: the run starts 5 m up and rolls into the first straight
+  add({ piece: 0, t0: 0, t1: 14, lat0: -w, lat1: w, tag: "rollin", f: (u) => 5 * (0.5 + 0.5 * Math.cos(Math.PI * u)) });
   kicker(0, 58, 5, 1.1);
+  cliffKicker(0, 108, 12, 1.6, "hop");
+  // straight 2: the notebook gap — a lip and a torn-out dip
   log(2, 40);
-  kicker(2, 78, 5, 1.2);
-  cliffKicker(4, 34, 9, 1.4);
-  rollers(6, 30, 3);
-  log(8, 62);
+  kicker(2, 84, 6, 2.0, "gaplip");
+  add({ piece: 2, t0: 90, t1: 114, lat0: -w, lat1: w, tag: "gap", f: (u) => -6.5 * (0.5 - 0.5 * Math.cos(TAU * u)) });
+  cliffKicker(2, 108, 12, 1.8, "hop");
+  // straight 3: cliff launch into the dirt chute, rockfall
+  cliffKicker(4, 40, 12, 2.2, "chute");
+  cliffKicker(4, 108, 12, 2.0, "hop");
+  // straight 4: half-pipe corridor and rollers
+  add({
+    piece: 6,
+    t0: 20,
+    t1: 70,
+    lat0: -w,
+    lat1: w,
+    tag: "pipe",
+    f: (u, v) => {
+      const e = Math.max(0, (Math.abs(2 * v - 1) - 0.55) / 0.45);
+      return 3.0 * e * e * smooth(0, 0.12, u) * smooth(1, 0.88, u);
+    },
+  });
+  rollers(6, 84, 3, 8, 1.0);
+  cliffKicker(6, 108, 12, 2.2, "hop");
+  // straight 5: torii rush, cliff launch
+  cliffKicker(8, 50, 9, 1.5, "cliff");
   kicker(8, 100, 6, 1.3);
-  cliffKicker(8, 50, 9, 1.5);
-  rollers(10, 40, 4);
-  kicker(12, 88, 7, 1.6);
+  cliffKicker(8, 108, 12, 2.4, "hop");
+  // straight 6: rollers then the pencil tunnel over the pipeline
+  rollers(10, 22, 4, 6.5, 0.6);
+  cliffKicker(10, 108, 12, 2.6, "hop");
+  // final straight: mega kicker, the run ends in the air
+  kicker(12, 100, 12, 3.5, "finish");
 
-  // ---- terrain ----
-  const nearBuf: Near[] = pieces.map(() => ({
-    t: 0,
-    d: 0,
-    h: 0,
-    s: 0,
-    side: 1,
-    lat: 0,
-    dist: 0,
-    onArc: false,
-  }));
+  const bumpIndex = bumps.map((b) => ({ piece: b.piece, t0: b.t0, t1: b.t1, tag: b.tag }));
 
-  const sample = (px: number, pz: number, out: TerrainSample): TerrainSample => {
+  // ---- flat zones (summit plateau, lake, village pads) ----
+  const zones: FlatZone[] = [];
+  const chutes: Chute[] = [];
+
+  const nearBuf: Near[] = pieces.map(() => ({ t: 0, d: 0, h: 0, s: 0, side: 1, lat: 0, dist: 0, onArc: false }));
+
+  /** Terrain without chutes/zones (used to seed their heights). */
+  const baseSample = (px: number, pz: number, out: TerrainSample): TerrainSample => {
     let best = -1;
     let bestD = Infinity;
     for (let i = 0; i < pieces.length; i++) {
@@ -395,26 +514,29 @@ export function buildCourse(): Course {
     const piece = pieces[best];
     out.piece = best;
     out.s = nb.s;
+    out.t = nb.t;
     out.d = nb.d;
     out.lat = nb.lat;
+    out.bump = 0;
 
-    // Asphalt: exact road height plus banking and bumps.
     if (nb.d <= w) {
       let hh = nb.h;
       if (piece.kind === "arc") hh += BANK * nb.lat;
+      let bump = 0;
       for (const b of bumps) {
-        if (b.piece !== best || nb.t < b.t0 || nb.t > b.t1 || nb.lat < b.lat0 || nb.lat > b.lat1)
-          continue;
-        hh += b.f((nb.t - b.t0) / (b.t1 - b.t0), (nb.lat - b.lat0) / (b.lat1 - b.lat0));
+        if (b.piece !== best || nb.t < b.t0 || nb.t > b.t1 || nb.lat < b.lat0 || nb.lat > b.lat1) continue;
+        bump += b.f((nb.t - b.t0) / (b.t1 - b.t0), (nb.lat - b.lat0) / (b.lat1 - b.lat0));
       }
-      out.h = hh;
+      out.h = hh + bump;
+      out.bump = bump;
       out.road = 1;
+      out.surface = bump < -0.5 ? SURF.torn : SURF.road;
       return out;
     }
 
-    // Off road: blend every nearby piece's embankment profile.
     let sumW = 0;
     let sumH = 0;
+    let surface: Surface = SURF.grass;
     for (let i = 0; i < pieces.length; i++) {
       const o = nearBuf[i];
       const p = pieces[i];
@@ -424,10 +546,16 @@ export function buildCourse(): Course {
       if (wgt <= 0) continue;
       let hh: number;
       if (p.kind === "arc" && o.side < 0) {
-        // hairpin island: the road height carried inward with a gentle dip
-        hh = o.h - BANK * w - 0.25 - 0.08 * Math.max(0, p.R - w - o.dist);
+        if (p.bowlIsland) {
+          hh = o.h - BANK * w - 0.25 - 0.32 * Math.max(0, p.R - w - o.dist);
+          if (i === best) surface = SURF.dirt;
+        } else {
+          hh = o.h - BANK * w - 0.25 - 0.08 * Math.max(0, p.R - w - o.dist);
+        }
       } else if (p.kind === "arc") {
-        hh = o.h + BANK * w + cutProfile(o.d - w);
+        const e = o.d - w;
+        hh = o.h + BANK * w + bermProfile(e, p.bermTop);
+        if (i === best && e <= Math.sqrt(p.bermTop / BERM_K)) surface = SURF.berm;
       } else if (o.side > 0) {
         hh = o.h + cutProfile(o.d - w);
       } else {
@@ -438,13 +566,53 @@ export function buildCourse(): Course {
     }
     let hh = sumH / sumW;
     const off = Math.min(1, (nb.d - w) / 3);
-    hh += off * (0.5 * (noise2(px * 0.11, pz * 0.11) - 0.5) + 2.2 * (noise2(px * 0.025, pz * 0.025) - 0.5));
+    if (surface === SURF.grass)
+      hh += off * (0.5 * (noise2(px * 0.11, pz * 0.11) - 0.5) + 2.2 * (noise2(px * 0.025, pz * 0.025) - 0.5));
     out.h = hh;
     out.road = 0;
+    out.surface = surface;
     return out;
   };
 
-  const tmp: TerrainSample = { h: 0, road: 0, lat: 0, s: 0, piece: 0, d: 0 };
+  const sample = (px: number, pz: number, out: TerrainSample): TerrainSample => {
+    baseSample(px, pz, out);
+    if (out.road > 0.5) return out;
+    for (const c of chutes) {
+      const rx = px - c.ax;
+      const rz = pz - c.az;
+      const t = rx * c.dx + rz * c.dz;
+      if (t < -4 || t > c.length + 4) continue;
+      const l = rx * c.dz - rz * c.dx;
+      const al = Math.abs(l);
+      if (al > 6) continue;
+      const tc = Math.max(0, Math.min(c.length, t));
+      const u = tc / c.length;
+      let ch = c.hA + (c.hB - c.hA) * u + 0.15 * l * l;
+      // small wooden kicker near the bottom
+      const kt = c.length - 9;
+      if (tc > kt && tc < kt + 6) ch += 1.3 * ((tc - kt) / 6);
+      const wgt = 1 - smooth(3, 6, al);
+      out.h = out.h + (ch - out.h) * wgt;
+      if (al < 3) out.surface = SURF.dirt;
+    }
+    for (const zn of zones) {
+      const dz = Math.hypot(px - zn.x, pz - zn.z);
+      if (dz > zn.r) continue;
+      if (zn.cap) {
+        if (out.h < zn.level) {
+          out.h = zn.level;
+          out.surface = zn.surface;
+        }
+      } else {
+        const wgt = 1 - smooth(zn.r * 0.7, zn.r, dz);
+        out.h = out.h + (zn.level - out.h) * wgt;
+        if (wgt > 0.6) out.surface = zn.surface;
+      }
+    }
+    return out;
+  };
+
+  const tmp: TerrainSample = { h: 0, road: 0, surface: SURF.grass, lat: 0, s: 0, t: 0, piece: 0, d: 0, bump: 0 };
   const height = (px: number, pz: number): number => sample(px, pz, tmp).h;
   const normal = (px: number, pz: number, out: THREE.Vector3): THREE.Vector3 => {
     const e = 0.08;
@@ -453,15 +621,13 @@ export function buildCourse(): Course {
     return out.set(-hx, 1, -hz).normalize();
   };
 
+  const pieceAt = (sq: number): Piece => {
+    for (const q of pieces) if (sq >= q.s0 && sq < q.s0 + q.length) return q;
+    return pieces[pieces.length - 1];
+  };
   const roadPoint = (sq: number, out: RoadPoint): RoadPoint => {
     const sc = Math.max(0, Math.min(totalLength - 0.01, sq));
-    let p = pieces[pieces.length - 1];
-    for (const q of pieces) {
-      if (sc >= q.s0 && sc < q.s0 + q.length) {
-        p = q;
-        break;
-      }
-    }
+    const p = pieceAt(sc);
     const t = sc - p.s0;
     if (p.kind === "straight") {
       out.x = p.ax + p.dx * t;
@@ -479,39 +645,80 @@ export function buildCourse(): Course {
     out.h = p.h0 - p.grade * t;
     return out;
   };
-
-  // ---- rails ----
-  const rails: Rail[] = [];
-  let railId = 0;
-  const addRail = (a: THREE.Vector3, b: THREE.Vector3, kind: RailKind) =>
-    rails.push({ id: railId++, a, b, kind });
   const rp: RoadPoint = { x: 0, z: 0, h: 0, dx: 0, dz: 0 };
-  const railAt = (sq: number, lat: number, up: number): THREE.Vector3 => {
+  /** Lateral unit vector (toward the uphill side) at s. */
+  const lateralAt = (sq: number): [number, number] => {
     roadPoint(sq, rp);
-    const p = pieces.find((q) => sq >= q.s0 && sq < q.s0 + q.length) ?? pieces[pieces.length - 1];
-    // lateral unit vector pointing to the uphill side
-    let lx: number;
-    let lz: number;
-    if (p.kind === "straight") {
-      // cross((lx,lz), dir) = lx*dz - lz*dx must have the sign of uphillSign
-      if (p.uphillSign > 0) {
-        lx = p.dz;
-        lz = -p.dx;
-      } else {
-        lx = -p.dz;
-        lz = p.dx;
-      }
-    } else {
-      const ox = rp.x - p.cx;
-      const oz = rp.z - p.cz;
-      const len = Math.hypot(ox, oz) || 1;
-      lx = ox / len;
-      lz = oz / len;
-    }
+    const p = pieceAt(Math.max(0, Math.min(totalLength - 0.01, sq)));
+    if (p.kind === "straight") return p.uphillSign > 0 ? [p.dz, -p.dx] : [-p.dz, p.dx];
+    const ox = rp.x - p.cx;
+    const oz = rp.z - p.cz;
+    const len = Math.hypot(ox, oz) || 1;
+    return [ox / len, oz / len];
+  };
+  const railAt = (sq: number, lat: number, up: number): THREE.Vector3 => {
+    const [lx, lz] = lateralAt(sq);
+    roadPoint(sq, rp);
     const px = rp.x + lx * lat;
     const pz = rp.z + lz * lat;
     return new THREE.Vector3(px, height(px, pz) + up, pz);
   };
+
+  // ---- summit plateau behind the start ----
+  {
+    const p0 = straight(0);
+    zones.push({ x: p0.ax - p0.dx * 6, z: p0.az - p0.dz * 6, r: 22, level: p0.h0 + 5.0, surface: SURF.grass, cap: false });
+  }
+
+  // ---- dirt chute from the straight-3 cliff down to straight 4 ----
+  {
+    const p4 = straight(4);
+    const p6 = straight(6);
+    const [l4x, l4z] = lateralAt(p4.s0 + 52);
+    roadPoint(p4.s0 + 52, rp);
+    const ax = rp.x - l4x * (w + 7);
+    const az = rp.z - l4z * (w + 7);
+    const [l6x, l6z] = lateralAt(p6.s0 + 14);
+    roadPoint(p6.s0 + 14, rp);
+    const bx = rp.x + l6x * (w + 0.5);
+    const bz = rp.z + l6z * (w + 0.5);
+    const hB = rp.h + 0.3;
+    const hA = baseSample(ax, az, tmp).h;
+    const len = Math.hypot(bx - ax, bz - az);
+    chutes.push({ ax, az, bx, bz, hA, hB, length: len, dx: (bx - ax) / len, dz: (bz - az) / len });
+  }
+
+  // ---- lake and village at the bottom ----
+  const landmarks: Landmark[] = [];
+  {
+    const p12 = straight(12);
+    const [lx, lz] = lateralAt(p12.s0 + 60);
+    roadPoint(p12.s0 + 60, rp);
+    const lakeX = rp.x - lx * (w + 30);
+    const lakeZ = rp.z - lz * (w + 30);
+    zones.push({ x: lakeX, z: lakeZ, r: 26, level: rp.h - 11, surface: SURF.water, cap: true });
+    landmarks.push({ kind: "lake", x: lakeX, z: lakeZ, y: rp.h - 11, yaw: Math.atan2(rp.dx, rp.dz), s: p12.s0 + 60 });
+    // a hamlet on the island of hairpin 5 and a hut on the summit plateau
+    const arc5 = arcOf(5);
+    for (let i = 0; i < 3; i++) {
+      const ang = arc5.a0 + arc5.sweep * (0.3 + i * 0.2);
+      const rr = arc5.R - w - 4.2;
+      const vx = arc5.cx + Math.cos(ang) * rr;
+      const vz = arc5.cz + Math.sin(ang) * rr;
+      landmarks.push({ kind: "village", x: vx, z: vz, y: height(vx, vz), yaw: ang + Math.PI / 2, s: arc5.s0, data: i });
+    }
+    const p0 = straight(0);
+    const hutX = p0.ax - p0.dx * 14 + p0.dz * 9 * p0.uphillSign * -1;
+    const hutZ = p0.az - p0.dz * 14 - p0.dx * 9 * p0.uphillSign * -1;
+    landmarks.push({ kind: "village", x: hutX, z: hutZ, y: height(hutX, hutZ), yaw: Math.atan2(p0.dx, p0.dz), s: 0, data: 3 });
+  }
+
+  // ---- rails ----
+  const rails: Rail[] = [];
+  let railId = 0;
+  const addRail = (a: THREE.Vector3, b: THREE.Vector3, kind: RailKind) => rails.push({ id: railId++, a, b, kind });
+  const overlapsCliff = (piece: number, t0: number, t1: number): boolean =>
+    bumps.some((b) => b.piece === piece && b.lat0 < -w + 0.1 && b.lat1 < w && t0 < b.t1 + 3 && t1 > b.t0 - 3);
   for (const p of pieces) {
     if (p.kind === "arc") {
       const steps = 14;
@@ -522,26 +729,65 @@ export function buildCourse(): Course {
         addRail(prev, cur, "rail");
         prev = cur;
       }
-    } else {
-      // downhill-edge guardrail sections with gaps to jump through
-      for (let t = 12; t + 22 < p.length - 8; t += 30) {
+      if (p.bermTop > 4) {
+        // bowl coping along the top of the tall berm
+        const lat = w + Math.sqrt(p.bermTop / BERM_K);
+        let prevC = railAt(p.s0 + 0.5, lat, 0.15);
+        for (let i = 1; i <= steps; i++) {
+          const sq = p.s0 + ((p.length - 1) * i) / steps + 0.5;
+          const cur = railAt(sq, lat, 0.15);
+          addRail(prevC, cur, "coping");
+          prevC = cur;
+        }
+      }
+    } else if (p.index !== 6 && p.index !== 12) {
+      for (let t = 12; t + 22 < p.length - 30; t += 30) {
+        if (overlapsCliff(p.index, t, t + 22)) continue;
         addRail(railAt(p.s0 + t, -(w - 0.3), 0.62), railAt(p.s0 + t + 22, -(w - 0.3), 0.62), "rail");
       }
     }
   }
   {
-    // a pipeline running down the middle of the sixth straight
-    const p = pieces[10];
-    const segs = 6;
+    // pipeline down the middle of straight 6, through the tunnel
+    const p = straight(10);
+    const segs = 8;
     let prev = railAt(p.s0 + 18, 0.6, 0.5);
     for (let i = 1; i <= segs; i++) {
       const cur = railAt(p.s0 + 18 + (90 * i) / segs, 0.6, 0.5);
       addRail(prev, cur, "pipe");
       prev = cur;
     }
+    landmarks.push({ kind: "pipe", x: 0, z: 0, y: 0, yaw: 0, s: p.s0 + 60 });
+  }
+  {
+    // half-pipe copings on straight 4
+    const p = straight(6);
+    for (const side of [1, -1]) {
+      const segs = 6;
+      let prev = railAt(p.s0 + 26, side * (w - 0.1), 0.15);
+      for (let i = 1; i <= segs; i++) {
+        const cur = railAt(p.s0 + 26 + (38 * i) / segs, side * (w - 0.1), 0.15);
+        addRail(prev, cur, "coping");
+        prev = cur;
+      }
+    }
+  }
+  {
+    // zip-line from the top of hairpin 4's berm across the island to straight 5
+    const arc = arcOf(4);
+    const p8 = straight(8);
+    const a = railAt(arc.s0 + arc.length * 0.5, w + Math.sqrt(arc.bermTop / BERM_K) + 0.5, 3.0);
+    const b = railAt(p8.s0 + 14, -1, 1.0);
+    const segs = 4;
+    let prev = a;
+    for (let i = 1; i <= segs; i++) {
+      const cur = new THREE.Vector3().lerpVectors(a, b, i / segs);
+      addRail(prev, cur, "wire");
+      prev = cur;
+    }
   }
 
-  // ---- boost pads, obstacles, signs ----
+  // ---- boost pads, obstacles, signs, gates ----
   const boosts: BoostPad[] = [];
   let boostId = 0;
   const pad = (sq: number, lat = 0) => {
@@ -551,62 +797,152 @@ export function buildCourse(): Course {
   };
   const obstacles: Obstacle[] = [];
   let obsId = 0;
+  const obstacle = (x: number, z: number, r: number, kind: Obstacle["kind"], active = true): Obstacle => {
+    const o: Obstacle = { x, z, r, kind, id: obsId++, active };
+    obstacles.push(o);
+    return o;
+  };
   const rock = (sq: number, lat: number) => {
     const p = railAt(sq, lat, 0);
-    obstacles.push({ x: p.x, z: p.z, r: 1.1, kind: "rock", id: obsId++ });
+    obstacle(p.x, p.z, 1.1, "rock");
   };
   for (const p of pieces) {
     if (p.kind !== "straight") continue;
+    if (p.index === 12) {
+      for (const t of [10, 30, 50, 70, 90]) pad(p.s0 + t);
+      continue;
+    }
     pad(p.s0 + 22);
-    pad(p.s0 + 96, p.index % 4 === 0 ? 1.4 : -1.4);
-    if (p.index >= 2) rock(p.s0 + 48 + (p.index % 3) * 8, p.index % 4 === 0 ? -2.3 : 2.3);
-    if (p.index >= 6) rock(p.s0 + 112, p.index % 4 === 0 ? 2.1 : -2.1);
+    if (p.index !== 2 && p.index !== 6) pad(p.s0 + 96, p.index % 4 === 0 ? 1.4 : -1.4);
+    if (p.index >= 2 && p.index !== 6 && p.index !== 8) rock(p.s0 + 48 + (p.index % 3) * 8, p.index % 4 === 0 ? -2.3 : 2.3);
+    if (p.index === 8) rock(p.s0 + 80, 2.1);
   }
   const signs: SignSpot[] = [];
   for (const p of pieces) {
     if (p.kind !== "arc") continue;
     for (const f of [0.25, 0.5, 0.75]) {
       const sq = p.s0 + p.length * f;
-      const sp = railAt(sq, w + 1.6, 0);
+      const sp = railAt(sq, w + Math.sqrt(p.bermTop / BERM_K) + 1.4, 0);
       roadPoint(sq, rp);
-      signs.push({ x: sp.x, z: sp.z, y: sp.y, yaw: Math.atan2(rp.dx, rp.dz), left: p.sweep > 0 });
+      signs.push({ x: sp.x, z: sp.z, y: sp.y, yaw: Math.atan2(rp.dx, rp.dz), left: p.sweep > 0, kind: "chevron" });
     }
   }
+  const signAt = (sq: number, lat: number, kind: SignSpot["kind"]) => {
+    const sp = railAt(sq, lat, 0);
+    roadPoint(sq, rp);
+    signs.push({ x: sp.x, z: sp.z, y: sp.y, yaw: Math.atan2(rp.dx, rp.dz), left: false, kind });
+  };
+  for (const i of [0, 2, 4, 6, 8, 10]) signAt(straight(i).s0 + 95, -(w + 1.2), "hop");
+  signAt(straight(2).s0 + 70, w + 1.2, "gap");
+  signAt(straight(4).s0 + 30, -(w + 1.2), "shortcut");
+  signAt(straight(4).s0 + 85, w + 1.2, "rockfall");
 
-  // ---- scattered pines and rocks ----
+  // torii speed gates on straight 5
+  const gates: SpeedGate[] = [];
+  {
+    const p = straight(8);
+    for (let i = 0; i < 8; i++) {
+      const sq = p.s0 + 18 + i * 5;
+      roadPoint(sq, rp);
+      gates.push({ id: i, s: sq, x: rp.x, z: rp.z, y: rp.h, yaw: Math.atan2(rp.dx, rp.dz), minSpeed: 25 });
+      for (const side of [1, -1]) {
+        const post = railAt(sq, side * (w + 0.6), 0);
+        obstacle(post.x, post.z, 0.3, "post");
+      }
+    }
+    landmarks.push({ kind: "torii", x: 0, z: 0, y: 0, yaw: 0, s: p.s0 + 18 });
+  }
+
+  // rockfall boulder: parked above straight 3, released when the player passes t 70
+  let boulder: Obstacle;
+  {
+    const p = straight(4);
+    const top = railAt(p.s0 + 100, w + 9, 0);
+    boulder = obstacle(top.x, top.z, 1.6, "boulder", false);
+  }
+
+  // other landmarks for the environment builder
+  {
+    const p0 = straight(0);
+    landmarks.push({ kind: "summit", x: p0.ax, z: p0.az, y: p0.h0 + 5, yaw: Math.atan2(p0.dx, p0.dz), s: 0 });
+    const p2 = straight(2);
+    const wf = railAt(p2.s0 + 60, -(w + 2), 0);
+    roadPoint(p2.s0 + 60, rp);
+    landmarks.push({ kind: "waterfall", x: wf.x, z: wf.z, y: wf.y, yaw: Math.atan2(rp.dx, rp.dz), s: p2.s0 + 60 });
+    const p10 = straight(10);
+    roadPoint(p10.s0 + 76, rp);
+    landmarks.push({ kind: "tunnel", x: rp.x, z: rp.z, y: rp.h, yaw: Math.atan2(rp.dx, rp.dz), s: p10.s0 + 76 });
+    const p12 = straight(12);
+    roadPoint(p12.s0 + 96, rp);
+    landmarks.push({ kind: "trap", x: rp.x, z: rp.z, y: rp.h, yaw: Math.atan2(rp.dx, rp.dz), s: p12.s0 + 96 });
+    roadPoint(p12.s0 + 112, rp);
+    landmarks.push({ kind: "finishKicker", x: rp.x, z: rp.z, y: rp.h + 3.5, yaw: Math.atan2(rp.dx, rp.dz), s: p12.s0 + 112 });
+  }
+
+  // ---- scattered pines, rocks, sheep, snowmen ----
   const pines: Course["pines"] = [];
   const rocks: Course["rocks"] = [];
+  const sheep: Course["sheep"] = [];
+  const snowmen: Course["snowmen"] = [];
   const nrm = new THREE.Vector3();
-  const ts: TerrainSample = { h: 0, road: 0, lat: 0, s: 0, piece: 0, d: 0 };
+  const ts: TerrainSample = { h: 0, road: 0, surface: SURF.grass, lat: 0, s: 0, t: 0, piece: 0, d: 0, bump: 0 };
   let seed = 7;
   const rnd = () => {
     seed = (seed * 1664525 + 1013904223) % 4294967296;
     return seed / 4294967296;
   };
-  for (let i = 0; i < 2600 && pines.length < 380; i++) {
+  for (let i = 0; i < 3200 && pines.length < 420; i++) {
     const px = extent.x0 + rnd() * (extent.x1 - extent.x0);
     const pz = extent.z0 + rnd() * (extent.z1 - extent.z0);
     sample(px, pz, ts);
-    if (ts.d < w + 2.5 || ts.d > 60) continue;
+    if (ts.d < w + 2.5 || ts.d > 60 || ts.surface !== SURF.grass) continue;
     normal(px, pz, nrm);
     if (nrm.y < 0.62) continue;
     pines.push({ x: px, z: pz, y: ts.h, s: 0.8 + rnd() * 0.7 });
   }
-  for (let i = 0; i < 1200 && rocks.length < 110; i++) {
+  for (let i = 0; i < 1400 && rocks.length < 110; i++) {
     const px = extent.x0 + rnd() * (extent.x1 - extent.x0);
     const pz = extent.z0 + rnd() * (extent.z1 - extent.z0);
     sample(px, pz, ts);
-    if (ts.d < w + 1.2 || ts.d > 55) continue;
+    if (ts.d < w + 1.2 || ts.d > 55 || ts.surface === SURF.water) continue;
     rocks.push({ x: px, z: pz, y: ts.h - 0.3, s: 0.6 + rnd() * 1.6, rot: rnd() * TAU });
+  }
+  for (let i = 0; i < 3000 && sheep.length < 46; i++) {
+    const px = extent.x0 + rnd() * (extent.x1 - extent.x0);
+    const pz = extent.z0 + rnd() * (extent.z1 - extent.z0);
+    sample(px, pz, ts);
+    if (ts.d < w + 3 || ts.d > 40 || ts.surface !== SURF.grass || ts.h > SNOW_LINE) continue;
+    normal(px, pz, nrm);
+    if (nrm.y < 0.9) continue;
+    sheep.push({ x: px, z: pz, y: ts.h, rot: rnd() * TAU });
+  }
+  {
+    const p0 = straight(0);
+    for (let i = 0; i < 4; i++) {
+      const sq = p0.s0 + 24 + i * 22;
+      const sp = railAt(sq, (i % 2 === 0 ? 1 : -1) * (w + 3 + i), 0);
+      snowmen.push({ x: sp.x, z: sp.z, y: sp.y, rot: rnd() * TAU });
+    }
   }
   // pines that hug the road for near misses
   for (const p of pieces) {
-    if (p.kind !== "straight") continue;
+    if (p.kind !== "straight" || p.index === 8) continue;
     for (const t of [30, 70, 110]) {
+      if (overlapsCliff(p.index, t - 1, t + 1)) continue;
       const lat = ((p.index / 2 + t / 40) | 0) % 2 === 0 ? w + 1.3 : -(w + 1.3);
       const pt = railAt(p.s0 + t, lat, 0);
       pines.push({ x: pt.x, z: pt.z, y: pt.y, s: 1.1 });
-      obstacles.push({ x: pt.x, z: pt.z, r: 0.45, kind: "pine", id: obsId++ });
+      obstacle(pt.x, pt.z, 0.45, "pine");
+    }
+  }
+  // slalom pines down the chute
+  for (const c of chutes) {
+    for (let t = 14; t < c.length - 14; t += 9) {
+      const side = ((t / 9) | 0) % 2 === 0 ? 2 : -2;
+      const px = c.ax + c.dx * t + c.dz * side;
+      const pz = c.az + c.dz * t - c.dx * side;
+      pines.push({ x: px, z: pz, y: height(px, pz), s: 0.9 });
+      obstacle(px, pz, 0.5, "pine");
     }
   }
 
@@ -615,16 +951,25 @@ export function buildCourse(): Course {
     height,
     normal,
     roadPoint,
+    railAt,
     totalLength,
-    startS: 6,
+    startS: 2,
     finishS: totalLength - 22,
     pieces,
     rails,
     obstacles,
     boosts,
     signs,
+    gates,
+    chutes,
+    zones,
+    landmarks,
+    bumps: bumpIndex,
+    boulder,
     pines,
     rocks,
+    sheep,
+    snowmen,
     extent,
   };
 }
@@ -641,13 +986,22 @@ export function buildTerrainGeometry(course: Course, cell: number): THREE.Buffer
   const colors = new Float32Array(count * 3);
   const road = new Float32Array(count);
   const marks = new Float32Array(count * 2);
-  const ts: TerrainSample = { h: 0, road: 0, lat: 0, s: 0, piece: 0, d: 0 };
+  const surf = new Uint8Array(count);
+  const lat = new Float32Array(count);
+  const ts: TerrainSample = { h: 0, road: 0, surface: SURF.grass, lat: 0, s: 0, t: 0, piece: 0, d: 0, bump: 0 };
   const cAsphalt = new THREE.Color(0xa9adbd);
+  const cTorn = new THREE.Color(0x8f9bb3);
   const cGrass = new THREE.Color(0x9ad27f);
   const cGrass2 = new THREE.Color(0x7dbd68);
   const cDirt = new THREE.Color(0xd9b98d);
+  const cDirt2 = new THREE.Color(0xe8a27a);
   const cRock = new THREE.Color(0xbdb8cb);
   const cCliff = new THREE.Color(0x9a94ad);
+  const cSnow = new THREE.Color(0xfbfaf6);
+  const cSnow2 = new THREE.Color(0xe4e9f4);
+  const cBerm = new THREE.Color(0xf2b8a0);
+  const cBerm2 = new THREE.Color(0xf7cdbb);
+  const cWater = new THREE.Color(0x8fc4ec);
   const c = new THREE.Color();
   let i = 0;
   for (let j = 0; j < vz; j++) {
@@ -661,6 +1015,8 @@ export function buildTerrainGeometry(course: Course, cell: number): THREE.Buffer
       road[i] = ts.road;
       marks[i * 2] = ts.lat;
       marks[i * 2 + 1] = ts.s;
+      surf[i] = ts.surface;
+      lat[i] = ts.d;
     }
   }
   const index = new Uint32Array(nx * nz * 6);
@@ -687,12 +1043,22 @@ export function buildTerrainGeometry(course: Course, cell: number): THREE.Buffer
   for (let v = 0; v < count; v++) {
     const ny = normals.getY(v);
     const x = positions[v * 3];
+    const y = positions[v * 3 + 1];
     const z = positions[v * 3 + 2];
-    if (road[v] > 0.5) c.copy(cAsphalt);
+    const sf = surf[v];
+    if (sf === SURF.road) c.copy(cAsphalt);
+    else if (sf === SURF.torn) c.copy(cTorn);
+    else if (sf === SURF.water) c.copy(cWater);
+    else if (sf === SURF.berm) c.copy(((lat[v] - ROAD_HALF_WIDTH) * 0.8) % 1 < 0.5 ? cBerm : cBerm2);
+    else if (sf === SURF.dirt) c.copy(cDirt).lerp(cDirt2, noise2(x * 0.1, z * 0.1));
     else if (ny > 0.78) c.copy(cGrass).lerp(cGrass2, noise2(x * 0.08, z * 0.08));
     else if (ny > 0.55) c.copy(cDirt).lerp(cGrass2, Math.max(0, (ny - 0.55) / 0.23) * 0.6);
     else if (ny > 0.35) c.copy(cRock);
     else c.copy(cCliff);
+    if (sf !== SURF.road && sf !== SURF.water && sf !== SURF.berm && sf !== SURF.torn && ny > 0.5) {
+      const snow = smooth(SNOW_LINE - 5, SNOW_LINE + 3, y + 1.5 * (noise2(x * 0.15, z * 0.15) - 0.5));
+      c.lerp(noise2(x * 0.3, z * 0.3) > 0.5 ? cSnow : cSnow2, snow);
+    }
     colors[v * 3] = c.r;
     colors[v * 3 + 1] = c.g;
     colors[v * 3 + 2] = c.b;

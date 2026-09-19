@@ -127,6 +127,10 @@ export class Sfx {
         this.blip(t + 0.08, 880, 0.08, 0.16);
         this.blip(t + 0.16, 1320, 0.14, 0.18);
         break;
+      case "splash":
+        this.burst(t, 0.3, 0.35, "lowpass", 1200);
+        this.sweep(t, 400, 1800, 0.25, 0.2);
+        break;
     }
   }
 

@@ -118,7 +118,7 @@ export class Hud {
     this.comboMath.textContent = `${formatScore(score)} × ${count}`;
   }
 
-  popup(text: string, kind: "trick" | "bank" | "bail" | "boost" = "trick"): void {
+  popup(text: string, kind: "trick" | "bank" | "bail" | "boost" | "sketchy" = "trick"): void {
     const el = document.createElement("span");
     el.className = `pop pop--${kind}`;
     el.textContent = text;

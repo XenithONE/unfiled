@@ -13,7 +13,7 @@ import { Hud } from "./hud";
 import { angleDiff, clamp, damp } from "./util";
 
 type Phase = "title" | "playing" | "finished" | "paused" | "results";
-const MILESTONES = [80, 100, 120, 150];
+const MILESTONES = [80, 100, 120, 150, 180];
 
 interface DevHooks {
   skater: Skater;
@@ -93,6 +93,8 @@ function boot(): void {
   let bestScore = loadNumber("rakugaki:best:score");
   let bestTime = loadNumber("rakugaki:best:time");
   let shake = 0;
+  let fovPunch = 0;
+  let landDip = 0;
   let cameraLocked = false;
   let elapsed = 0;
   let milestone = 0;
@@ -102,8 +104,10 @@ function boot(): void {
   hud.setDistance(course.finishS - course.startS);
   hud.setSpeed(0);
   hud.showTitle();
-  r3.setMotion(!reducedQuery.matches);
-  reducedQuery.addEventListener("change", () => r3.setMotion(!reducedQuery.matches));
+  const reduced = () => reducedQuery.matches;
+  r3.setMotion(!reduced());
+  reducedQuery.addEventListener("change", () => r3.setMotion(!reduced()));
+  const tunnel = course.landmarks.find((l) => l.kind === "tunnel");
 
   // ---- camera ----
   let camYaw = skater.yaw;
@@ -123,49 +127,48 @@ function boot(): void {
     const hs = skater.horizontalSpeed;
     const speed = skater.speed;
     let fov = 50;
+    let roll = 0;
     if (phase === "title") {
       camYaw += dt * 0.1;
-      desired.set(
-        skater.pos.x - Math.sin(camYaw) * 10,
-        skater.pos.y + 3.6,
-        skater.pos.z - Math.cos(camYaw) * 10,
-      );
+      desired.set(skater.pos.x - Math.sin(camYaw) * 10, skater.pos.y + 3.6, skater.pos.z - Math.cos(camYaw) * 10);
       lookTarget.set(skater.pos.x, skater.pos.y + 1.0, skater.pos.z);
     } else {
       const target = hs > 1.5 ? Math.atan2(skater.vel.x, skater.vel.z) : skater.yaw;
       camYaw += angleDiff(camYaw, target) * (1 - Math.exp(-3.5 * dt));
-      const dist = 5.2 + speed * 0.05;
-      const height = 2.0 + (skater.inAir ? 0.3 : 0);
+      const dist = 4.8 + speed * 0.09;
+      const height = 1.7 + speed * 0.01 + (skater.inAir ? 0.4 : 0);
       const ahead = 2.5 + speed * 0.08;
-      desired.set(
-        skater.pos.x - Math.sin(camYaw) * dist,
-        skater.pos.y + height,
-        skater.pos.z - Math.cos(camYaw) * dist,
-      );
-      lookTarget.set(
-        skater.pos.x + Math.sin(camYaw) * ahead,
-        skater.pos.y + 0.9,
-        skater.pos.z + Math.cos(camYaw) * ahead,
-      );
-      fov = 50 + 24 * clamp((speed - 6) / 34, 0, 1);
+      desired.set(skater.pos.x - Math.sin(camYaw) * dist, skater.pos.y + height, skater.pos.z - Math.cos(camYaw) * dist);
+      lookTarget.set(skater.pos.x + Math.sin(camYaw) * ahead, skater.pos.y + 0.9, skater.pos.z + Math.cos(camYaw) * ahead);
+      const range = reduced() ? 16 : 32;
+      fov = 56 + range * clamp((speed - 6) / 34, 0, 1) + (reduced() ? 0 : fovPunch);
+      roll = reduced() ? 0 : -skater.steer * 0.06 * clamp(hs / 15, 0, 1);
     }
     camPos.x = damp(camPos.x, desired.x, 7, dt);
     camPos.z = damp(camPos.z, desired.z, 7, dt);
     camPos.y = damp(camPos.y, desired.y, 5, dt);
     const floor = course.height(camPos.x, camPos.z) + 0.8;
     if (camPos.y < floor) camPos.y = floor;
+    if (tunnel && Math.abs(skater.sample.s - tunnel.s) < 20 && skater.sample.d < 8) {
+      const roofY = tunnel.y + 4.6;
+      if (camPos.y > roofY) camPos.y = roofY;
+    }
     camLook.x = damp(camLook.x, lookTarget.x, 10, dt);
     camLook.y = damp(camLook.y, lookTarget.y, 7, dt);
     camLook.z = damp(camLook.z, lookTarget.z, 10, dt);
     camera.position.copy(camPos);
+    camera.position.y -= 0.35 * landDip;
     if (shake > 0) {
       camera.position.x += (Math.random() - 0.5) * 0.25 * shake;
       camera.position.y += (Math.random() - 0.5) * 0.25 * shake;
       shake = Math.max(0, shake - dt * 1.6);
     }
     camera.lookAt(camLook);
+    camera.rotateZ(roll);
     camera.fov = damp(camera.fov, fov, 4, dt);
     camera.updateProjectionMatrix();
+    fovPunch = Math.max(0, fovPunch - dt * 12);
+    landDip = Math.max(0, landDip - dt * 4);
   };
 
   // ---- game flow ----
@@ -188,9 +191,9 @@ function boot(): void {
   };
   const finishRun = (): void => {
     phase = "finished";
-    finishTimer = 1.8;
+    finishTimer = 2.2;
     input.enabled = false;
-    hud.showMessage("ゴール！", "", 1.8);
+    hud.showMessage("ゴール！", "", 2.2);
     sfx.play("bigbank");
   };
   const showResults = (): void => {
@@ -250,8 +253,7 @@ function boot(): void {
     if (phase === "title" && code === "Enter") startGame();
     else if (phase === "results" && code === "Enter") startGame();
     else if (phase === "playing" && (code === "Escape" || code === "KeyP")) pauseGame();
-    else if (phase === "paused" && (code === "Escape" || code === "KeyP" || code === "Enter"))
-      resumeGame();
+    else if (phase === "paused" && (code === "Escape" || code === "KeyP" || code === "Enter")) resumeGame();
   };
   input.enabled = false;
   document.addEventListener("visibilitychange", () => {
@@ -278,13 +280,26 @@ function boot(): void {
           break;
         case "land":
           hud.popup(`+${e.total.toLocaleString("en-US")}`, "bank");
+          landDip = 1;
           break;
         case "bail":
           hud.popup("BAIL!", "bail");
           shake = 1;
           break;
+        case "bump":
+          shake = Math.max(shake, 0.6);
+          break;
+        case "sketchy":
+          hud.popup("SKETCHY", "sketchy");
+          shake = Math.max(shake, 0.4);
+          break;
         case "boost":
           hud.popup(e.label, "boost");
+          fovPunch = 10;
+          break;
+        case "trap":
+          hud.popup(`SPEED TRAP ${Math.round(e.kmh)} km/h!`, "boost");
+          if (e.kmh > loadNumber("rakugaki:best:trap")) saveNumber("rakugaki:best:trap", Math.round(e.kmh));
           break;
         case "respawn":
           hud.showMessage("道に戻った", "", 0.9);
@@ -307,7 +322,7 @@ function boot(): void {
       handleEvents();
       if (phase === "playing") {
         runTime += dt;
-        if (skater.sample.s >= course.finishS && skater.sample.d < 14) finishRun();
+        if (skater.sample.s >= course.finishS && skater.sample.d < 8) finishRun();
         const kmh = skater.kmh;
         if (milestone < MILESTONES.length && kmh >= MILESTONES[milestone]) {
           hud.popup(`${MILESTONES[milestone]} km/h!`, "boost");
@@ -322,22 +337,18 @@ function boot(): void {
       hud.setScore(skater.score);
       hud.setSpeed(skater.kmh);
       hud.setCombo(skater.combo, skater.comboScore, skater.comboCount);
-      hud.setBalance(skater.rail ? skater.balance : null);
-      if (skater.speed > 28) shake = Math.max(shake, clamp((skater.speed - 28) / 18, 0, 1) * 0.35);
+      hud.setBalance(skater.rail && skater.rail.kind !== "wire" ? skater.balance : null);
+      if (skater.speed > 32) shake = Math.max(shake, clamp((skater.speed - 32) / 18, 0, 1) * 0.35);
     } else {
       input.poll();
     }
     hud.tick(dt);
     rig.update(skater, dt, elapsed);
-    env.update(dt, elapsed);
+    env.update(dt, elapsed, skater.sample.s, phase === "finished" || phase === "results");
     updateCamera(dt);
     r3.updateShadowTarget(skater.pos);
-    const speedFactor = active ? clamp((skater.speed - 15) / 25, 0, 1) : 0;
-    sfx.update(
-      skater.speed,
-      active && skater.grounded && skater.bail <= 0,
-      active && skater.rail !== null,
-    );
+    const speedFactor = active ? clamp((skater.speed - 12) / 24, 0, 1) : 0;
+    sfx.update(skater.speed, active && skater.grounded && skater.bail <= 0, active && skater.rail !== null);
     r3.render(elapsed, speedFactor);
   };
 
