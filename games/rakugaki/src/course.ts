@@ -562,10 +562,10 @@ export function buildCourse(): Course {
       if (p.kind === "arc" && o.side < 0) {
         if (p.bowlIsland) {
           hh = o.h - BANK * w - 0.25 - 0.32 * Math.max(0, p.R - w - o.dist);
-          if (i === best) surface = SURF.dirt;
         } else {
           hh = o.h - BANK * w - 0.25 - 0.08 * Math.max(0, p.R - w - o.dist);
         }
+        if (i === best) surface = SURF.dirt;
       } else if (p.kind === "arc") {
         const e = o.d - w;
         hh = o.h + BANK * w + bermProfile(e, p.bermTop);
@@ -807,17 +807,19 @@ export function buildCourse(): Course {
     const p2 = straight(2);
     const ramp0 = railAt(p0.s0 + 114, 0, 0.3);
     const A = railAt(p0.s0 + 120, 0, 0.9);
-    const B = railAt(p2.s0 + 12, 0, 0.7);
+    const B = railAt(p2.s0 + 16, 0, 0.9);
+    const B2 = railAt(p2.s0 + 24, 0, 0.3);
     rails.push({ id: railId++, a: ramp0, b: A, kind: "rainbow", hue: 0 });
-    const segs = 14;
+    const segs = 16;
     let prev = A;
     for (let i = 1; i <= segs; i++) {
       const u = i / segs;
       const cur = new THREE.Vector3().lerpVectors(A, B, u);
-      cur.y += 12 * Math.sin(Math.PI * u);
+      cur.y += 12 * (0.5 - 0.5 * Math.cos(TAU * u));
       rails.push({ id: railId++, a: prev, b: cur, kind: "rainbow", hue: i });
       prev = cur;
     }
+    rails.push({ id: railId++, a: prev, b: B2, kind: "rainbow", hue: segs + 1 });
   }
   {
     // loop-the-loop on straight 3: lead-in, a 6 m circle standing on the road, lead-out

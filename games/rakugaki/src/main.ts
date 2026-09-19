@@ -299,6 +299,7 @@ function boot(): void {
           shake = 1;
           break;
         case "bump":
+          hud.popup("BONK", "sketchy");
           shake = Math.max(shake, 0.6);
           break;
         case "sketchy":

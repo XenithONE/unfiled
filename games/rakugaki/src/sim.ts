@@ -50,7 +50,7 @@ export type SimEvent =
   | { type: "sound"; name: SoundName };
 
 export const G = 15;
-const MAX_SPEED = 46;
+const MAX_SPEED = 52;
 const PUSH_ACC = 13;
 const PUSH_MAX = 15;
 export const PUSH_TIME = 0.6;
@@ -141,6 +141,9 @@ export class Skater {
   private railCooldown = 0;
   private grabTime = 0;
   private takeoffPiece = 0;
+  private roadPiece = 0;
+  private railEntryPiece = 0;
+  private exitedRail = false;
   private takeoffT = 0;
   private takeoffLat = 0;
   private takeoffTag = "";
@@ -195,6 +198,7 @@ export class Skater {
     this.normal.set(0, 1, 0);
     course.sample(this.pos.x, this.pos.z, this.sample);
     this.lastS = this.sample.s;
+    this.roadPiece = this.sample.piece;
     this.rail = null;
     this.railName = "";
     this.clearAir();
@@ -285,7 +289,8 @@ export class Skater {
       return;
     }
 
-    if (this.inAir) {
+    const aboutToLand = this.inAir && this.vel.y < 0 && this.pos.y - this.sample.h < 0.5;
+    if (this.inAir && !aboutToLand) {
       if (inp.kickflip) {
         this.flipTarget += TAU;
         this.addTrick("KICKFLIP", 100, ev);
@@ -367,6 +372,7 @@ export class Skater {
     const sp = this.vel.length();
     const hs = Math.hypot(this.vel.x, this.vel.z);
     const onRoad = this.sample.road > 0.5;
+    if (onRoad) this.roadPiece = this.sample.piece;
     const wasDrifting = this.drifting;
     this.drifting = inp.brake && Math.abs(this.steerF) > 0.5 && hs > 9 && onRoad;
     if (this.drifting) this.driftTime += h;
@@ -593,9 +599,9 @@ export class Skater {
       }
     }
     let s = this.vel.dot(this.railDir);
-    if (rail.kind !== "loop") s -= G * this.railDir.y * h;
+    if (rail.kind !== "loop" && rail.kind !== "rainbow") s -= G * this.railDir.y * h;
     s *= Math.max(0, 1 - 0.08 * h);
-    const minS = rail.kind === "loop" ? 12 : 3;
+    const minS = rail.kind === "loop" ? 12 : rail.kind === "rainbow" ? 8 : 3;
     if (Math.abs(s) < minS) s = (s < 0 ? -1 : 1) * minS;
     this.vel.copy(this.railDir).multiplyScalar(s);
     this.pos.addScaledVector(this.vel, h);
@@ -749,7 +755,7 @@ export class Skater {
       this.wobble = 0.6;
       ev.push({ type: "sketchy" });
     }
-    if (this.airTime > 0.12) {
+    if (this.airTime > 0.12 || this.exitedRail) {
       this.awardAir(course, ev);
       if (this.comboCount === 0 && this.airTime > 0.35) this.addTrick("OLLIE", 10, ev);
       ev.push({ type: "sound", name: "land" });
@@ -782,6 +788,8 @@ export class Skater {
 
       this.flipAngle = this.flipTarget;
       this.shoveAngle = this.shoveTarget;
+      // A rail entered from the air keeps the take-off piece so sky rails pay SHORTCUT on exit.
+      this.railEntryPiece = fromGround || this.grounded ? this.sample.piece : this.takeoffPiece;
       this.rail = r;
       this.pos.set(cx, ry, cz);
       this.railDir.subVectors(r.b, r.a).normalize();
@@ -843,7 +851,7 @@ export class Skater {
       if (vn < 0) {
         this.vel.x -= nx * vn;
         this.vel.z -= nz * vn;
-        if (-vn > 20 && c.kind !== "post") {
+        if (-vn > 20 && c.kind === "boulder") {
           this.startBail(ev);
         } else if (-vn > 4) {
           // Bonk: bounce off and wobble instead of falling.
@@ -945,7 +953,8 @@ export class Skater {
   private leaveGround(): void {
     this.grounded = false;
     this.takeoff.copy(this.pos);
-    this.takeoffPiece = this.sample.piece;
+    // Off-road take-offs (chute, islands) still count from the road you left.
+    this.takeoffPiece = this.sample.road > 0.5 ? this.sample.piece : this.roadPiece;
     this.takeoffT = this.sample.t;
     this.takeoffLat = this.sample.lat;
     this.takeoffTag = this.sample.bump > 0.05 ? "bump" : "";
@@ -971,8 +980,9 @@ export class Skater {
     this.rail = null;
     this.railName = "";
     this.grounded = false;
+    this.exitedRail = true;
     this.takeoff.copy(this.pos);
-    this.takeoffPiece = this.sample.piece;
+    this.takeoffPiece = this.railEntryPiece;
     this.takeoffT = this.sample.t;
     this.takeoffLat = this.sample.lat;
     this.takeoffTag = "";
@@ -985,6 +995,7 @@ export class Skater {
   }
 
   private clearAir(): void {
+    this.exitedRail = false;
     this.airTime = 0;
     this.spin = 0;
     this.grabTime = 0;
@@ -1043,6 +1054,8 @@ export class Skater {
     const skipped = landedPiece - this.takeoffPiece;
     const onRoad = this.sample.road > 0.5;
     if (skipped >= 2 && this.sample.d < 30) {
+      // a shortcut pays once: the next take-off counts from here
+      this.roadPiece = landedPiece;
       const levels = Math.floor(skipped / 2);
       if (levels === 1 && onRoad && this.takeoffTag === "bump" && this.takeoffT > 100) {
         this.addTrick("HAIRPIN HOP", 500, ev);
