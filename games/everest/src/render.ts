@@ -79,8 +79,12 @@ export class MountainView {
     for(let s=-600; s<LENGTH+1800; s+=800) {
       for(const side of [-1,1]) {
         const h=600+rng()*950, r=600+rng()*500, x=side*(1700+rng()*650);
-        const peak=mesh(mountainGeo(r,h,Math.floor(rng()*100000)),snow,this.scene,x,Math.min(ground(s,1000)-150,-h-120),-s);
-        peak.rotation.y=rng()*6;
+        const geo=mountainGeo(r,h,Math.floor(rng()*100000));geo.rotateY(rng()*6);
+        // Sink each mountain's base into the descending surface instead of leaving a floating flat skirt.
+        const positions=geo.getAttribute('position'),base=ground(s,x);
+        for(let i=0;i<positions.count;i++)positions.setY(i,positions.getY(i)+ground(s-positions.getZ(i),x+positions.getX(i))-base);
+        geo.computeVertexNormals();
+        mesh(geo,snow,this.scene,x,Math.min(base-150,-h-120),-s);
       }
     }
     this.features(); this.camp();
