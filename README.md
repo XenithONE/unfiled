@@ -97,7 +97,7 @@ TIDAL FORGEは、同じPagesサイト内の`experiments/tidal-forge/`で公開�
 - [RUSTWHIRL — 敵の攻撃を、自分の武器に。](https://xenithone.github.io/unfiled/games/rustwhirl/)
 - [RAKUGAKI — ノートの山道を、ありえない速さで。](https://xenithone.github.io/unfiled/games/rakugaki/)
 
-RUSTWHIRL ENDLESS 0.4は `public/games/rustwhirl/` から配信する独立したGodot製Webゲームです。無限WAVE、7種の通常敵、12種の装備、5WAVEごとのボス、端末内の上位5記録を備えます。WASM・PCK・JavaScript・音声ワークレットを一式で管理し、既存のPagesワークフローが `dist/games/rustwhirl/` へコピーして公開します。シングルスレッド版なので追加の分離ヘッダーやService Workerは不要です。公開前に戦闘・進行・保存・UIの115項目を検証済みです。
+RUSTWHIRL ENDLESS 0.4は `public/games/rustwhirl/` から配信する独立したGodot製Webゲームです。無限WAVE、7種の通常敵、12種の装備、5WAVEごとのボス、端末内の上位5記録を備えます。WASM・PCK・JavaScript・音声ワークレットを一式で管理し、既存のPagesワークフローが `dist/games/rustwhirl/` へコピーして公開します。シングルスレッド版なので追加の分離ヘッダーやService Workerは不要です。公開前に戦闘・進行・保存・UIの116項目を検証済みです。
 
 更新はローカルの `game/rustwhirl` プロジェクトで `tools/build_web.ps1` を実行し、最新メニューのキャプチャを `builds/web-captures/menu.png` に生成した後、このリポジトリの `tools/sync-rustwhirl.ps1` を実行します。同期スクリプトは配布物のSHA-256を確認してからコピーします。作品一覧の紹介は `public/projects.json`、同梱の操作説明とライセンスはゲームフォルダー内の `README_JA.md` と `THIRD_PARTY_NOTICES.txt` です。スコアはブラウザ内保存で、オンライン共通ランキングではありません。
 
@@ -110,3 +110,9 @@ RAKUGAKIは `games/rakugaki/` にソースを置く、Three.js製の手描き風
 操作は矢印キー（曲がる・押す・ブレーキ）、SPACE長押し→離してオーリー、J / K / Lでフリップ、SHIFTでタック加速と空中グラブ、ブレーキ＋左右でドリフト（離すとブースト）、Rで道に戻る、ESCで休憩です。スマートフォンでは画面のジョイスティックとボタンで遊べます。転倒は障害物への高速正面衝突だけで、フリップは着地で必ず決まり、空中では進行方向へ自動で向き直ります。コースは雪の山頂のロールインから始まり、ノートの裂け目ギャップ、崖から下の道へ飛ぶハーピンホップとダートシュート、落石、クレヨンのハーフパイプ回廊、谷を渡るジップライン、鳥居ラッシュ、鉛筆トンネルとパイプライン、島のボウル、湖畔のフィニッシュ・メガキッカーが続きます。ヘアピンの外側は放物線のバームで、突っ込んでも止まらず壁走りになります。着地までがワンコンボで、ゴール時のタイムとスコアの自己ベストはブラウザ内に保存します。表紙 `public/images/rakugaki.webp` は実際のゲーム画面です。型検査は `npm run check`、開発は `npm run dev` で `/games/rakugaki/` を開きます。
 
 制作・運営：[XenithONE](https://github.com/XenithONE)
+
+## EVEREST — WHITE RUSH
+
+[EVEREST](https://xenithone.github.io/unfiled/games/everest/)は `games/everest/` のThree.js製スノーボードです。エベレストをイメージした広い山肌を自由に滑り、麓のベースキャンプを目指します。指定コースや必須チェックポイントはありません。自然の雪庇、トリック、ブースト、岩・クレバス、共有シードで変わる雪崩・氷塔崩落・追い風を備えます。オンライン最大4人はPeerJS/WebRTC、ローカル2人は画面分割、ソロはCPUと滑走できます。雪と岩にはCC0のPoly Haven素材を使用しています。
+
+操作・通信条件・素材出典は `games/everest/README_JA.md` と `THIRD_PARTY_NOTICES.md` に記載しています。`npm run test:everest`で16項目のシミュレーション検証を実行し、Pages公開時にも検証します。表紙は実際のゲーム画面です。

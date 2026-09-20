@@ -152,5 +152,17 @@
     "source": "https://github.com/XenithONE/unfiled/tree/main/games/rakugaki",
     "cover": "images/rakugaki.webp",
     "accent": "#62c2b0"
+  },
+  {
+    "id": "everest",
+    "title": "EVEREST — WHITE RUSH",
+    "subtitle": "ルートは、あなたが決める。",
+    "description": "エベレストの頂から、麓のベースキャンプへ。広い山肌を自由に横断し、尾根と谷を選んで滑るスノーボード。自然の雪庇で飛び、トリックで加速し、ランダムな雪崩と氷塔の崩落を抜ける。オンライン最大4人、同じPCでの2人画面分割、ソロ＋CPUに対応した、爽快なフリーライド。",
+    "category": "MULTIPLAYER SNOWBOARD GAME",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/games/everest/",
+    "source": "https://github.com/XenithONE/unfiled/tree/main/games/everest",
+    "cover": "images/everest.png",
+    "accent": "#f7754d"
   }
 ]
