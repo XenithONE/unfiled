@@ -35,6 +35,9 @@ jobs:
       - name: Check snowboard simulation
         run: npm run test:everest
 
+      - name: Check railway simulation
+        run: npm run test:alpine
+
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v4
         with:

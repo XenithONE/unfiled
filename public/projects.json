@@ -164,5 +164,17 @@
     "source": "https://github.com/XenithONE/unfiled/tree/main/games/everest",
     "cover": "images/everest.png",
     "accent": "#f7754d"
+  },
+  {
+    "id": "alpine-rail",
+    "title": "ALPINE LINE",
+    "subtitle": "赤い列車で、氷河の谷へ。",
+    "description": "スイスの山岳鉄道を運転するシミュレーター。湖畔の駅を出て、勾配45‰の登り、石造りの大アーチ橋、ヘアピンカーブ、雪崩覆いとトンネルを抜け、氷河を望む終点まで12km。力行とブレーキのハンドルで重い列車を操り、制限速度を守り、時刻表どおり停止位置にぴたりと止める。朝・昼・夕暮れの光、湖に映る山、運転台・外観・沿線・空撮の視点。自動運転で車窓を眺めるだけの旅もできる。",
+    "category": "SWISS MOUNTAIN RAILWAY SIMULATOR",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/games/alpine-rail/",
+    "source": "https://github.com/XenithONE/unfiled/tree/main/games/alpine-rail",
+    "cover": "images/alpine-rail.webp",
+    "accent": "#c0141e"
   }
 ]

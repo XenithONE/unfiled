@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f1a24" />
+    <meta
+      name="description"
+      content="スイスの谷と氷河の山を走る、赤い山岳鉄道の運転シミュレーター。勾配45‰の登り、石造りの大アーチ橋、ヘアピンカーブとトンネル。力行とブレーキを操り、時刻表どおりに停止位置へ。Three.jsでつくったブラウザで遊べる3D鉄道運転ゲーム。"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="ALPINE LINE — 赤い列車で、氷河の谷へ。" />
+    <meta property="og:description" content="湖畔の駅から氷河の終点まで12km。スイスの山岳鉄道を運転する、ブラウザの3Dシミュレーター。" />
+    <meta property="og:url" content="https://xenithone.github.io/unfiled/games/alpine-rail/" />
+    <meta property="og:image" content="https://xenithone.github.io/unfiled/images/alpine-rail.webp" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="canonical" href="https://xenithone.github.io/unfiled/games/alpine-rail/" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='6' fill='%23122433'/%3E%3Cpath d='M3 30 15 12l6 8 5-6 11 16Z' fill='%23e9eef2'/%3E%3Crect x='9' y='26' width='22' height='7' rx='2' fill='%23c0141e'/%3E%3C/svg%3E" />
+    <title>ALPINE LINE — 赤い列車で、氷河の谷へ。</title>
+  </head>
+  <body>
+    <canvas id="c" aria-label="運転台からの眺め"></canvas>
+    <div id="hud" hidden></div>
+    <div id="toast" aria-live="polite"></div>
+    <section id="loading" class="screen">
+      <div class="brand">ALPINE LINE</div>
+      <p class="load-msg" id="load-msg">谷をつくっています…</p>
+      <div class="bar"><i id="load-bar"></i></div>
+    </section>
+    <section id="title" class="screen" hidden>
+      <div class="title-card">
+        <p class="eyebrow">Viafier Alpina · Lagrina — Alp Glatscher · 12.0 km</p>
+        <h1 class="brand">ALPINE LINE</h1>
+        <p class="lede">赤い列車で、氷河の谷へ。</p>
+        <p class="intro">湖畔の駅を出て、勾配45‰を登り、石造りのアーチ橋とトンネルを抜けて氷河の終点まで。力行とブレーキで速度を操り、制限を守り、時刻表どおりに停止位置へ止める運転シミュレーターです。</p>
+        <div class="options">
+          <div class="opt" role="radiogroup" aria-label="時間帯">
+            <span class="opt-label">時間帯</span>
+            <button class="chip" data-tod="morning" role="radio">朝</button>
+            <button class="chip" data-tod="noon" role="radio">昼</button>
+            <button class="chip" data-tod="evening" role="radio">夕暮れ</button>
+          </div>
+          <div class="opt" role="radiogroup" aria-label="モード">
+            <span class="opt-label">モード</span>
+            <button class="chip" data-mode="drive" role="radio">運転する</button>
+            <button class="chip" data-mode="ride" role="radio">車窓を眺める（自動運転）</button>
+          </div>
+        </div>
+        <button id="start" class="go">出発する</button>
+        <p class="best" id="best"></p>
+        <details class="howto">
+          <summary>操作方法</summary>
+          <ul>
+            <li><kbd>↑</kbd><kbd>W</kbd> 力行へ（P1〜P5） / <kbd>↓</kbd><kbd>S</kbd> ブレーキへ（B1〜B7）</li>
+            <li><kbd>Space</kbd> 非常ブレーキ　<kbd>H</kbd> 警笛　<kbd>C</kbd> 視点切替　<kbd>A</kbd> 自動運転</li>
+            <li><kbd>Esc</kbd> 一時停止　ドラッグで見回し・ホイールでズーム（外観）</li>
+            <li>スマートフォン：右のハンドルを上下にドラッグ。ボタンで非常・警笛・視点</li>
+            <li>赤い出発信号を越えない・制限速度を守る・「H」標識に先頭を合わせて止める</li>
+          </ul>
+        </details>
+      </div>
+    </section>
+    <section id="pause" class="screen" hidden>
+      <div class="title-card small">
+        <h2>一時停止中</h2>
+        <button class="go" id="resume">運転に戻る</button>
+        <button class="ghost" id="quit">タイトルへ</button>
+      </div>
+    </section>
+    <section id="results" class="screen" hidden>
+      <div class="title-card">
+        <p class="eyebrow">運転記録 — Fahrtbericht</p>
+        <h2 id="res-title">終点 Alp Glatscher</h2>
+        <div id="res-body"></div>
+        <button class="go" id="again">もう一度走る</button>
+        <button class="ghost" id="to-title">タイトルへ</button>
+      </div>
+    </section>
+    <div id="fallback" class="screen" hidden>
+      <div class="title-card small">
+        <h2>WebGL2 が使えません</h2>
+        <p>このブラウザでは3D表示ができません。最新のChrome・Edge・Safari・Firefoxでお試しください。</p>
+      </div>
+    </div>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

@@ -96,6 +96,7 @@ TIDAL FORGEは、同じPagesサイト内の`experiments/tidal-forge/`で公開�
 - [天井のむこう — 両親がいなくなった家で、まだ音がする。](https://xenithone.github.io/unfiled/comics/tenjou-no-mukou/)
 - [RUSTWHIRL — 敵の攻撃を、自分の武器に。](https://xenithone.github.io/unfiled/games/rustwhirl/)
 - [RAKUGAKI — ノートの山道を、ありえない速さで。](https://xenithone.github.io/unfiled/games/rakugaki/)
+- [ALPINE LINE — 赤い列車で、氷河の谷へ。](https://xenithone.github.io/unfiled/games/alpine-rail/)
 
 RUSTWHIRL ENDLESS 0.4は `public/games/rustwhirl/` から配信する独立したGodot製Webゲームです。無限WAVE、7種の通常敵、12種の装備、5WAVEごとのボス、端末内の上位5記録を備えます。WASM・PCK・JavaScript・音声ワークレットを一式で管理し、既存のPagesワークフローが `dist/games/rustwhirl/` へコピーして公開します。シングルスレッド版なので追加の分離ヘッダーやService Workerは不要です。公開前に戦闘・進行・保存・UIの116項目を検証済みです。
 
@@ -116,3 +117,11 @@ RAKUGAKIは `games/rakugaki/` にソースを置く、Three.js製の手描き風
 [EVEREST](https://xenithone.github.io/unfiled/games/everest/)は `games/everest/` のThree.js製スノーボードです。エベレストをイメージした広い山肌を自由に滑り、麓のベースキャンプを目指します。指定コースや必須チェックポイントはありません。自然の雪庇、トリック、ブースト、岩・クレバス、共有シードで変わる雪崩・氷塔崩落・追い風を備えます。オンライン最大4人はPeerJS/WebRTC、ローカル2人は画面分割、ソロはCPUと滑走できます。雪と岩にはCC0のPoly Haven素材を使用しています。
 
 操作・通信条件・素材出典は `games/everest/README_JA.md` と `THIRD_PARTY_NOTICES.md` に記載しています。`npm run test:everest`で16項目のシミュレーション検証を実行し、Pages公開時にも検証します。表紙は実際のゲーム画面です。
+
+## ALPINE LINE — 赤い列車で、氷河の谷へ。
+
+[ALPINE LINE](https://xenithone.github.io/unfiled/games/alpine-rail/)は `games/alpine-rail/` のThree.js製の鉄道運転シミュレーターです。スイスの山岳鉄道をイメージした架空のメーターゲージ路線（湖畔のラグリーナから氷河の終点アルプ・グラッチャーまで12km・標高差約260m・最急勾配45‰・最小半径150m）を、赤い電気機関車とパノラマ客車4両で走ります。路線は直線・円曲線・緩和曲線と縦曲線で組み、地形・湖・谷・アーチ橋の下の渓谷・トンネルの尾根・氷河とホルン型の峰は、すべて線路から逆算して手続き的に生成します。
+
+運転は力行5段・ブレーキ7段・非常の一本ハンドル。引張力（出力2,400kW・起動200kN・粘着限界つき）、走行抵抗と曲線抵抗、勾配、空気ブレーキの遅れ、停車中のずり下がりを計算します。制限を超えるとZUB警報、大きく超えるとATPの非常ブレーキ。ドアが開いている間は力行できず、出発信号が青になってから発車します。3駅の停止位置と時刻表（自動運転の試走から作成）で採点し、自己ベストはブラウザ内に保存します。視点は運転台・外観・沿線・空撮、時間帯は朝・昼・夕暮れ。「車窓を眺める」を選ぶと自動運転で終点まで走ります。
+
+操作は矢印キー（またはW/S）でハンドル、Spaceで非常ブレーキ、Hで警笛、Cで視点、Aで自動運転、Escで一時停止です。スマートフォンでは右側のハンドルとボタンで運転できます。岩と雪の質感にはEVERESTと共用のCC0素材（Poly Haven、出典は `games/everest/THIRD_PARTY_NOTICES.md`）を使い、それ以外の質感・樹木・建物・車両・音はすべてコードで生成しています。車両の塗装と社名「Viafier Alpina」、駅名は架空です。`npm run test:alpine`で制動距離・勾配起動・ATP・ドア連動・信号・全線自動運転（3種の刻み幅）・地形の整合など11項目を検証し、Pages公開時にも実行します。表紙 `public/images/alpine-rail.webp` は実際のゲーム画面です。

@@ -13,6 +13,7 @@ export default defineConfig({
         main: "index.html",
         rakugaki: "games/rakugaki/index.html",
         everest: "games/everest/index.html",
+        alpine: "games/alpine-rail/index.html",
       },
     },
   },
