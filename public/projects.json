@@ -176,5 +176,16 @@
     "source": "https://github.com/XenithONE/unfiled/tree/main/games/alpine-rail",
     "cover": "images/alpine-rail.webp",
     "accent": "#c0141e"
+  },
+  {
+    "id": "scene-forge",
+    "title": "SCENE FORGE",
+    "subtitle": "狙った動きを、映像の下絵に。",
+    "description": "人物や小物を置き、手のジェスチャーや戦闘の動き、カメラワークを組み立てる。5〜20秒の簡易3Dシーンを、カラー・白モデル・深度の参照動画に。AIへ指示を渡し、返ってきたシーンを読み込んで、動きを調整できる制作ツール。",
+    "category": "3D SCENE TOOL",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/tools/scene-forge/",
+    "cover": "images/scene-forge.jpg",
+    "accent": "#8073e7"
   }
 ]

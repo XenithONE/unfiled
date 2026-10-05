@@ -97,6 +97,7 @@ TIDAL FORGEは、同じPagesサイト内の`experiments/tidal-forge/`で公開�
 - [RUSTWHIRL — 敵の攻撃を、自分の武器に。](https://xenithone.github.io/unfiled/games/rustwhirl/)
 - [RAKUGAKI — ノートの山道を、ありえない速さで。](https://xenithone.github.io/unfiled/games/rakugaki/)
 - [ALPINE LINE — 赤い列車で、氷河の谷へ。](https://xenithone.github.io/unfiled/games/alpine-rail/)
+- [SCENE FORGE — 狙った動きを、映像の下絵に。](https://xenithone.github.io/unfiled/tools/scene-forge/)
 
 RUSTWHIRL ENDLESS 0.4は `public/games/rustwhirl/` から配信する独立したGodot製Webゲームです。無限WAVE、7種の通常敵、12種の装備、5WAVEごとのボス、端末内の上位5記録を備えます。WASM・PCK・JavaScript・音声ワークレットを一式で管理し、既存のPagesワークフローが `dist/games/rustwhirl/` へコピーして公開します。シングルスレッド版なので追加の分離ヘッダーやService Workerは不要です。公開前に戦闘・進行・保存・UIの116項目を検証済みです。
 
@@ -125,3 +126,11 @@ RAKUGAKIは `games/rakugaki/` にソースを置く、Three.js製の手描き風
 運転は力行5段・ブレーキ7段・非常の一本ハンドル。引張力（出力2,400kW・起動200kN・粘着限界つき）、走行抵抗と曲線抵抗、勾配、空気ブレーキの遅れ、停車中のずり下がりを計算します。制限を超えるとZUB警報、大きく超えるとATPの非常ブレーキ。ドアが開いている間は力行できず、出発信号が青になってから発車します。3駅の停止位置と時刻表（自動運転の試走から作成）で採点し、自己ベストはブラウザ内に保存します。視点は運転台・外観・沿線・空撮、時間帯は朝・昼・夕暮れ。「車窓を眺める」を選ぶと自動運転で終点まで走ります。
 
 操作は矢印キー（またはW/S）でハンドル、Spaceで非常ブレーキ、Hで警笛、Cで視点、Aで自動運転、Escで一時停止です。スマートフォンでは右側のハンドルとボタンで運転できます。岩と雪の質感にはEVERESTと共用のCC0素材（Poly Haven、出典は `games/everest/THIRD_PARTY_NOTICES.md`）を使い、それ以外の質感・樹木・建物・車両・音はすべてコードで生成しています。車両の塗装と社名「Viafier Alpina」、駅名は架空です。`npm run test:alpine`で制動距離・勾配起動・ATP・ドア連動・信号・全線自動運転（3種の刻み幅）・地形の整合など11項目を検証し、Pages公開時にも実行します。表紙 `public/images/alpine-rail.webp` は実際のゲーム画面です。
+
+## SCENE FORGE — 狙った動きを、映像の下絵に。
+
+[SCENE FORGE](https://xenithone.github.io/unfiled/tools/scene-forge/)は、動画生成AIへ渡す5〜20秒の参照シーンを作るThree.js製ツールです。簡易人型の関節・手の開閉、歩行・戦闘・ジェスチャー、オブジェクト配置、キーフレーム、カメラの回り込み・追従を編集できます。カラー・白モデル・深度をMP4またはPNGで保存できます。シーンファイルの保存・読み込みにも対応します。
+
+公開版はブラウザ内で動作します。MP4はWebCodecsのH.264エンコーダーが利用できる端末で書き出せます。利用できない場合は理由を表示し、PNG保存は引き続き使えます。AIへの指示をコピーして別のAIチャットへ渡し、返されたJSONを検証して読み込む方式です。公開サイトからAI・PCのローカルサーバーへの自動通信は行いません。Codexの直接生成とFFmpeg書き出しは別途起動するPC版の機能です。
+
+`public/tools/scene-forge/`には公開用の静的配布物のみを配置します。更新元はローカルの `Film/scene-forge` です。そこで `npm run build:pages` を実行した後、このリポジトリで `powershell -NoProfile -File tools/sync-scene-forge.ps1` を実行します。公開用ビルドとローカル用ビルドを取り違えないでください。`THIRD_PARTY_NOTICES.txt` にブラウザで使用する依存パッケージのライセンスとソース取得先を含めています。表紙は実際のアプリ画面です。
