@@ -187,5 +187,16 @@
     "url": "https://xenithone.github.io/unfiled/tools/scene-forge/",
     "cover": "images/scene-forge.jpg",
     "accent": "#8073e7"
+  },
+  {
+    "id": "sanzu-river",
+    "title": "三途の川",
+    "subtitle": "渡るのは、ひとりだけ。",
+    "description": "彼岸の日、陽が沈んだあとの川。流した灯籠は橋の手前で止まり、白装束の旅人を乗せた舟だけが向こう岸へ渡っていく。31秒・8カットの短編を、Three.jsがブラウザの中でそのつど描く。描画が重いため、性能の高いPCでの鑑賞向け。",
+    "category": "REAL-TIME SHORT FILM",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/films/sanzu-river/",
+    "cover": "images/sanzu-river.webp",
+    "accent": "#d98a4e"
   }
 ]

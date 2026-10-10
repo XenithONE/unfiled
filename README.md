@@ -98,6 +98,7 @@ TIDAL FORGEは、同じPagesサイト内の`experiments/tidal-forge/`で公開�
 - [RAKUGAKI — ノートの山道を、ありえない速さで。](https://xenithone.github.io/unfiled/games/rakugaki/)
 - [ALPINE LINE — 赤い列車で、氷河の谷へ。](https://xenithone.github.io/unfiled/games/alpine-rail/)
 - [SCENE FORGE — 狙った動きを、映像の下絵に。](https://xenithone.github.io/unfiled/tools/scene-forge/)
+- [三途の川 — 渡るのは、ひとりだけ。](https://xenithone.github.io/unfiled/films/sanzu-river/)
 
 RUSTWHIRL ENDLESS 0.4は `public/games/rustwhirl/` から配信する独立したGodot製Webゲームです。無限WAVE、7種の通常敵、12種の装備、5WAVEごとのボス、端末内の上位5記録を備えます。WASM・PCK・JavaScript・音声ワークレットを一式で管理し、既存のPagesワークフローが `dist/games/rustwhirl/` へコピーして公開します。シングルスレッド版なので追加の分離ヘッダーやService Workerは不要です。公開前に戦闘・進行・保存・UIの116項目を検証済みです。
 
@@ -134,3 +135,9 @@ RAKUGAKIは `games/rakugaki/` にソースを置く、Three.js製の手描き風
 公開版はブラウザ内で動作します。MP4はWebCodecsのH.264エンコーダーが利用できる端末で書き出せます。利用できない場合は理由を表示し、PNG保存は引き続き使えます。AIへの指示をコピーして別のAIチャットへ渡し、返されたJSONを検証して読み込む方式です。公開サイトからAI・PCのローカルサーバーへの自動通信は行いません。Codexの直接生成とFFmpeg書き出しは別途起動するPC版の機能です。
 
 `public/tools/scene-forge/`には公開用の静的配布物のみを配置します。更新元はローカルの `Film/scene-forge` です。そこで `npm run build:pages` を実行した後、このリポジトリで `powershell -NoProfile -File tools/sync-scene-forge.ps1` を実行します。公開用ビルドとローカル用ビルドを取り違えないでください。`THIRD_PARTY_NOTICES.txt` にブラウザで使用する依存パッケージのライセンスとソース取得先を含めています。表紙は実際のアプリ画面です。
+
+## 三途の川 — 渡るのは、ひとりだけ。
+
+[三途の川](https://xenithone.github.io/unfiled/films/sanzu-river/)は、31秒・8カットの短編映像をThree.js（r180）がブラウザの中でそのつど描く作品です。彼岸の日の日没直後、流した灯籠は橋の手前で止まり、白装束の旅人を乗せた舟だけが向こう岸へ渡ります。映像はくり返し再生され、音は付きません。描画が重いため、性能の高いPCでの鑑賞を想定しています。
+
+`public/films/sanzu-river/`には再生に必要なファイルだけを置きます。更新元はローカルの `Film/sanzu-river` で、このリポジトリで `node tools/sync-sanzu-river.mjs` を実行すると、`src/main.js` から実際に読み込まれるモジュール、それが使うThree.jsのファイル（作品側の `node_modules` のr180）、決められた素材だけを写します。制作用のスクリプト・Blenderファイル・書き出した動画・v1の人物ファイルは写しません。人物の頭部はこの作品のための自作（MakeHumanの元メッシュと形の素材、CC0）で、素材の出典は同梱の `CREDITS.md` にあります。表紙 `public/images/sanzu-river.webp` は実際の映像の一コマです。
