@@ -98,6 +98,7 @@ for (const game of games) {
   await copy(game.href);
   const file = path.join(output, game.href);
   let html = await readFile(file, 'utf8');
+  html = html.replace('<head>', `<head>\n<link rel="icon" type="image/png" href="${base}assets/favicon-32.png">`);
   html = html.replace(/href="(?:\.\.\/)+index\.html"/g, `href="${home}"`)
     .replaceAll('◂ AlicE sYsTeM', '◂ UNFILED');
   // This optional background is absent upstream; preserve the procedural table.
