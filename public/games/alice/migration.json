@@ -56,6 +56,7 @@
     }
   ],
   "files": {
+    "ASSET_CREDITS.md": "866ee246d0e112c70ed601b81b2a12fbc06a855db8bdcd8dcc4cd453f17c361a",
     "assets/apple-touch-icon.png": "393a2cf9088f8da71c4651a8c0a3284edf2af31915ea464ce1fb26757f133b47",
     "assets/BufferGeometryUtils-9Vl6ZVGb.js": "a8d6cd5e96bbdfe5c1825e6535062d3a2473db2695fe3b1ebb7e708f76101375",
     "assets/bundler-C1wRTBqP.js": "a00b754793accd1cff9205e3c82b1692f80df5052f7b2e65f11610ce733c1f59",
@@ -127,9 +128,11 @@
     "assets/tower-defense-B-PJ8n4K.css": "bd92bccf0c295c10fb2a66c1acdd3195e2ac0c6b844c004d505427ada4d044c9",
     "assets/tower-defense-D712iSy8.js": "47ac7f8822cfbf7f949226ea59659f9a3e21dc5a4e3d390a19badfc0ea459a28",
     "assets/vortex-crown-4gbs2qcr.js": "27fdbca38eab0d817a2201bd6002fafc839c1defab715d6f2c5ebe8bae8f8b3c",
-    "assets/vortex-crown-cover.webp": "566696262bbcad4b94c439740afd955e3c6ce0cc48f853cd034e4122cd79bac6",
     "assets/vortex-crown-C_RNPCVO.css": "6efd8e6d399afce17f2423b6fa756d9979d5c4e02b191cfd091a27990f5d326d",
-    "ASSET_CREDITS.md": "866ee246d0e112c70ed601b81b2a12fbc06a855db8bdcd8dcc4cd453f17c361a",
+    "assets/vortex-crown-cover.webp": "566696262bbcad4b94c439740afd955e3c6ce0cc48f853cd034e4122cd79bac6",
+    "assets/vortex-enhanced/5144eeb0bc22/bundler-QpBpJifl.js": "b64dca1d9f25579f88b767e2c21426e41c7bc201595f1de803da87492bb5f2ff",
+    "assets/vortex-enhanced/5144eeb0bc22/vortex-crown-CMQFPihs.js": "8840368b817cb4941572e494ea54710d6acb4aec0f9f3797ce078ce4a1aed368",
+    "assets/vortex-enhanced/5144eeb0bc22/vortex-crown-GfmFCZIL.css": "f04e0b84f3e81fc4269595721ada7f7177d1534aaa9cf8428190361df2797912",
     "games/constellation.html": "dab4b6456cd1d6fbbf47deddd6e42a7f621aadca09eef47584b0531298d3fddd",
     "games/dragons-keep.html": "747564ff10207a3c6693512bad60411c7cf0e11b8e8c67b487977adf92660eec",
     "games/iwbtg/engine.js": "859d18e334a05c0875c8098abacfdf5971e20464f55c12cc3df5fba9003a8821",
@@ -146,7 +149,7 @@
     "hollow-ward.html": "398d626836555b63d68f1e23242a84ed9dfcee0b33471650591955761f38a8f5",
     "index.html": "54ee6e369e806cf3715dc222f0f942c161f399bddf8a3bb77d62472c7bc4bab3",
     "nitro-crown.html": "c4bc03c73c5bc3f1f921560fd35d7998350fe0749a148ef54ad7df793a11f72b",
-    "README_JA.md": "1178ac1906f5a8bd46dd7290fe2867060fbd5add9075cd8d8c443b46f6600c4a",
+    "README_JA.md": "0933b4522bc68f8bace00414ac1e252e8e856f84720ffe59aafdfed68ac8b3ca",
     "relic-road.html": "87d7e1ea1e40b75c323d68b6e1f91af03595dee967735fdafa338b48df0dc325",
     "scrap-crown.html": "c91eb3598dc38232875efd030b0f74f2af86538f93ec7ff4959887ee345a4587",
     "THIRD_PARTY_NOTICES.txt": "c6e75255d374dfac261451b5e850496cd52c99188d1b4b36645cfe5cc976e9ca",
@@ -161,6 +164,19 @@
     "vendor/three/examples/jsm/postprocessing/UnrealBloomPass.js": "8718ac279d97af5460327e1483fc21e44aa6611601d45c835bda0ae36bcb3b06",
     "vendor/three/examples/jsm/shaders/CopyShader.js": "4f5f4144609b0e4f8e3b5775723e743dbc3b89a7f945321f77801658b5b94baa",
     "vendor/three/examples/jsm/shaders/LuminosityHighPassShader.js": "defd5558ebf217de21275573c7e4365cbe62da34e46bd7f86ca2517a909536b6",
-    "vortex-crown.html": "9c45523e156150e6afb219c7be9ad8d3ae73fb81a1b6e7ed85369116a6c8695b"
+    "vortex-crown.html": "4800345f33e6bf34b0bc2ad69f25707f9d3dfaa68e69317a44f3aaa2658b232b"
+  },
+  "gameOverrides": {
+    "vortex-crown": {
+      "sourceCommit": "5144eeb0bc22e8ba0940b15627aa3542c0652239",
+      "entry": "vortex-crown.html",
+      "assetsDir": "assets/vortex-enhanced/5144eeb0bc22/",
+      "files": [
+        "assets/vortex-enhanced/5144eeb0bc22/bundler-QpBpJifl.js",
+        "assets/vortex-enhanced/5144eeb0bc22/vortex-crown-CMQFPihs.js",
+        "assets/vortex-enhanced/5144eeb0bc22/vortex-crown-GfmFCZIL.css",
+        "vortex-crown.html"
+      ]
+    }
   }
 }

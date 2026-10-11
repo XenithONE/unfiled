@@ -16,10 +16,18 @@
 - [SCRAP CROWN](scrap-crown.html) — 物理演算ロボット闘技
 - [VORTEX CROWN](vortex-crown.html) — 七層機装スピントップバトル
 
-ゲームのルールと保存キーは原版を維持しています。同じブラウザ・同じ https://xenithone.github.io の保存領域に記録が残っていれば引き続き参照されます。別ドメインや別ブラウザの記録は自動移行されません。
+初回移行時にはゲームのルールと保存キーを原版から引き継いでいます。同じブラウザ・同じ https://xenithone.github.io の保存領域に記録が残っていれば引き続き参照されます。別ドメインや別ブラウザの記録は自動移行されません。
 
 オンライン対戦は原版のPeerJS/WebRTCを使用し、接続可否はネットワーク環境にも依存します。3D作品はWebGL対応ブラウザが必要です。操作は各ゲーム内の案内を参照してください。
 
 移行時の修正は、UNFILEDへの戻り先、公開パスとメタ情報、RELIC ROADの画像と音声パス、存在しない任意画像へのリクエスト抑止です。任意画像のないゲームは原版の手続き描画をそのまま使います。
 
 素材出典はASSET_CREDITS.mdとassets/quest/audio/LICENSES.md、実際の依存パッケージのライセンス全文はTHIRD_PARTY_NOTICES.txtに収録しています。パッケージのライセンス表記は後者を優先してください。
+
+<!-- VORTEX_ENHANCEMENT_START -->
+## VORTEX CROWN 改良版
+
+VORTEX CROWNは初回移行後に改良したソースから個別に再ビルドしています。Rapierによる物理シミュレーションと戦闘演出の改良を含みます。保存キーは維持しています。ほかの12作品の配信ファイルは変更していません。
+
+使用したソースのコミットはmigration.jsonのgameOverrides.vortex-crown.sourceCommit、専用ビルドのファイルは同項目のfilesで確認できます。初回移行時のsourceCommitは当時の記録として残しています。
+<!-- VORTEX_ENHANCEMENT_END -->
