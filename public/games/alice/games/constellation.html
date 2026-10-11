@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CONSTELLATION // AlicE sYsTeM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Cormorant+Garamond:ital@1&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#060d20;--teal:#ffd166;--violet:#3fa9ff;--text:#e6edf7;--muted:#8ba0c0;
+    --ui:"Space Grotesk",system-ui,sans-serif;--mono:ui-monospace,"Cascadia Code",monospace}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--text);font-family:var(--ui);overflow:hidden;touch-action:none;
+    user-select:none;-webkit-user-select:none}
+  #c{display:block;position:fixed;inset:0}
+  .vig{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 220px 70px rgba(0,0,0,.7)}
+  .grain{position:fixed;inset:0;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+  .top{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;justify-content:space-between;align-items:center;
+    padding:18px 22px;font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--muted)}
+  .top a{color:var(--muted);text-decoration:none;transition:.2s}
+  .top a:hover{color:var(--teal)}
+  .top .lvl{color:var(--teal)}
+  .hud{position:fixed;left:0;right:0;bottom:0;z-index:5;text-align:center;padding:22px;pointer-events:none}
+  .hud .msg{font-family:var(--mono);font-size:13px;letter-spacing:.16em;color:var(--teal);text-shadow:0 0 14px rgba(255,209,102,.5);min-height:20px;transition:opacity .4s}
+  .hud .sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px;letter-spacing:.1em}
+  .btn{pointer-events:auto;display:inline-block;margin-top:14px;font-family:var(--mono);font-size:12px;letter-spacing:.12em;
+    color:var(--text);border:1px solid rgba(150,190,205,.18);border-radius:8px;padding:9px 18px;cursor:pointer;background:rgba(12,16,26,.5);transition:.2s}
+  .btn:hover{border-color:var(--teal);color:var(--teal)}
+  #win{position:fixed;inset:0;z-index:10;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;
+    background:radial-gradient(circle,rgba(6,13,32,.72),#060d20 75%)}
+  #win.show{display:flex}
+  #win h1{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:clamp(34px,7vw,68px);
+    background:linear-gradient(110deg,#fff,var(--teal),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 50px rgba(255,209,102,.4)}
+  #win p{font-family:var(--mono);font-size:13px;color:var(--muted);letter-spacing:.1em}
+  #win a{font-family:var(--mono);font-size:13px;letter-spacing:.16em;color:#081022;background:linear-gradient(110deg,var(--teal),var(--violet));
+    padding:13px 28px;border-radius:8px;font-weight:700;text-decoration:none;cursor:pointer}
+  .top .score{color:var(--teal);font-variant-numeric:tabular-nums;font-size:11px}
+  .top .right{display:flex;align-items:center;gap:14px}
+  .top .mute{color:var(--muted);cursor:pointer;transition:.2s;font-size:11px;letter-spacing:.1em}
+  .top .mute:hover{color:var(--teal)}
+  /* title overlay reuses #win visual language */
+  #title{position:fixed;inset:0;z-index:11;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;
+    background:radial-gradient(circle,rgba(6,13,32,.72),#060d20 75%)}
+  #title.show{display:flex}
+  #title h1{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:clamp(34px,7vw,68px);
+    background:linear-gradient(110deg,#fff,var(--teal),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 50px rgba(255,209,102,.4)}
+  #title p{font-family:var(--mono);font-size:13px;color:var(--muted);letter-spacing:.1em;max-width:520px;line-height:1.7}
+  #title #titlebest{color:var(--teal)}
+  #title a{font-family:var(--mono);font-size:13px;letter-spacing:.16em;color:#081022;background:linear-gradient(110deg,var(--teal),var(--violet));
+    padding:13px 28px;border-radius:8px;font-weight:700;text-decoration:none;cursor:pointer}
+  .vtag{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--teal);
+    border:1px solid rgba(255,209,102,.35);border-radius:999px;padding:4px 13px;margin-top:-8px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="vig"></div><div class="grain"></div>
+<div class="top">
+  <a href="/unfiled/">↩ RETURN</a>
+  <span class="score" id="score">SCORE 0</span>
+  <div class="right">
+    <span class="mute" id="mute">♪ ON</span>
+    <span class="lvl" id="lvl">LEVEL 1/3</span>
+  </div>
+</div>
+<div class="hud">
+  <div class="msg" id="msg">記憶せよ…</div>
+  <div class="sub" id="sub">星を順につないで、見た形を再現する</div>
+  <span class="btn" id="restart">⟲ RESTART LEVEL</span>
+</div>
+<div id="win">
+  <h1>SIGNAL ALIGNED</h1>
+  <p id="winp">三つの星座が、同期した。</p>
+  <a id="endlessBtn">∞ CONTINUE — ENDLESS</a>
+  <a href="/unfiled/">↩ RETURN TO THE SIGNAL</a>
+</div>
+<div id="title" class="show">
+  <h1>CONSTELLATION</h1>
+  <span class="vtag">v2 — BRICK UPDATE</span>
+  <p>光る星座を記憶し、同じ順に星をつなげ。<br>Memorize the signal, then retrace it from memory.</p>
+  <p id="titlebest"></p>
+  <a id="begin">◈ BEGIN ALIGNMENT</a>
+</div>
+
+<script src="./shared/alice-game-kit.js"></script>
+<script>
+(function(){
+  const cv=document.getElementById('c'),x=cv.getContext('2d');
+  const $=id=>document.getElementById(id);
+  const kit=window.AliceGameKit&&window.AliceGameKit.install({
+    id:'constellation',
+    title:'Constellation',
+    bonusKey:'alice_bonus_constellation',
+    accent:'#ffd166',
+    mission:'Memorize the star path. Two misses unlock an echo hint.'
+  });
+  let W,H,DPR;
+  function resize(){ DPR=Math.min(2,window.devicePixelRatio||1); W=innerWidth;H=innerHeight;
+    cv.width=W*DPR;cv.height=H*DPR;cv.style.width=W+'px';cv.style.height=H+'px';x.setTransform(DPR,0,0,DPR,0,0);
+    buildScenery(); layout(); }
+  addEventListener('resize',resize);
+
+  // audio
+  let ac=null;function audio(){if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}if(ac&&ac.state==='suspended')ac.resume();return ac;}
+  function tone(f,d=0.2,type='sine',g=0.06){if(muted)return;const a=audio();if(!a)return;const o=a.createOscillator(),gn=a.createGain();
+    o.type=type;o.frequency.value=f;o.connect(gn);gn.connect(a.destination);const t=a.currentTime;
+    gn.gain.setValueAtTime(0,t);gn.gain.linearRampToValueAtTime(g,t+0.01);gn.gain.exponentialRampToValueAtTime(0.0001,t+d);o.start(t);o.stop(t+d);}
+
+  // --- v2 BRICK UPDATE: pre-rendered toy-brick sprites (built ONCE at boot, never per-frame) ---
+  function mkCanvas(s){ const c=document.createElement('canvas'); c.width=c.height=s; return c; }
+  function rr2(g,x0,y0,w,h,r){ g.beginPath(); g.moveTo(x0+r,y0);
+    g.arcTo(x0+w,y0,x0+w,y0+h,r); g.arcTo(x0+w,y0+h,x0,y0+h,r);
+    g.arcTo(x0,y0+h,x0,y0,r); g.arcTo(x0,y0,x0+w,y0,r); g.closePath(); }
+  function mkGlow(rgb,inner){ const s=64,c=mkCanvas(s),g=c.getContext('2d');
+    const gr=g.createRadialGradient(32,32,2,32,32,30);
+    gr.addColorStop(0,'rgba('+rgb+','+inner+')'); gr.addColorStop(.4,'rgba('+rgb+',.22)'); gr.addColorStop(1,'rgba('+rgb+',0)');
+    g.fillStyle=gr; g.fillRect(0,0,s,s); return c; }
+  function mkBrick(top,bot,stud,rim){ const s=48,c=mkCanvas(s),g=c.getContext('2d');
+    const gr=g.createLinearGradient(0,6,0,42); gr.addColorStop(0,top); gr.addColorStop(1,bot);
+    rr2(g,6,6,36,36,9); g.fillStyle=gr; g.fill();
+    g.strokeStyle=rim; g.lineWidth=2; g.stroke();
+    rr2(g,10,9,28,7,4); g.fillStyle='rgba(255,255,255,.38)'; g.fill();     // glossy highlight line
+    rr2(g,9,34,30,6,3); g.fillStyle='rgba(8,14,34,.32)'; g.fill();         // soft bottom shade
+    g.beginPath(); g.arc(24,25.4,8.5,0,6.28); g.fillStyle='rgba(8,14,34,.25)'; g.fill();
+    g.beginPath(); g.arc(24,24,8,0,6.28); g.fillStyle=stud; g.fill();      // stud
+    g.beginPath(); g.arc(24,24,8,0,6.28); g.strokeStyle='rgba(255,255,255,.45)'; g.lineWidth=1.4; g.stroke();
+    g.beginPath(); g.arc(21.5,21.5,3,0,6.28); g.fillStyle='rgba(255,255,255,.55)'; g.fill();
+    return c; }
+  function mkDecoy(){ const s=24,c=mkCanvas(s),g=c.getContext('2d');
+    rr2(g,5,5,14,14,4); g.fillStyle='#33456b'; g.fill();
+    g.strokeStyle='rgba(120,150,205,.4)'; g.lineWidth=1; g.stroke();
+    g.beginPath(); g.arc(12,11.4,3.4,0,6.28); g.fillStyle='#42588a'; g.fill();
+    g.fillStyle='rgba(200,225,255,.3)'; g.fillRect(8,7,8,1.6);
+    return c; }
+  function mkRing(){ const s=96,c=mkCanvas(s),g=c.getContext('2d');
+    g.strokeStyle='#ffd166'; g.shadowColor='#ffd166'; g.shadowBlur=14; g.lineWidth=3;
+    g.beginPath(); g.arc(48,48,30,0,6.28); g.stroke(); g.stroke();
+    return c; }
+  function mkPlus(){ const s=32,c=mkCanvas(s),g=c.getContext('2d');
+    g.fillStyle='#bfe0ff'; g.fillRect(14.6,6,2.8,20); g.fillRect(6,14.6,20,2.8);
+    g.fillStyle='rgba(255,255,255,.9)'; g.fillRect(14.6,13,2.8,6);
+    return c; }
+  const SPR={
+    glowGold:mkGlow('255,205,110',.6), glowAzure:mkGlow('90,175,255',.55), glowWarm:mkGlow('255,240,200',.7),
+    brickGold:mkBrick('#ffe9a8','#f0b73c','#ffe27a','rgba(255,240,200,.55)'),
+    brickAzure:mkBrick('#b8e0ff','#2f86dd','#7cc4ff','rgba(210,235,255,.5)'),
+    decoy:mkDecoy(), ring:mkRing(), plus:mkPlus() };
+
+  // --- v2 BRICK UPDATE: static night scene (sky gradient + stud vignette + brick observatory)
+  // pre-rendered to ONE offscreen canvas at boot/resize; drawn as a single image per frame.
+  let bgCv=null;
+  function buildScenery(){
+    bgCv=document.createElement('canvas'); bgCv.width=Math.max(1,W*DPR); bgCv.height=Math.max(1,H*DPR);
+    const g=bgCv.getContext('2d'); g.setTransform(DPR,0,0,DPR,0,0);
+    // deep-blue night gradient (cover palette)
+    const sky=g.createLinearGradient(0,0,0,H);
+    sky.addColorStop(0,'#04081a'); sky.addColorStop(.55,'#081434'); sky.addColorStop(1,'#123063');
+    g.fillStyle=sky; g.fillRect(0,0,W,H);
+    // subtle brick-stud texture vignette (stronger toward the edges)
+    const cx2=W/2, cy2=H/2, maxd=Math.hypot(cx2,cy2)||1, sp=34;
+    for(let yy=sp/2; yy<H; yy+=sp){ for(let xx=sp/2; xx<W; xx+=sp){
+      const f=Math.pow(Math.hypot(xx-cx2,yy-cy2)/maxd,2.2)*0.07;
+      if(f<0.014) continue;
+      g.globalAlpha=f; g.fillStyle='#7fa8e8';
+      g.beginPath(); g.arc(xx,yy,4.2,0,6.28); g.fill();
+      g.globalAlpha=f*0.7; g.fillStyle='#cfe2ff';
+      g.beginPath(); g.arc(xx-1.2,yy-1.2,1.6,0,6.28); g.fill();
+    }}
+    g.globalAlpha=1;
+    // ground plate
+    const gy=H-Math.min(H*0.055,44);
+    const gr2=g.createLinearGradient(0,gy,0,H); gr2.addColorStop(0,'#0c1c40'); gr2.addColorStop(1,'#060d24');
+    g.fillStyle=gr2; g.fillRect(0,gy,W,H-gy+2);
+    g.fillStyle='rgba(150,185,240,.14)';
+    for(let xx=10;xx<W;xx+=26){ g.beginPath(); g.arc(xx,gy+7,3.4,0,6.28); g.fill(); }
+    const rim='rgba(120,160,230,.28)';
+    // pine silhouettes
+    function pine(px2,s2){ g.fillStyle='#0a2419';
+      for(let i2=0;i2<3;i2++){ const w2=s2*(1-i2*0.24), yb=gy-i2*s2*0.5;
+        g.beginPath(); g.moveTo(px2-w2/2,yb); g.lineTo(px2+w2/2,yb); g.lineTo(px2,yb-s2*0.8); g.closePath(); g.fill(); } }
+    pine(W*0.045,Math.min(H*0.05,42)); pine(W*0.62,Math.min(H*0.035,30)); pine(W*0.945,Math.min(H*0.055,46));
+    // scattered brick bumps
+    const bumps=[[0.30,1.6],[0.47,1.0],[0.56,2.2],[0.69,1.2],[0.90,1.8]];
+    for(const bp of bumps){ const bw2=16*bp[1], bh2=9*bp[1], bx2=W*bp[0]-bw2/2, by2=gy-bh2;
+      g.fillStyle='#0d1e44'; rr2(g,bx2,by2,bw2,bh2,3); g.fill();
+      g.fillStyle='rgba(150,185,240,.16)';
+      g.beginPath(); g.arc(bx2+bw2*0.3,by2+2.5,1.8,0,6.28); g.fill();
+      g.beginPath(); g.arc(bx2+bw2*0.7,by2+2.5,1.8,0,6.28); g.fill(); }
+    // observatory dome (silhouette with warm lit door — build-time glow only)
+    const oh=Math.min(H*0.15,132), ox=W*0.16, bw=oh*1.15, by=gy-oh*0.52;
+    g.fillStyle='#0a1734'; rr2(g,ox-bw/2,by,bw,gy-by+2,6); g.fill();
+    g.strokeStyle=rim; g.lineWidth=1.5; g.stroke();
+    g.beginPath(); g.arc(ox,by+2,bw*0.52,Math.PI,0); g.closePath();
+    g.fillStyle='#0c1d42'; g.fill(); g.strokeStyle=rim; g.stroke();
+    g.save(); g.beginPath(); g.arc(ox,by+2,bw*0.52,Math.PI,0); g.closePath(); g.clip();
+    g.fillStyle='#050b1e'; g.fillRect(ox+bw*0.05,by+2-bw*0.6,bw*0.13,bw*0.7);   // dome slit
+    g.fillStyle='rgba(140,175,235,.13)';                                        // stud arcs on dome
+    for(const rad of [bw*0.30,bw*0.44]){
+      for(let a2=0.25;a2<Math.PI-0.2;a2+=0.34){
+        g.beginPath(); g.arc(ox-Math.cos(a2)*rad,by+2-Math.sin(a2)*rad,2.2,0,6.28); g.fill(); } }
+    g.restore();
+    const dw=bw*0.16, dh=oh*0.26, dx2=ox-dw/2, dy2=gy-dh;
+    g.shadowColor='#ffbf6e'; g.shadowBlur=16;
+    g.fillStyle='#ffb45e'; rr2(g,dx2,dy2,dw,dh,4); g.fill();                    // warm door
+    g.shadowBlur=10; g.fillStyle='#ffd58a';
+    g.beginPath(); g.arc(dx2-bw*0.14,dy2+dh*0.3,2.6,0,6.28); g.fill();          // lanterns
+    g.beginPath(); g.arc(dx2+dw+bw*0.14,dy2+dh*0.3,2.6,0,6.28); g.fill();
+    g.shadowBlur=0;
+    g.fillStyle='rgba(60,30,8,.35)'; g.fillRect(dx2+dw*0.42,dy2+3,1.6,dh-5);
+    g.fillStyle='#0e2148';
+    g.fillRect(ox-dw*0.9,gy,dw*1.8,4); g.fillRect(ox-dw*1.2,gy+4,dw*2.4,5);     // steps
+    // brick telescope
+    const th=Math.min(H*0.09,80), tx=W*0.8;
+    g.fillStyle='#0c1c40'; rr2(g,tx-th*0.55,gy-6,th*1.1,8,3); g.fill();         // platform
+    g.fillStyle='rgba(150,185,240,.15)';
+    for(let i2=-1;i2<=1;i2++){ g.beginPath(); g.arc(tx+i2*th*0.3,gy-3,2.4,0,6.28); g.fill(); }
+    g.strokeStyle='#0a1734'; g.lineWidth=4; g.lineCap='round';
+    g.beginPath(); g.moveTo(tx,gy-th*0.45); g.lineTo(tx-th*0.28,gy-4);
+    g.moveTo(tx,gy-th*0.45); g.lineTo(tx+th*0.28,gy-4);
+    g.moveTo(tx,gy-th*0.45); g.lineTo(tx,gy-4); g.stroke();                     // tripod
+    g.save(); g.translate(tx,gy-th*0.45); g.rotate(-0.62);
+    g.fillStyle='#0a1734'; rr2(g,-th*0.12,-th*0.11,th*0.85,th*0.22,th*0.08); g.fill();
+    g.strokeStyle=rim; g.lineWidth=1.2; g.stroke();
+    g.fillStyle='rgba(200,225,255,.25)'; g.fillRect(th*0.56,-th*0.11,th*0.09,th*0.22);
+    g.fillStyle='rgba(255,255,255,.14)'; g.fillRect(-th*0.08,-th*0.075,th*0.75,th*0.05);
+    g.restore();
+    // warm ground lights
+    g.shadowColor='#ffcf7a'; g.shadowBlur=10; g.fillStyle='#ffd58a';
+    for(const fx2 of [0.36,0.52,0.74,0.88]){ g.beginPath(); g.arc(W*fx2,gy-3,2.2,0,6.28); g.fill(); }
+    g.shadowBlur=0;
+  }
+
+  // constellations (normalized 0..1), ordered path of nodes
+  const LEVELS=[
+    [[.30,.40],[.45,.30],[.58,.42],[.50,.58]],
+    [[.28,.55],[.38,.35],[.52,.30],[.62,.45],[.55,.62]],
+    [[.25,.48],[.36,.32],[.48,.40],[.58,.28],[.66,.46],[.52,.58]],
+    [[.22,.52],[.33,.34],[.45,.46],[.50,.26],[.60,.40],[.70,.30],[.66,.56]],
+  ];
+
+  let level=0, nodes=[], decoys=[], target=[], progress=0, phase='flash', flashT=0, errorT=0, bgStars=[];
+  let pulse=0;
+  let mistakes=0, echoT=0;
+
+  // --- additive: endless mode + procedural generation ---
+  let endless=false, endlessIdx=0, streak=0;
+  // genLevel(n) -> array of [nx,ny] in the SAME normalized shape as LEVELS entries.
+  // Produces a wandering, non-self-overlapping path so segments stay legible and
+  // nodes stay far enough apart for the existing nearestNode tolerance to resolve them.
+  function genLevel(n){
+    n = Math.max(4, n|0);
+    const pts=[], minD=0.15;            // min normalized spacing between nodes (keeps nearestNode unambiguous)
+    let guard=0;
+    while(pts.length<n && guard++ < 600){
+      // bias new points to flow across the field rather than clump
+      const nx = 0.16 + Math.random()*0.68;
+      const ny = 0.16 + Math.random()*0.68;
+      let ok=true;
+      for(let i=0;i<pts.length;i++){
+        if(Math.hypot(pts[i][0]-nx, pts[i][1]-ny) < minD){ ok=false; break; }
+      }
+      if(ok) pts.push([nx,ny]);
+    }
+    // top up if spacing rejection left us short (rare): relaxed placement
+    while(pts.length<n){
+      pts.push([0.16 + Math.random()*0.68, 0.16 + Math.random()*0.68]);
+    }
+    // order into a readable path: nearest-neighbour walk from the left-most point
+    const used=new Array(pts.length).fill(false);
+    let start=0; for(let i=1;i<pts.length;i++){ if(pts[i][0]<pts[start][0]) start=i; }
+    const path=[pts[start]]; used[start]=true; let cur=start;
+    for(let step=1;step<pts.length;step++){
+      let bi=-1,bd=1e9;
+      for(let i=0;i<pts.length;i++){ if(used[i]) continue;
+        const d=Math.hypot(pts[cur][0]-pts[i][0], pts[cur][1]-pts[i][1]);
+        if(d<bd){ bd=d; bi=i; } }
+      used[bi]=true; cur=bi; path.push(pts[bi]);
+    }
+    return path;
+  }
+
+  // --- additive: combo decay timer (decays ONLY the score multiplier) ---
+  let comboTimer=1, lastDecayT=0;
+  const COMBO_DECAY_MS=2600;            // full bar -> empty over this window
+
+  // --- additive: juice / particles / shake ---
+  let parts=[], shake=0;
+  let reduceMotion=false;
+  try{ reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+  function burst(px,py,n,hueMix){ if(reduceMotion) return;
+    for(let i=0;i<n;i++){ const a=Math.random()*6.28, sp=Math.random()*2.6+.6, sec=Math.random()<hueMix;
+      parts.push({x:px,y:py,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,
+        c: sec ? '96,178,255' : '255,209,102', g: sec?SPR.glowAzure:SPR.glowGold, r:Math.random()*2+1}); } }
+  function addShake(v){ if(!reduceMotion) shake=Math.min(14,shake+v); }
+
+  // --- additive: ignition sweep ---
+  let ignite=0, igniteSeg=-1;
+
+  // --- additive: score / combo / persistence ---
+  let score=0, combo=0, best=0;
+  try{ best=+(localStorage.getItem('alice_constellation_best')||0)||0; }catch(e){}
+  function renderScore(){
+    const el=$('score'); if(el) el.textContent='SCORE '+score+(combo>1?' x'+combo:'')+'  ·  BEST '+best;
+    if(kit){ kit.setMetric('SCORE',score); kit.setMetric('LEVEL',endless?'ENDLESS '+(endlessIdx+1):(level+1)+'/'+LEVELS.length); }
+  }
+
+  // --- additive: mute toggle (persisted) ---
+  let muted=false; try{ muted=localStorage.getItem('alice_constellation_mute')==='1'; }catch(e){}
+  function renderMute(){ const m=$('mute'); if(m) m.textContent = muted?'♪ OFF':'♪ ON'; }
+
+  // --- additive: per-level color grade (teal -> violet) ---
+  const GRADES=[ {line:'232,213,168', tint:'rgba(255,209,102,0.02)'},
+                 {line:'255,209,102', tint:'rgba(255,190,90,0.025)'},
+                 {line:'128,190,255', tint:'rgba(80,150,255,0.03)'},
+                 {line:'176,220,255', tint:'rgba(140,200,255,0.035)'} ];
+  function grade(){ return GRADES[Math.min(level,GRADES.length-1)]; }
+
+  function buildBg(){ const N=Math.min(160,(W*H)/9000|0); bgStars=Array.from({length:N},()=>({
+    x:Math.random(),y:Math.random(),r:Math.random()*1.2+.2,p:Math.random()*6.28,sp:Math.random()*.5+.2,
+    k:Math.random()<0.22?1:0})); }
+
+  function layout(){ // recompute pixel positions from normalized, keep state
+    const pad=Math.min(W,H)*0.12;
+    const fx=p=>pad+p[0]*(W-2*pad), fy=p=>pad+p[1]*(H-2*pad);
+    nodes=target.map(p=>({x:fx(p),y:fy(p)}));
+    decoys=decoys.map(d=>({nx:d.nx,ny:d.ny,r:d.r,x:pad+d.nx*(W-2*pad),y:pad+d.ny*(H-2*pad)}));
+  }
+  function startLevel(){
+    // campaign pulls the authored level; endless generates one in the SAME shape.
+    target = level < LEVELS.length ? LEVELS[level] : genLevel(4 + endlessIdx);
+    // decoys
+    const nd=18+level*4+(level===LEVELS.length-1?6:0); decoys=Array.from({length:nd},()=>{const r=Math.random()*1.6+.6;return {nx:Math.random(),ny:Math.random(),r};});
+    progress=0; phase='flash'; flashT=performance.now(); errorT=0;
+    mistakes=0; echoT=0;
+    ignite=0; igniteSeg=-1;
+    comboTimer=1; lastDecayT=performance.now();
+    layout(); buildBg();
+    if(endless){ $('lvl').textContent='ENDLESS '+(endlessIdx+1); }
+    else $('lvl').textContent='LEVEL '+(level+1)+'/'+LEVELS.length;
+    $('msg').textContent='記憶せよ…'; $('msg').style.opacity=1;
+    $('sub').textContent= endless ? ('STREAK '+streak+'  ·  星座を覚えて再現せよ') : '光る星座を覚えて、同じ順に星をつなげ';
+    renderScore();
+    if(kit) kit.mission(endless?'Endless echo chain: streak '+streak:'Trace the flashed constellation from memory.');
+    // chime
+    tone(420,0.25,'sine',0.04);
+  }
+
+  function nearestNode(px,py){ let bi=-1,bd=1e9;
+    nodes.forEach((n,i)=>{const d=Math.hypot(n.x-px,n.y-py);if(d<bd){bd=d;bi=i;}});
+    return (bd<Math.max(28,Math.min(W,H)*0.05))?bi:-1; }
+
+  function onTap(px,py){
+    audio();
+    if(phase!=='input')return;
+    const i=nearestNode(px,py);
+    if(i===progress){ progress++; tone(380+progress*70,0.18,'triangle',0.05);
+      // juice + scoring (additive, never affects order/tolerance logic)
+      burst(nodes[i].x, nodes[i].y, 16, .35); addShake(3);
+      if(progress>=2){ igniteSeg=progress-2; ignite=1; }
+      comboTimer=1; lastDecayT=performance.now();   // correct tap refills the decay bar
+      combo++; score += 10*combo;
+      if(score>best){ best=score; try{localStorage.setItem('alice_constellation_best',best);}catch(e){} }
+      renderScore();
+      if(progress>=nodes.length){ // level complete
+        phase='done'; tone(660,0.3,'sine',0.06); setTimeout(()=>tone(880,0.4,'sine',0.05),120);
+        burst(nodes[nodes.length-1].x, nodes[nodes.length-1].y, 60, .55); addShake(9);
+        if(kit) kit.spark(nodes[nodes.length-1].x,nodes[nodes.length-1].y,30,'#ffd166','ring');
+        $('msg').textContent= endless ? ('✦ 整列 ✦  STREAK '+(streak+1)) : '✦ 整列 ✦';
+        if(endless){
+          // endless: grow the constellation, chase the streak, never re-fire winGame.
+          // (score-best is handled by the existing per-tap logic above.)
+          setTimeout(()=>{ streak++; endlessIdx++; level++; startLevel(); }, 1100);
+        } else {
+          setTimeout(()=>{ level++; if(level>=LEVELS.length){ winGame(); } else startLevel(); }, 1100);
+        }
+      }
+    } else { // wrong
+      errorT=performance.now(); progress=0; mistakes++; tone(120,0.25,'sawtooth',0.05);
+      combo=0; renderScore();
+      $('msg').textContent='信号がずれた。最初から。';
+      if(mistakes>=2){ echoT=1.4; if(kit) kit.toast('ECHO HINT ONLINE'); }
+      setTimeout(()=>{ if(phase==='input')$('msg').textContent='星をつなげ'; },1100);
+    }
+  }
+  cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect();onTap(e.clientX-r.left,e.clientY-r.top);});
+
+  function winGame(){ try{localStorage.setItem('alice_bonus_constellation','1');}catch(e){}
+    try{parent.__markD&&parent.__markD('constellation');}catch(e){}
+    if(kit) kit.complete('Constellation signal archived.');
+    $('win').classList.add('show');
+    [0,1,2,3,4].forEach(i=>setTimeout(()=>tone(440*Math.pow(1.2,i),0.5,'sine',0.05),i*150)); }
+
+  // --- additive: enter endless from the campaign win overlay (signal already fired) ---
+  function startEndless(){ audio();
+    $('win').classList.remove('show');
+    endless=true; endlessIdx=0; streak=0;
+    // level is already == LEVELS.length here (campaign finished); generated levels follow.
+    if(level<LEVELS.length) level=LEVELS.length;
+    startLevel(); }
+  if($('endlessBtn')) $('endlessBtn').addEventListener('click',e=>{ e.preventDefault(); startEndless(); });
+
+  $('restart').addEventListener('click',()=>{ if(phase!=='done'){ progress=0; phase='flash'; flashT=performance.now();
+    $('msg').textContent='記憶せよ…'; } });
+
+  function draw(t){
+    pulse+=0.04;
+    if(bgCv) x.drawImage(bgCv,0,0,W,H); else x.clearRect(0,0,W,H);
+    x.save();
+    if(shake>0.2){ x.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake); shake*=0.86; } else shake=0;
+    // bg twinkles: dots + tiny plus-shaped sparkles (cover motif)
+    for(const s of bgStars){ const tw=.3+Math.abs(Math.sin(s.p+pulse*s.sp))*.5;
+      if(s.k){ const sz=6+s.r*6; x.globalAlpha=tw*.6;
+        x.drawImage(SPR.plus,s.x*W-sz/2,s.y*H-sz/2,sz,sz);
+      } else { x.globalAlpha=tw*.5; x.fillStyle='#9fd8ff'; x.beginPath();x.arc(s.x*W,s.y*H,s.r,0,6.28);x.fill(); } }
+    x.globalAlpha=1;
+    // per-level color grade (skip on title)
+    if(phase!=='title'){ x.fillStyle=grade().tint; x.fillRect(0,0,W,H); }
+    // decoy stars: dim slate micro-bricks (clearly quieter than the real star-bricks)
+    for(const d of decoys){ const sz=6+d.r*4; x.globalAlpha=.5;
+      x.drawImage(SPR.decoy,d.x-sz/2,d.y-sz/2,sz,sz); }
+    x.globalAlpha=1;
+    // flash phase: show target lines + nodes
+    const now=performance.now();
+    // combo decay timer — soft, input-phase only. Decays ONLY the score multiplier.
+    // Never touches progress / phase / tolerance.
+    if(phase==='input' && combo>0){
+      const dt = now - lastDecayT; lastDecayT = now;
+      comboTimer -= dt / COMBO_DECAY_MS;
+      if(comboTimer<=0){ combo = Math.max(0, combo-1); comboTimer = combo>0 ? 1 : 0; renderScore(); }
+    } else { lastDecayT = now; }
+    if(phase==='flash'){ const el=now-flashT;
+      const a = el<1600 ? 1 : Math.max(0,1-(el-1600)/500);
+      drawConstellation(nodes.length, a, true);
+      if(el>2100){ phase='input'; $('msg').textContent='星をつなげ'; $('msg').style.opacity=1; }
+    } else {
+      // draw accepted progress
+      drawConstellation(progress, 1, false);
+    }
+    // ignition sweep along the most-recently-completed segment
+    if(ignite>0 && igniteSeg>=0 && igniteSeg+1<nodes.length){
+      ignite=Math.max(0,ignite-0.05);
+      const a=nodes[igniteSeg], b=nodes[igniteSeg+1], k=1-ignite; // travel 0->1
+      const px=a.x+(b.x-a.x)*k, py=a.y+(b.y-a.y)*k;
+      x.save(); x.globalAlpha=Math.min(1,ignite*1.4);
+      x.globalCompositeOperation='lighter';
+      x.drawImage(SPR.glowWarm,px-14,py-14,28,28);
+      x.globalCompositeOperation='source-over';
+      x.fillStyle='#fff6dd'; x.beginPath(); x.arc(px,py,2.8,0,6.28); x.fill(); x.restore();
+    }
+    // star-bricks: gold = flashed target / accepted trace, azure = waiting stars
+    nodes.forEach((n,i)=>{ const lit = (phase==='flash') || i<progress;
+      const s=lit?25:17, gs=s*2.7;
+      x.globalCompositeOperation='lighter';
+      x.globalAlpha = lit?.85:.4;
+      x.drawImage(lit?SPR.glowGold:SPR.glowAzure,n.x-gs/2,n.y-gs/2,gs,gs);
+      x.globalCompositeOperation='source-over';
+      x.globalAlpha = lit?1:.9;
+      x.drawImage(lit?SPR.brickGold:SPR.brickAzure,n.x-s/2,n.y-s/2,s,s); });
+    x.globalAlpha=1;
+    if(echoT>0 && phase==='input' && nodes[progress]){
+      echoT=Math.max(0,echoT-0.018);
+      const n=nodes[progress], a=Math.min(.9,echoT/1.4);
+      const rr3=16+Math.sin(pulse*3)*3, s=rr3*3.2;
+      x.save(); x.globalAlpha=a;
+      x.globalCompositeOperation='lighter';
+      x.drawImage(SPR.ring,n.x-s/2,n.y-s/2,s,s);
+      x.globalCompositeOperation='source-over';
+      x.strokeStyle='#ffd166'; x.lineWidth=2;
+      x.beginPath(); x.arc(n.x,n.y,rr3,0,6.28); x.stroke();
+      x.restore(); x.globalAlpha=1;
+    }
+    x.globalAlpha=1;
+    // error flash
+    if(errorT){ const e=(now-errorT)/300; if(e<1){ x.fillStyle='rgba(230,60,50,'+(0.25*(1-e))+')'; x.fillRect(0,0,W,H);} else errorT=0; }
+    // particles (glow via pre-rendered sprite + lighter, no per-frame blur)
+    for(let i=parts.length-1;i>=0;i--){ const p=parts[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.015; p.life-=0.018;
+      if(p.life<=0){ parts.splice(i,1); continue; }
+      const gs2=p.r*7*p.life+4;
+      x.globalAlpha=p.life;
+      x.globalCompositeOperation='lighter';
+      x.drawImage(p.g||SPR.glowGold,p.x-gs2/2,p.y-gs2/2,gs2,gs2);
+      x.globalCompositeOperation='source-over';
+      x.fillStyle='rgba('+p.c+','+p.life+')';
+      x.beginPath(); x.arc(p.x,p.y,p.r*p.life,0,6.28); x.fill(); }
+    x.globalAlpha=1;
+    x.restore();
+    // combo-multiplier decay bar — thin, shrinking. Reduced-motion: no-op (skip render).
+    if(!reduceMotion && phase==='input' && combo>1){
+      const bw = Math.min(220, W*0.42), bh = 3, bx = (W-bw)/2, by = 52;
+      const f = Math.max(0, Math.min(1, comboTimer));
+      x.save();
+      x.globalAlpha=0.16; x.fillStyle='#ffd166'; x.fillRect(bx, by, bw, bh);
+      x.globalAlpha=0.92; x.fillStyle='rgb('+grade().line+')';
+      x.fillRect(bx, by, bw*f, bh);
+      if(f>0.01){ x.globalAlpha=0.5; x.fillStyle='#fff'; x.fillRect(bx+bw*f-1.5, by, 1.5, bh); }
+      x.restore(); x.globalAlpha=1;
+    }
+    requestAnimationFrame(draw);
+  }
+  function drawConstellation(upto,alpha,full){
+    if(upto<2 && !full) { return; }
+    x.save(); x.globalAlpha=alpha;
+    x.beginPath();
+    const n = full?nodes.length:upto;
+    for(let i=0;i<n-1;i++){ x.moveTo(nodes[i].x,nodes[i].y); x.lineTo(nodes[i+1].x,nodes[i+1].y); }
+    x.strokeStyle='rgba('+grade().line+',.22)'; x.lineWidth=4.5; x.stroke();   // soft halo pass
+    x.strokeStyle='rgba('+grade().line+','+(full?.75:.95)+')'; x.lineWidth=1.4; x.stroke();
+    x.restore();
+  }
+
+  // --- mute toggle wiring ---
+  renderMute();
+  if($('mute')) $('mute').addEventListener('click',()=>{ muted=!muted;
+    try{localStorage.setItem('alice_constellation_mute',muted?'1':'0');}catch(e){} renderMute(); });
+
+  // --- title screen: idle loop until BEGIN, then run the puzzle ---
+  resize(); phase='title'; buildBg(); renderScore();
+  const tb=$('titlebest'); if(tb) tb.textContent = best>0 ? ('BEST  '+best) : '';
+  if($('begin')) $('begin').addEventListener('click',e=>{ e.preventDefault(); audio();
+    $('title').classList.remove('show'); startLevel(); });
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>

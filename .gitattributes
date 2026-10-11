@@ -6,3 +6,6 @@
 public/experiments/tidal-forge/** -text
 # Preserve the verified Godot Web release payload byte for byte.
 public/games/rustwhirl/** -text
+# Preserve migrated game bundles and their migration.json SHA-256 values.
+# Third-party shaders and generated bundles keep their original whitespace.
+public/games/alice/** -text -whitespace

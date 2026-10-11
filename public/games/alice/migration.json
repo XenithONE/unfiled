@@ -1,0 +1,166 @@
+{
+  "sourceCommit": "73d039bbab63dcbd0ad292fa2241b50fe98b1d3c",
+  "base": "/unfiled/games/alice/",
+  "games": [
+    {
+      "id": "nitro-crown",
+      "href": "nitro-crown.html"
+    },
+    {
+      "id": "relic-road",
+      "href": "relic-road.html"
+    },
+    {
+      "id": "hollow-ward",
+      "href": "hollow-ward.html"
+    },
+    {
+      "id": "signal-siege",
+      "href": "tower-defense.html"
+    },
+    {
+      "id": "the-eidolon",
+      "href": "games/the-eidolon.html"
+    },
+    {
+      "id": "rift-courier",
+      "href": "games/rift-courier.html"
+    },
+    {
+      "id": "iwbtg",
+      "href": "games/iwbtg/index.html"
+    },
+    {
+      "id": "locker-hunt",
+      "href": "games/locker-hunt.html"
+    },
+    {
+      "id": "signal-runner",
+      "href": "games/signal-runner.html"
+    },
+    {
+      "id": "constellation",
+      "href": "games/constellation.html"
+    },
+    {
+      "id": "dragons-keep",
+      "href": "games/dragons-keep.html"
+    },
+    {
+      "id": "scrap-crown",
+      "href": "scrap-crown.html"
+    },
+    {
+      "id": "vortex-crown",
+      "href": "vortex-crown.html"
+    }
+  ],
+  "files": {
+    "assets/apple-touch-icon.png": "393a2cf9088f8da71c4651a8c0a3284edf2af31915ea464ce1fb26757f133b47",
+    "assets/BufferGeometryUtils-9Vl6ZVGb.js": "a8d6cd5e96bbdfe5c1825e6535062d3a2473db2695fe3b1ebb7e708f76101375",
+    "assets/bundler-C1wRTBqP.js": "a00b754793accd1cff9205e3c82b1692f80df5052f7b2e65f11610ce733c1f59",
+    "assets/constellation-brick.webp": "cd34a6ed0b69a967f7730980304f279a72dd1858d018f37812435035f43510f4",
+    "assets/dragons-keep-brick.webp": "7e18ab1a05f3ac2bd29f95d93c12d041f44113e3e5d0cf16ccc77bb6ace5395a",
+    "assets/favicon-32.png": "72d33a12b118a2b68c5e208f65de2ec53561989a572d5025fadf51a161e69762",
+    "assets/favicon-64.png": "54db4f5a630cc9e4519f56832ca7e5fa55bfb763362386febec6ba19f1de1480",
+    "assets/hdri/creepy_bathroom_1k.hdr": "214cc81b592c1b5669ad407fbf0a5ccd8d1d079fa8ac16604ad48a357d8c2422",
+    "assets/hollow-ward-4QNdWIQv.css": "dc1fc3e60e1ce4675235188e4d3bb99c92755626f958984498d20f848086e944",
+    "assets/hollow-ward-brick.webp": "ccf3e7de9e3e94952cedac87145b5c9277cc02ec0776c711a1b542d9f6f6f59d",
+    "assets/hollow-ward-poster.webp": "4376e557655a10263a4209e2fe86250245c8da86a9023a67c721f47668ba212c",
+    "assets/hollow-ward-tTNAn3Oz.js": "da1608b15d9db48b37ccd5589493fe8b2c96405924af1dde18b932d395580b04",
+    "assets/iwbtg-brick.webp": "4e0e774e7d0474c2b981ed4b8ada5d8145b4c32ccacfd9d1dc57846b8c752535",
+    "assets/jsx-runtime-DCIDLl97.js": "3ec4fa116e488b948b37c03e8244ba4659b43fea3a8ba6ee2263feb25157b5d5",
+    "assets/locker-hunt-brick.webp": "dbbf7296d1f8053a4f6dafa30460723a0e27ba6aa0d5963ea852138d2e20110a",
+    "assets/nitro-crown-C2nPbUNC.js": "3d3aa9b22a010615caf9e3cff2cbbc700d53950a153114e9ef9c2ee644d3283f",
+    "assets/nitro-crown-CIAQb3Ab.css": "ab9103ac847230ca2207a246f37da91059fd390865471e74556d6c01b82e7bf9",
+    "assets/nitro-crown-cover.webp": "264195deb0fb1b2c449083eabd329ed71b95f1af1e5a1297a0d79c73ca1f183a",
+    "assets/nitro-crown-shot-coast.webp": "8761b6f720f0f70da81d05f789156a56003df40ce91445502efd0fb3010d297e",
+    "assets/nitro-crown-shot-ghost.webp": "e583f712bbe4291926a5d8efd19b7ce2494ddf3b4954b5ae9c96fc42a4758d9b",
+    "assets/nitro-crown-shot-neon.webp": "eab31cf6bdfd643421f72f00bd493c99db24d72d189f30ec41867e1b72d3b994",
+    "assets/nitro-crown-shot-sky.webp": "80f0092e7af2d1d753e488567bfe630f299f584d80f486a64e86a6022c60ea8a",
+    "assets/OutputPass-gmIDImHh.js": "393a54101f0534f50909a55b274204495f944cea19f649ed92f3421f3f8d31bb",
+    "assets/quest/audio/coin.ogg": "0508672c53f45105685f3bec47b76f4041a34ec9d45e1a44118fed25ca42f4b6",
+    "assets/quest/audio/hit-deal.ogg": "fee785537678a33d150310e8ae75eeaa439b0e1e9aa55aef19651d12013a067f",
+    "assets/quest/audio/hit-take.ogg": "22f2bfcfb8e211ea19b0af0adc1ae7df7bce137a7a159303840f9b95992d5d61",
+    "assets/quest/audio/levelup.ogg": "3091bf0be0497f825769ee0733ca7bdc3bcd59bd6c6e8f2ba8f93d580ff38022",
+    "assets/quest/audio/LICENSES.md": "c48f4cd948afae3a190d8438f933f469e738dcbb7d643182fd7a5aff9420172b",
+    "assets/quest/audio/magic.ogg": "cd3cd4f063b00695d5f5d6ca4ac0a3c294ffc290202e4082669fe687115cc2bc",
+    "assets/quest/audio/modal-open.ogg": "a27c6bb0df7da1e6af5dd5937593c98bc58b6e513f42fe6a3254cd6a6949c648",
+    "assets/quest/audio/overworld-loop.ogg": "d94ba2af8088aad9315f7bc9d899b6f8288b76e73e63a585b2c83e0b96616f17",
+    "assets/quest/audio/ui-click.ogg": "ccfb7fa0cccdd9faec0eb16033c732b1e308d139d80f799161495d58f7adcdb9",
+    "assets/quest/audio/ui-confirm.ogg": "063564703b6094d70718a3e787a55cc9141611e4ecd6b6637f8828f79b4a8c3a",
+    "assets/quest/audio/ui-error.ogg": "46e67425d16339772e8d328fb36a49426c9467418686e11beeb71ff84b0f6433",
+    "assets/quest/board-plate.webp": "ba5e10dfef9e3306ba2a6c46a118bf5dfb1c27f30bc682c69e8ac641db72a448",
+    "assets/quest/card-back.webp": "4b7308a5684b6a62f2f780eff9d1b51b1c061525223a7996613005afe41fc34e",
+    "assets/quest/card-frame.webp": "bbebe72a0feaee826b8e35fcf49d55133e1ecb946b510532c72797af2c91a565",
+    "assets/quest/class-portraits.webp": "2b80d57c7877810ac7fe70c8fcf566e6a339b027bf2547024fbfb7f5fb1fde2a",
+    "assets/quest/combat-stage.webp": "416f8f73d8a2b299e90ef485b8ff11e10f7642650c2310fc64b42dba20aa119e",
+    "assets/quest/relic-gem.webp": "b35e8d29740ec67978007a9a199cafc3f0f7ec3a4ecce734140e4ccc595ff2ee",
+    "assets/quest/style/STYLE.md": "fdf461d2987e64de9be4142065b8000db6377d2d22cd8e1ac7b4a4a6852a6bfc",
+    "assets/quest/title-hero.webp": "7754ed8bbb7702f798050552cc5447f21bf0960daf48b69df8d3f94d041e4bc6",
+    "assets/rapier-zESoje1m.js": "25f21d6d5dc44f25c55a37d058c60c44823a1ff11c97da31ec8431aaa64a481d",
+    "assets/relic-road-bdYlnqpU.css": "568a3f0c36ce9c92c3d999a5fa404ba3200dc3d59be5165d0a4c54b41f725db3",
+    "assets/relic-road-brick.webp": "946f59b0721dd7a1fe51cf426c56cd2d52282e3bfb91f5cc360377692bba2963",
+    "assets/relic-road-CJY1UB5V.js": "32882769b1a1f44d0f532e4580510e9133d1f27d41605842422657f4b7d146bf",
+    "assets/renderEnv-B3mTKUcR.js": "76e5bbdc2144edea4eaeb3fbba3862acad05f271f062020bb59b0b3d39782b95",
+    "assets/rift-courier-brick.webp": "bc95b858dbb2aa30bde77df87a0da86538cc1a903f03743b9e3d3ac5431985d3",
+    "assets/scrap-crown-cover.webp": "2636c3c02d83b9433f37ea75010893d13c9addb8ed5946f6e4a53d0d890d7c2c",
+    "assets/scrap-crown-DyEKpxeK.css": "420f458ae2ba5e2a17d6d5337e376a2f28e9ccefa291f7104cbcb617a5f72016",
+    "assets/scrap-crown-DyywpASU.js": "16e4980d49ccbf5c897489bfeefb046c1a495147b1fb20236a832147f6017847",
+    "assets/seed-Pof4QMbD.js": "011bb1279c1ed95dc7121136d325af831de5d3616ddc0ec402190505e36aac95",
+    "assets/signal-runner-brick.webp": "a2009064f07c3d8d1c62e25f08369811cd13ad40491e2063a3b3f4a510aeb4da",
+    "assets/signal-siege-brick.webp": "06950d79de90889e3e397d6c83caec5fc2a897b1e642b9c432ffdaf7fdff30f0",
+    "assets/signal-siege-poster.webp": "caf946b4bc2ea2422bd12d5f2242709c9f040bf4bf51b86f0ca301a7b291e8c2",
+    "assets/spark.module-C3g_8Qzm.js": "b10dff6d0c02c19e339c0874bc9fb5578bf0f0c170cc3e0576d499e82a47c7cb",
+    "assets/textures/floor/diff.jpg": "9b41f6e1f66804c3cface2365a7d246618ad8814a5864be43bb9349fc3fb6db6",
+    "assets/textures/floor/nor.jpg": "9f6d4282857b23daf2d9c87e567047a8f6ede4cc9eb8ec35ebd053bab4e457a0",
+    "assets/textures/floor/rough.jpg": "72da2f16f2e716cfa552779dc1f04ff8b6951acd9a624539439d603190e0d39d",
+    "assets/textures/metal/diff.jpg": "369f69eb86a7dcc4e5b6e30b1f3a4da5ce6ba50cf417de937efb4f09101f88d4",
+    "assets/textures/metal/nor.jpg": "08ae69576b453b0970f5982d359897f09aae41c7cb18c19c02de37324160625c",
+    "assets/textures/metal/rough.jpg": "f5b4a23044af1b49284e6adb082f49e6ea1a33c3753d5641e36f72de1ebf323e",
+    "assets/textures/wall/diff.jpg": "f910cbaff5a0fbd778a8c41947ac826f2313e70e9b4077bc39221a417fa8d5b4",
+    "assets/textures/wall/nor.jpg": "d247bdc21f3d37eb514d058aaa3c2193a6955d12191d1190cedf5285985f8604",
+    "assets/textures/wall/rough.jpg": "0f18937de6a05b34797d2ddaac5a3996e922696431161d312b7304ac1b110312",
+    "assets/the-eidolon-brick.webp": "401f72bba1c7335afad8657ee37462a69c9f3ba2cf47e2188fda8a549f5a9ad3",
+    "assets/the-eidolon-poster.webp": "1d67b242e0546102a2b191bbf2364d9b4544bfc65fb6d79e066f5b2f5230b18b",
+    "assets/three.module-CWJNT_vP.js": "38f1419a67e59b13ba28a79aaf2ea061e37fbf6e8960ea43dd047743a7a68c8c",
+    "assets/tower-defense-B-PJ8n4K.css": "bd92bccf0c295c10fb2a66c1acdd3195e2ac0c6b844c004d505427ada4d044c9",
+    "assets/tower-defense-D712iSy8.js": "47ac7f8822cfbf7f949226ea59659f9a3e21dc5a4e3d390a19badfc0ea459a28",
+    "assets/vortex-crown-4gbs2qcr.js": "27fdbca38eab0d817a2201bd6002fafc839c1defab715d6f2c5ebe8bae8f8b3c",
+    "assets/vortex-crown-cover.webp": "566696262bbcad4b94c439740afd955e3c6ce0cc48f853cd034e4122cd79bac6",
+    "assets/vortex-crown-C_RNPCVO.css": "6efd8e6d399afce17f2423b6fa756d9979d5c4e02b191cfd091a27990f5d326d",
+    "ASSET_CREDITS.md": "866ee246d0e112c70ed601b81b2a12fbc06a855db8bdcd8dcc4cd453f17c361a",
+    "games/constellation.html": "c0b48cf1d390153f822575b7d899f4d1707ccef920ea1f1746fcee4059fe9521",
+    "games/dragons-keep.html": "e65276f387e3f047a0007fbc5a7c316b53969cc13dc6971025f27a4486a03a2b",
+    "games/iwbtg/engine.js": "859d18e334a05c0875c8098abacfdf5971e20464f55c12cc3df5fba9003a8821",
+    "games/iwbtg/index.html": "8c8a5e188f04bdd685d33e11ea6ad9283fdfd7ad93b8c133386440e17ee7e0a0",
+    "games/iwbtg/levels/level1.js": "0e847c534158b214aa4cece5e4aeb70307af43659d90d9cb015934730153b233",
+    "games/iwbtg/levels/level2.js": "79ae84387218adfa714641f257f964ce97ddfb261252f4e93fa33f70fc1fceb4",
+    "games/iwbtg/levels/level3.js": "45bea0b816e613de2c46c63b665bbb737763092bc2c27033dbb3dc5713773601",
+    "games/iwbtg/levels/level4.js": "5859ba69efeb8b536f1082a6bde6b41139311abdfc50ab8a2b0afdcb10457aa0",
+    "games/locker-hunt.html": "7a808b27c84dc0f07fa1b8bdeb3bf375688dda531c8279e6f0564d4db93c6604",
+    "games/rift-courier.html": "49454df68f6b0196d1a9f044e64c9a073787134fee3e2e860e7d5995f2471f5a",
+    "games/shared/alice-game-kit.js": "e09a87847cbc501c2a1ff997e3f4eb8a3ac8030d512ddadc46c2f9c10f1fa352",
+    "games/signal-runner.html": "bdeb988f5f7b123a08f9b4a678252bcbe68475d1ab3e2dbd47ea52b28ad9d756",
+    "games/the-eidolon.html": "0ba08cfa9cda837d85eb9ea20e00074dd495ba6314ce7c97ef7ba3357e383708",
+    "hollow-ward.html": "398d626836555b63d68f1e23242a84ed9dfcee0b33471650591955761f38a8f5",
+    "index.html": "54ee6e369e806cf3715dc222f0f942c161f399bddf8a3bb77d62472c7bc4bab3",
+    "nitro-crown.html": "c4bc03c73c5bc3f1f921560fd35d7998350fe0749a148ef54ad7df793a11f72b",
+    "README_JA.md": "1178ac1906f5a8bd46dd7290fe2867060fbd5add9075cd8d8c443b46f6600c4a",
+    "relic-road.html": "87d7e1ea1e40b75c323d68b6e1f91af03595dee967735fdafa338b48df0dc325",
+    "scrap-crown.html": "c91eb3598dc38232875efd030b0f74f2af86538f93ec7ff4959887ee345a4587",
+    "THIRD_PARTY_NOTICES.txt": "c6e75255d374dfac261451b5e850496cd52c99188d1b4b36645cfe5cc976e9ca",
+    "tower-defense.html": "421c96131edeebcb5405713e687bb2487545a25da7450e2227e7979e773251d7",
+    "vendor/three/build/three.core.js": "539a9bbdae302ecd175d09925fb400d5df755cf982a1dec461c11d1725dd5531",
+    "vendor/three/build/three.module.js": "dcd9e9aefd41f795fe65205a5a650ab2b46abc1d37697f6244da5968b27ccddd",
+    "vendor/three/examples/jsm/postprocessing/EffectComposer.js": "c864aa90391b905e598d615c2b12c5ddf9ff933921cd3b8fedca87c73843ada0",
+    "vendor/three/examples/jsm/postprocessing/MaskPass.js": "69320db4496d38bf39678641faed2380c3b7a5385f890e7ebf7f5931d7c962bb",
+    "vendor/three/examples/jsm/postprocessing/Pass.js": "eff21980a81726073dc6bc8fe7682919ca9e07b7ef3494923c3fb7d4ae41ab4b",
+    "vendor/three/examples/jsm/postprocessing/RenderPass.js": "45498dbe5b68153cb73dcbf75c09a54c126289188fee7d2dcda884bdefd20156",
+    "vendor/three/examples/jsm/postprocessing/ShaderPass.js": "f20b9c20d93fdd4bd708b38732e8acfe3acd4441b3f510f5d47d11e6bfe3c689",
+    "vendor/three/examples/jsm/postprocessing/UnrealBloomPass.js": "8718ac279d97af5460327e1483fc21e44aa6611601d45c835bda0ae36bcb3b06",
+    "vendor/three/examples/jsm/shaders/CopyShader.js": "4f5f4144609b0e4f8e3b5775723e743dbc3b89a7f945321f77801658b5b94baa",
+    "vendor/three/examples/jsm/shaders/LuminosityHighPassShader.js": "defd5558ebf217de21275573c7e4365cbe62da34e46bd7f86ca2517a909536b6",
+    "vortex-crown.html": "9c45523e156150e6afb219c7be9ad8d3ae73fb81a1b6e7ed85369116a6c8695b"
+  }
+}

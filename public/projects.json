@@ -198,5 +198,148 @@
     "url": "https://xenithone.github.io/unfiled/films/sanzu-river/",
     "cover": "images/sanzu-river.webp",
     "accent": "#d98a4e"
+  },
+  {
+    "id": "nitro-crown",
+    "title": "NITRO CROWN",
+    "subtitle": "3Dカートレース（最大4人対戦）",
+    "description": "3コース×晴雨・8台グリッドのカートレーサー。ドリフト3段ミニターボにトリック、スリップストリーム、8種のアイテムで逆転する。3戦グランプリはソロでもP2Pマルチ（最大4人）でも開催でき、ゴースト付きタイムトライアル・日替わりチャレンジ・実績解放の16カラーでやり込める。",
+    "category": "KART RACING GAME",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/games/alice/nitro-crown.html",
+    "cover": "images/alice-nitro-crown.webp",
+    "accent": "#e95c40"
+  },
+  {
+    "id": "relic-road",
+    "title": "RELIC ROAD",
+    "subtitle": "カード×ボードRPG（2〜4人）",
+    "description": "ブロック世界の地図をカードで駆けるデッキ構築ボードRPG。モンスターを倒してレベルアップ、3つのレリックと最終守護者を制した者が勝つ。ルームコードで2〜4人、空席はBOTが参戦。",
+    "category": "DECKBUILDING BOARD RPG",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/games/alice/relic-road.html",
+    "cover": "images/alice-relic-road.webp",
+    "accent": "#cda05b"
+  },
+  {
+    "id": "hollow-ward",
+    "title": "THE HOLLOW WARD",
+    "subtitle": "廃病棟協力型3Dホラー",
+    "description": "ルームコードで1〜3人が協力。CASE FILEを共有し、見られている間だけ動けない怪物ワードンから廃病棟を脱出する3Dホラー。ソロプレイ対応。",
+    "category": "CO-OP HORROR GAME",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/games/alice/hollow-ward.html",
+    "cover": "images/alice-hollow-ward.webp",
+    "accent": "#438d86"
+  },
+  {
+    "id": "signal-siege",
+    "title": "SIGNAL SIEGE",
+    "subtitle": "対戦タワーディフェンス",
+    "description": "ルームコードで友達とP2P対戦するタワーディフェンス。タワーで守り、クリープを送って攻める。ソロ(vs AI)対応。",
+    "category": "VERSUS TOWER DEFENSE",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/games/alice/tower-defense.html",
+    "cover": "images/alice-signal-siege.webp",
+    "accent": "#338caa"
+  },
+  {
+    "id": "the-eidolon",
+    "title": "THE EIDOLON",
+    "subtitle": "闇の中の眼",
+    "description": "懐中電灯ひとつで虚空を探索し、信号の断片を5つ集めて脱出する一人称コズミックホラー。",
+    "category": "COSMIC HORROR GAME",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/games/alice/games/the-eidolon.html",
+    "cover": "images/alice-the-eidolon.webp",
+    "accent": "#685a9a"
+  },
+  {
+    "id": "rift-courier",
+    "title": "RIFT COURIER",
+    "subtitle": "崩壊するリフトの配達人",
+    "description": "崩れゆく次元の裂け目を飛び、光のキーを集めて最終ゲートを抜ける3Dレールフライト。",
+    "category": "3D FLIGHT GAME",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/games/alice/games/rift-courier.html",
+    "cover": "images/alice-rift-courier.webp",
+    "accent": "#37a9b7"
+  },
+  {
+    "id": "iwbtg",
+    "title": "I WANNA BE THE SIGNAL",
+    "subtitle": "全力で騙してくる死にゲー",
+    "description": "偽の床、見えない壁、嘘のセーブ。プレイヤーを裏切り続ける高難度2Dカイゾーアクション。",
+    "category": "KAIZO PLATFORMER",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/games/alice/games/iwbtg/index.html",
+    "cover": "images/alice-iwbtg.webp",
+    "accent": "#34a195"
+  },
+  {
+    "id": "locker-hunt",
+    "title": "LOCKER HUNT",
+    "subtitle": "ロッカーの中の小さな影",
+    "description": "学校の廊下でロッカーを開け、小さな影を探すコメディホラー探索ゲーム。",
+    "category": "HORROR SEARCH GAME",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/games/alice/games/locker-hunt.html",
+    "cover": "images/alice-locker-hunt.webp",
+    "accent": "#b79054"
+  },
+  {
+    "id": "signal-runner",
+    "title": "SIGNAL RUNNER",
+    "subtitle": "崩れる信号の隙間を走る",
+    "description": "崩壊していく信号の隙間を縫って光る断片を回収するアーケード回避アクション。",
+    "category": "ARCADE DODGE GAME",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/games/alice/games/signal-runner.html",
+    "cover": "images/alice-signal-runner.webp",
+    "accent": "#36a893"
+  },
+  {
+    "id": "constellation",
+    "title": "CONSTELLATION",
+    "subtitle": "星座の記憶パズル",
+    "description": "星を正しい順に結び、沈黙した信号を再同期する記憶パズル。エンドレスモード搭載。",
+    "category": "MEMORY PUZZLE",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/games/alice/games/constellation.html",
+    "cover": "images/alice-constellation.webp",
+    "accent": "#7b74b9"
+  },
+  {
+    "id": "dragons-keep",
+    "title": "DRAGON'S KEEP",
+    "subtitle": "ファンタジーピンボール",
+    "description": "城門マルチボール、ワームホール、魔の渦。自前物理エンジンのファンタジーピンボール。",
+    "category": "FANTASY PINBALL",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/games/alice/games/dragons-keep.html",
+    "cover": "images/alice-dragons-keep.webp",
+    "accent": "#c99b44"
+  },
+  {
+    "id": "scrap-crown",
+    "title": "SCRAP CROWN",
+    "subtitle": "物理演算ロボット闘技",
+    "description": "鋼板とチタンで競技ロボットを組み、限られたポイント内で武装を選ぶ。2〜4人で激突する物理演算メカバトル。",
+    "category": "ROBOT BATTLE GAME",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/games/alice/scrap-crown.html",
+    "cover": "images/alice-scrap-crown.webp",
+    "accent": "#b2754f"
+  },
+  {
+    "id": "vortex-crown",
+    "title": "VORTEX CROWN",
+    "subtitle": "七層機装スピントップバトル",
+    "description": "7部位・777パーツから機体を組み上げ、シナジーとActiveスキルで戦局を動かす。1人＋CPUから4人対戦まで対応。",
+    "category": "SPIN TOP BATTLE GAME",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/games/alice/vortex-crown.html",
+    "cover": "images/alice-vortex-crown.webp",
+    "accent": "#8172bd"
   }
 ]

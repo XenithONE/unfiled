@@ -9,7 +9,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "check": "tsc --noEmit",
     "test:everest": "node tools/test-everest.mjs",
-    "test:alpine": "node tools/test-alpine-rail.mjs"
+    "test:alpine": "node tools/test-alpine-rail.mjs",
+    "test:alice": "node tools/test-alice-games.mjs"
   },
   "dependencies": {
     "@fontsource/anton": "^5.2.8",

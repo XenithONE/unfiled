@@ -141,3 +141,13 @@ RAKUGAKIは `games/rakugaki/` にソースを置く、Three.js製の手描き風
 [三途の川](https://xenithone.github.io/unfiled/films/sanzu-river/)は、31秒・8カットの短編映像をThree.js（r180）がブラウザの中でそのつど描く作品です。彼岸の日の日没直後、流した灯籠は橋の手前で止まり、白装束の旅人を乗せた舟だけが向こう岸へ渡ります。映像はくり返し再生され、音は付きません。描画が重いため、性能の高いPCでの鑑賞を想定しています。
 
 `public/films/sanzu-river/`には再生に必要なファイルだけを置きます。更新元はローカルの `Film/sanzu-river` で、このリポジトリで `node tools/sync-sanzu-river.mjs` を実行すると、`src/main.js` から実際に読み込まれるモジュール、それが使うThree.jsのファイル（作品側の `node_modules` のr180）、決められた素材だけを写します。制作用のスクリプト・Blenderファイル・書き出した動画・v1の人物ファイルは写しません。人物の頭部はこの作品のための自作（MakeHumanの元メッシュと形の素材、CC0）で、素材の出典は同梱の `CREDITS.md` にあります。表紙 `public/images/sanzu-river.webp` は実際の映像の一コマです。
+
+## AlicE sYsTeMから移行したゲーム
+
+旧サイトのプレイ可能な13本を `public/games/alice/` に移行しました。NITRO CROWN、RELIC ROAD、THE HOLLOW WARD、SIGNAL SIEGE、THE EIDOLON、RIFT COURIER、I WANNA BE THE SIGNAL、LOCKER HUNT、SIGNAL RUNNER、CONSTELLATION、DRAGON'S KEEP、SCRAP CROWN、VORTEX CROWNです。作品一覧のカードから直接起動できます。表紙は旧サイトのゲーム用ビジュアルを引き継いでいます。
+
+非公開の原本 `alice-system` の `73d039b` を、原本のロックファイルにある依存バージョンでゲームのみビルドしています。UNFILED本体の依存バージョンからは独立し、既存のPagesワークフローで静的配布物を公開します。開発中で実行ファイルのないUnity作品や、ゲーム以外の旧サイトのコンテンツは含めていません。
+
+再生成は、隣の `WEB/alice-system` に上記コミットをチェックアウトして `npm ci --ignore-scripts` を実行した後、UNFILEDから `node tools/sync-alice-games.mjs` を実行します。既存の配布先がある場合は上書きせず一時ビルドの場所を表示します。更新内容を確認し、古い配布先を退避してから再実行してください。同期スクリプトで公開パスと戻り先を調整し、原本のルールや保存キーを維持します。`npm run test:alice` は13本の掲載・参照ファイル・配布物のSHA-256を確認します。
+
+操作・通信条件・保存の扱いは同梱の `README_JA.md`、素材の出典と依存ライセンスは `ASSET_CREDITS.md` と `THIRD_PARTY_NOTICES.txt` を参照してください。旧サイトと同じブラウザ・同じ `https://xenithone.github.io` の保存領域に残る記録は引き続き参照します。別ドメインや別ブラウザの記録は自動移行されません。

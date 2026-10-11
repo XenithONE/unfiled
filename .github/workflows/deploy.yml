@@ -32,6 +32,9 @@ jobs:
       - name: Build site
         run: npm run build
 
+      - name: Check migrated AlicE games
+        run: npm run test:alice
+
       - name: Check snowboard simulation
         run: npm run test:everest
 
