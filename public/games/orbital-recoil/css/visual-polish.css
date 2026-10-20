@@ -1,0 +1,350 @@
+/* Orbital Recoil — cinematic menu and a quiet, readable flight interface. */
+:root {
+    --bg-dark: rgba(6, 12, 18, .94);
+    --bg-panel: rgba(9, 17, 24, .82);
+    --cyan: #88c9d6;
+    --cyan-dim: rgba(136, 201, 214, .23);
+    --amber: #e8bd7d;
+    --red: #f47872;
+    --green: #9ed7b6;
+    --text-main: #edf0ed;
+    --text-muted: #a2b1bb;
+    --font-sans: 'Yu Gothic UI', 'Segoe UI', Meiryo, sans-serif;
+    --font-mono: 'Bahnschrift', 'Consolas', monospace;
+}
+
+button, input, select { font: inherit; }
+button { touch-action: manipulation; }
+button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid #f5d49d;
+    outline-offset: 5px;
+}
+button:disabled { cursor: wait; opacity: .5; }
+svg { fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: square; stroke-linejoin: miter; }
+
+/* Full-screen title. Artwork stays a separate asset; every control is HTML. */
+#title-modal {
+    display: block;
+    padding: 0;
+    overflow: hidden;
+    background: #040a10;
+    backdrop-filter: none;
+    isolation: isolate;
+}
+.title-art {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: #040a10 url('../assets/title-orbit.webp') center/cover no-repeat;
+    animation: title-arrive 1.5s ease-out both;
+}
+.title-masthead {
+    position: absolute;
+    top: clamp(24px, 5.5vh, 54px);
+    left: 5%; right: 5%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #d9dcda;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+}
+.title-identity { display: flex; align-items: center; gap: 13px; }
+.title-identity svg { width: 28px; height: 28px; color: var(--amber); }
+.title-identity span { display: flex; align-items: center; gap: 16px; }
+.title-identity i { width: 1px; height: 11px; background: #8c867a; }
+.title-orbit-label { display: flex; align-items: center; gap: 18px; }
+.title-orbit-label::before { content: ''; width: 64px; height: 1px; background: #b39361; }
+.title-shell {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 90px 5% 100px;
+}
+.title-menu { width: min(470px, 29.65vw); animation: menu-arrive .8s .12s ease-out both; }
+.orbital-wordmark {
+    color: #f3ecdd;
+    font-family: Impact, 'Arial Narrow', 'Bahnschrift Condensed', sans-serif;
+    font-size: clamp(70px, 8.65vw, 132px);
+    font-weight: 400;
+    line-height: .94;
+    letter-spacing: 3px;
+    text-shadow: 0 4px 32px rgba(0, 0, 0, .3);
+    transform: scaleX(.8);
+    transform-origin: left center;
+    width: 125%;
+}
+.orbital-wordmark span { display: block; }
+.orbital-jp { margin-top: 20px; font-size: 20px; letter-spacing: .6em; color: #f2eee4; }
+.title-intro { margin: 36px 0 32px; padding-top: 22px; position: relative; }
+.title-intro::before { content: ''; position: absolute; top: 0; left: 0; width: 35px; height: 2px; background: var(--amber); }
+.title-intro p { font-size: 15px; line-height: 1.95; letter-spacing: .05em; color: #d9deda; }
+.mobile-break { display: none; }
+.title-actions { display: flex; flex-direction: column; gap: 12px; }
+.mission-start, .mission-simulator {
+    width: 100%; min-height: 74px;
+    text-align: left;
+    padding: 16px 27px;
+    border: 1px solid #aaa08d;
+    border-radius: 1px;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: .23em;
+    cursor: pointer;
+    transition: background .2s, color .2s, border-color .2s, transform .2s;
+}
+.mission-start { display: flex; align-items: center; justify-content: space-between; background: #f2e6d0; color: #10181e; border-color: #f2e6d0; }
+.mission-start svg { width: 34px; height: 18px; }
+.mission-start:hover:enabled { background: #fff4df; border-color: #fff4df; transform: translateX(3px); }
+.mission-simulator { min-height: 64px; color: #e7e1d5; background: rgba(3, 10, 16, .4); font-size: 16px; font-weight: 500; }
+.mission-simulator:hover:enabled { background: rgba(242, 230, 208, .09); border-color: #f2e6d0; }
+.title-secondary { display: flex; margin-top: 36px; }
+.title-secondary button { flex: 1; color: #d7c9b0; background: transparent; border: 0; font-size: 14px; letter-spacing: .12em; cursor: pointer; padding: 4px 0; }
+.title-secondary button:first-child { text-align: left; }
+.title-secondary button:last-child { text-align: right; }
+.title-secondary button + button { border-left: 1px solid #736959; }
+.title-secondary button:hover { color: #fff6e3; }
+#boot-status { position: absolute; margin-top: 14px; color: #b5bec2; font-size: 11px; letter-spacing: .05em; }
+#boot-status.ready { visibility: hidden; }
+.title-footer {
+    position: absolute; bottom: 5%; left: 5%; right: 5%;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; color: #e4dfd3;
+}
+.title-keyboard { display: flex; align-items: center; gap: 25px; }
+.title-keyboard > span { display: flex; align-items: center; gap: 5px; }
+kbd { font: 10px var(--font-mono); border: 1px solid #aa9570; border-radius: 2px; padding: 3px 4px; color: #e2d7c4; }
+.title-keyboard svg { width: 14px; height: 23px; margin-right: 4px; }
+.title-trajectory { display: flex; align-items: center; gap: 12px; }
+.title-trajectory svg { width: 30px; height: 16px; color: #d1b27f; }
+.earth-dot { display: inline-block; width: 15px; height: 15px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #c4dadb, #355a77 45%, #0a1723 70%); border: 1px solid #75909b; margin-left: 6px; }
+.title-mobile-note { display: none; }
+
+/* All original briefings, blueprints, and ending records live in this drawer. */
+.mission-archive {
+    position: absolute; top: 0; right: 0; bottom: 0; width: min(780px, 67vw);
+    background: rgba(7, 14, 21, .97);
+    backdrop-filter: blur(20px);
+    padding: 32px 34px;
+    overflow-y: auto; overscroll-behavior: contain;
+    border-left: 1px solid #52616a;
+    box-shadow: -25px 0 90px rgba(0, 0, 0, .5);
+    animation: archive-arrive .25s ease-out;
+}
+.archive-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+.archive-kicker { font: 10px var(--font-mono); letter-spacing: 2px; color: #c5ac82; }
+.archive-header h2 { margin-top: 9px; font-size: 22px; font-weight: 500; letter-spacing: .12em; }
+#btn-close-archive { width: 38px; height: 38px; border: 1px solid #57626b; background: transparent; color: #dce4e8; cursor: pointer; }
+#btn-close-archive svg { width: 20px; height: 20px; }
+.mission-archive .nav-tabs { gap: 0; padding-bottom: 0; border-bottom-color: #3f4d57; margin-bottom: 24px; }
+.mission-archive .nav-tab-btn { flex: 1; padding: 13px 4px; font: 12px var(--font-sans); border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: #a2afb8; box-shadow: none; }
+.mission-archive .nav-tab-btn.active { color: #f1e2c8; background: rgba(218, 191, 148, .05); border-bottom-color: var(--amber); }
+.mission-archive .title-grid, .mission-archive .blueprint-gallery { grid-template-columns: 1fr; gap: 22px; }
+.mission-archive .briefing-box { padding: 0; border: 0; background: transparent; }
+.mission-archive .briefing-box h3 { color: #ddc6a1; font-weight: 600; line-height: 1.6; }
+.mission-archive .briefing-box p { font-size: 13px; line-height: 1.9; color: #c4cdd2; }
+.mission-archive .module-guide-list { gap: 7px; }
+.mission-archive .module-guide-list li { font-size: 12px; line-height: 1.85; padding: 9px 12px; background: #101d26; border-color: #49616b; border-radius: 0; }
+.mission-archive .blueprint-card { border-color: #3c515e; border-radius: 2px; padding: 8px; }
+.blueprint-card img { display: block; max-width: 100%; }
+.mission-archive .blueprint-caption { font-size: 12px; line-height: 1.8; padding: 8px; }
+
+/* Common terminal / simulator / result surfaces. */
+.modal-backdrop:not(#title-modal) { background: rgba(2, 7, 12, .76); backdrop-filter: blur(14px); }
+.modal-card { border: 1px solid #40535f; border-top: 2px solid #ad9470; border-radius: 4px; background: linear-gradient(150deg, #14232d, #080f17 80%); box-shadow: 0 24px 100px #000a; padding: 27px 30px; }
+.game-MainTitle { text-shadow: none; letter-spacing: .04em; }
+.game-SubTitle { color: #9ab1bd; letter-spacing: .08em; line-height: 1.7; }
+.primary-btn { background: #e7d5b5; color: #14212a; border: 1px solid #e7d5b5; text-shadow: none; box-shadow: none; }
+.primary-btn:hover { background: #f9e6c3; color: #14212a; box-shadow: 0 3px 22px #b8a27e26; }
+.secondary-btn { border-color: #607887; background: #101c26; color: #c9d8df; }
+.secondary-btn:hover { background: #213340; box-shadow: none; }
+.primary-btn, .secondary-btn { font-size: 13px; line-height: 1.5; letter-spacing: .03em; border-radius: 2px; padding: 11px 17px; }
+.eng-pane, .flight-report-box { border-color: #3a4e5b; border-radius: 3px; }
+input[type=range] { accent-color: #d8be93; }
+
+/* HUD: vital resources on the left; the view stays open. Details are optional. */
+#screen-fx { background: radial-gradient(ellipse at center, transparent 65%, rgba(3, 9, 16, .23) 100%); }
+.visor-frame { border-color: rgba(179, 208, 217, .1); border-radius: 5px; box-shadow: none; }
+#hud-layer { padding: 26px 30px; }
+.hud-panel { background: rgba(9, 18, 25, .8); border: 1px solid rgba(148, 177, 191, .22); border-left: 2px solid #88aebb; border-radius: 3px; box-shadow: 0 5px 24px #0003; backdrop-filter: blur(12px); }
+.panel-label { color: #9fbcc6; font-size: 9px; letter-spacing: 1.2px; line-height: 1.5; }
+.station-status-box { min-width: 0; width: 340px; }
+.station-status-box > .panel-label { display: block; }
+#hud-steam-badge { display: block; font-size: 9px; margin-top: 5px; }
+.zone-name { font-size: 12px; font-weight: 500; line-height: 1.5; margin: 6px 0 10px; }
+.resource-bars { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 16px; }
+.res-bar-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px; }
+.res-bar-label { font: 9px var(--font-mono); letter-spacing: 1px; color: #bdccd2; }
+.res-bar-track { grid-column: 1 / -1; grid-row: 2; height: 3px; border-radius: 1px; background: #ffffff18; }
+.res-bar-val { grid-column: 2; grid-row: 1; font: 10px var(--font-mono); color: #dce7eb; }
+.res-bar-fill { filter: saturate(.55); }
+.sub-telemetry { font-size: 10px; line-height: 1.65; }
+.timer-box { position: absolute; top: 26px; left: 50%; transform: translateX(-50%); min-width: 205px; width: 205px; border: 1px solid #a48b604d; border-top: 2px solid #dbb67e; padding: 8px 13px; }
+.timer-box .panel-label { font-size: 8px; letter-spacing: 1.1px; }
+#countdown-display { font-size: 26px; font-weight: 500; letter-spacing: 2px; text-shadow: none; }
+#reactor-state-badge { font-size: 8px; border: none; border-radius: 0; background: transparent; padding: 0; letter-spacing: 1px; }
+.checklist-box { width: 340px; margin-left: auto; }
+.checklist-item { padding: 7px 6px; line-height: 1.5; font-size: 11px; border-radius: 1px; }
+#predicted-outcome-bar { gap: 12px; line-height: 1.7; }
+.minimap-panel { padding: 8px; }
+.minimap-panel .panel-label { font-size: 8px; margin-bottom: 5px; }
+#minimap-canvas { width: 136px; height: 136px; border-radius: 2px; border-color: #5c89934d; background: #06111acc; }
+.message-log-box { position: absolute; left: 200px; bottom: 30px; max-width: min(450px, 40vw); padding: 10px 13px; transition: opacity .4s; }
+.message-log-box .panel-label { font-size: 8px; }
+#hud-toast { font-size: 11px; line-height: 1.8; color: #dae4e9; }
+.message-log-box.toast-idle { opacity: 0; pointer-events: none; }
+.controls-bar { position: absolute; bottom: 78px; right: 30px; max-width: 420px; padding: 15px; gap: 9px; }
+.control-row { flex-wrap: wrap; font-size: 11px; line-height: 1.6; }
+.key-cap { background: #b8d7df0c; color: #b6cdd6; border-color: #77929b70; font-weight: 400; border-radius: 2px; }
+.hud-btn { font: 10px var(--font-sans); padding: 7px 9px; border-radius: 2px; color: #c5dbe3; background: #10222d; border-color: #506d7c; box-shadow: none; }
+.hud-details-toggle { position: fixed; right: 30px; bottom: 30px; z-index: 11; padding: 10px 15px; display: flex; align-items: center; gap: 9px; background: #0b171fd9; color: #c4d1d9; border: 1px solid #71828d77; border-radius: 2px; font-size: 11px; cursor: pointer; backdrop-filter: blur(10px); }
+.hud-details-toggle:hover { background: #263a46; }
+body:has(#hud-layer.hidden) .hud-details-toggle { display: none; }
+body:has(.modal-backdrop:not(.hidden)) .hud-details-toggle { display: none; }
+#hud-layer.hud-compact .checklist-box { display: none; }
+#hud-layer.hud-compact .station-status-box { max-width: 340px; }
+#hud-layer.hud-compact .message-log-box.toast-idle { display: none; }
+#reticle { width: 16px; height: 16px; border-color: #d4e5e080; border-width: 1px; }
+#reticle::after { width: 2px; height: 2px; background: #edf4ee; }
+#reticle.active { width: 26px; height: 26px; box-shadow: 0 0 12px #88b6a433; }
+#interact-prompt { border: 1px solid #8aabae99; border-radius: 3px; background: #0b1822eb; box-shadow: 0 8px 30px #0005; }
+.prompt-title { color: #dbe9eb; }
+.prompt-key { color: #0b1e29; background: #c7dadc; border-radius: 1px; }
+.objective-diamond { box-shadow: 0 0 8px #d4b68040; }
+.cine-bar { background-color: rgba(5, 10, 16, .82); }
+.cine-op-title { font-weight: 500; }
+.cine-skip-btn { border-color: #8b9ca466; border-radius: 2px; font-size: 11px; }
+
+@keyframes title-arrive { from { opacity: .5; transform: scale(1.025); } to { opacity: 1; transform: scale(1); } }
+@keyframes menu-arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes archive-arrive { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+@media (min-width: 1700px) {
+    .title-menu { width: 480px; }
+    .orbital-wordmark { font-size: 146px; }
+    .title-intro p { font-size: 15px; }
+    .mission-start { min-height: 68px; }
+}
+@media (max-height: 760px) and (min-width: 761px) {
+    .title-shell { padding-top: 80px; padding-bottom: 70px; }
+    .orbital-wordmark { font-size: clamp(64px, 13vh, 102px); }
+    .orbital-jp { font-size: 13px; margin-top: 13px; }
+    .title-intro { margin: 21px 0 20px; padding-top: 14px; }
+    .title-intro p { font-size: 12px; }
+    .mission-start { min-height: 50px; padding: 12px 23px; font-size: 14px; }
+    .mission-simulator { min-height: 44px; padding: 11px 23px; }
+    .title-secondary { margin-top: 22px; }
+}
+@media (max-width: 1050px) {
+    .title-menu { width: 390px; max-width: 46vw; }
+    .orbital-wordmark { font-size: 90px; }
+    .title-intro p { font-size: 12px; }
+    .title-orbit-label::before { width: 28px; }
+    .title-secondary button { letter-spacing: .04em; }
+    .station-status-box, #hud-layer.hud-compact .station-status-box { width: 285px; }
+    .timer-box { right: 24px; left: auto; transform: none; }
+    .checklist-box { position: absolute; right: 30px; top: 130px; width: 310px; }
+    .message-log-box { max-width: 45vw; }
+}
+@media (max-width: 760px) {
+    .title-art { background-position: 60% center; }
+    .title-art::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, #040a10e8, #040a1059 80%), linear-gradient(0deg, #040a10d9, transparent 50%); }
+    .title-masthead { top: 26px; left: 7%; right: 7%; font-size: 9px; letter-spacing: 2px; }
+    .title-identity svg { width: 24px; height: 24px; }
+    .title-orbit-label { display: none; }
+    .title-shell { min-height: 100%; height: 100%; padding: 95px 7% 90px; }
+    .title-menu { width: 375px; max-width: 100%; }
+    .orbital-wordmark { font-size: clamp(72px, 17vw, 106px); }
+    .orbital-jp { font-size: 13px; margin-top: 15px; letter-spacing: .5em; }
+    .title-intro { margin: 26px 0 22px; padding-top: 18px; }
+    .title-intro p { font-size: 12px; line-height: 1.85; }
+    .mobile-break { display: block; }
+    .mission-start { min-height: 55px; font-size: 15px; }
+    .mission-simulator { min-height: 47px; }
+    .title-secondary { margin-top: 26px; }
+    .title-footer { bottom: 28px; left: 7%; right: 7%; font-size: 8px; letter-spacing: 1px; }
+    .title-keyboard { display: none; }
+    .title-mobile-note { display: inline; color: #b6bfc3; }
+    .title-trajectory { gap: 6px; font-size: 8px; }
+    .title-trajectory svg { width: 18px; }
+    .earth-dot { width: 11px; height: 11px; }
+    .mission-archive { width: 100%; padding: 24px 22px; border-left: 0; }
+    .archive-header { margin-bottom: 18px; }
+    .archive-header h2 { font-size: 19px; }
+    .mission-archive .nav-tab-btn { font-size: 11px; }
+    .modal-backdrop:not(#title-modal) { padding: 10px; }
+    .modal-card { padding: 20px 17px; max-height: 95dvh; }
+    .title-header .game-MainTitle { font-size: 18px !important; }
+    .game-SubTitle { font-size: 10px; }
+    .eng-workspace, .title-grid, .blueprint-gallery { grid-template-columns: 1fr; }
+    .btn-row { flex-wrap: wrap; }
+    .btn-row > button { flex: 1 1 100%; }
+    .sim-toggle-list { grid-template-columns: 1fr; }
+    #hud-layer { padding: 14px; }
+    .station-status-box, #hud-layer.hud-compact .station-status-box { width: 210px; padding: 8px 10px; }
+    .station-status-box > .panel-label { font-size: 7px; letter-spacing: .5px; }
+    #hud-steam-badge { font-size: 7px; }
+    .zone-name { font-size: 10px; margin: 5px 0 8px; }
+    .resource-bars { gap: 7px 10px; }
+    .res-bar-label { font-size: 8px; }
+    .res-bar-val { font-size: 9px; }
+    .timer-box { right: 14px; top: 14px; width: 120px; min-width: 0; padding: 8px 5px; }
+    .timer-box .panel-label { font-size: 6px; letter-spacing: .5px; }
+    #countdown-display { font-size: 20px; letter-spacing: 1px; }
+    #reactor-state-badge { font-size: 6px; }
+    #minimap-canvas { width: 98px; height: 98px; }
+    .minimap-panel .panel-label { font-size: 6px; }
+    .message-log-box { left: 135px; bottom: 66px; max-width: calc(100vw - 152px); padding: 8px; }
+    #hud-toast { font-size: 10px; }
+    .message-log-box .panel-label { display: none; }
+    .hud-details-toggle { bottom: 18px; right: 14px; padding: 8px 10px; font-size: 10px; }
+    .checklist-box { right: 14px; top: 165px; width: min(320px, calc(100vw - 28px)); }
+    .controls-bar { right: 14px; bottom: 66px; max-width: calc(100vw - 28px); max-height: 36vh; overflow-y: auto; }
+    .checklist-items { gap: 3px; }
+    .checklist-item { font-size: 9px; padding: 4px; }
+    .cine-bar-top { padding: 12px; }
+    .cine-op-title { font-size: 10px; }
+    .telemetry-grid { gap: 9px; }
+    .tele-label { font-size: 7px; }
+    .tele-val { font-size: 12px; }
+}
+@media (max-height: 680px) and (max-width: 760px) {
+    .title-masthead { top: 18px; }
+    .title-shell { padding-top: 66px; padding-bottom: 64px; }
+    .orbital-wordmark { font-size: clamp(54px, 14vh, 82px); }
+    .orbital-jp { margin-top: 10px; font-size: 11px; }
+    .title-intro { margin: 18px 0; padding-top: 12px; }
+    .title-intro p { font-size: 11px; }
+    .mission-start { min-height: 45px; padding: 11px 20px; font-size: 13px; }
+    .mission-simulator { min-height: 40px; padding: 10px 20px; font-size: 12px; }
+    .title-actions { gap: 9px; }
+    .title-secondary { margin-top: 20px; }
+    .title-footer { bottom: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}
+
+/* A wide, short window uses a two-column menu instead of clipping its actions. */
+@media (max-height: 500px) and (min-width: 520px) {
+    .title-art::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, #040a1010 18%, #040a10df 44%, #040a1080); }
+    .title-masthead { top: 16px; }
+    .title-shell { padding: 62px 6% 52px; }
+    .title-menu { display: grid; grid-template-columns: minmax(150px, .8fr) minmax(220px, 1fr); column-gap: 34px; width: 680px; max-width: 100%; align-items: start; }
+    .orbital-wordmark { grid-column: 1; grid-row: 1 / 4; font-size: clamp(58px, 17vh, 78px); line-height: .95; }
+    .orbital-jp { grid-column: 1; grid-row: 4; font-size: 11px; margin-top: 7px; }
+    .title-intro { grid-column: 2; grid-row: 1; margin: 0 0 14px; padding-top: 10px; }
+    .title-intro p { font-size: 10px; line-height: 1.7; }
+    .mobile-break { display: none; }
+    .title-actions { grid-column: 2; grid-row: 2; gap: 8px; }
+    .mission-start { min-height: 43px; font-size: 13px; padding: 10px 18px; }
+    .mission-simulator { min-height: 37px; font-size: 11px; padding: 9px 18px; }
+    .title-secondary { grid-column: 2; grid-row: 3; margin-top: 16px; }
+    .title-secondary button { font-size: 10px; }
+    #boot-status { position: relative; grid-column: 2; grid-row: 4; font-size: 9px; margin-top: 7px; }
+    .title-footer { bottom: 16px; }
+}
+@media (max-width: 379px) {
+    .station-status-box, #hud-layer.hud-compact .station-status-box { width: calc(100vw - 160px); }
+}

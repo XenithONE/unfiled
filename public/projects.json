@@ -1,5 +1,16 @@
 [
   {
+    "id": "orbital-recoil",
+    "title": "ORBITAL RECOIL",
+    "subtitle": "臨界軌道脱出。",
+    "description": "残された時間は5分30秒。崩壊する宇宙ステーションを探索し、工学パズルで脱出ポッドを修復する。軌道と推進系を整え、地球への帰還を目指すSF脱出ゲーム。",
+    "category": "SPACE ESCAPE GAME",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/games/orbital-recoil/",
+    "cover": "images/orbital-recoil.webp",
+    "accent": "#d1b27f"
+  },
+  {
     "id": "aether",
     "title": "AETHER",
     "subtitle": "まだ見ぬ軌道へ。",

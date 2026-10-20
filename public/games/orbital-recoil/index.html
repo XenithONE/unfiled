@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORBITAL RECOIL — 臨界軌道脱出</title>
+    <meta name="description" content="残された時間は5分30秒。崩壊する宇宙ステーションを探索し、工学パズルと軌道計算を解いて地球へ帰還する、ハードSF脱出ゲーム。">
+    <meta name="theme-color" content="#050a10">
+    <link rel="icon" type="image/svg+xml" href="assets/orbital-mark.svg">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/visual-polish.css">
+    <link rel="preload" href="assets/title-orbit.webp" as="image">
+    <!-- PlayCanvas Engine via Official jsDelivr CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/playcanvas@1.73.5/build/playcanvas.min.js"></script>
+</head>
+<body>
+    <!-- PlayCanvas WebGL2 3D Viewport -->
+    <canvas id="application-canvas"></canvas>
+
+    <!-- Helmet Visor Scanline & Alarm Vignette FX -->
+    <div id="screen-fx"></div>
+    <div id="whiteout-overlay"></div>
+
+    <!-- =========================================================
+         1. IN-GAME HELMET VISOR HUD (FIRST-PERSON EXPLORATION)
+         ========================================================= -->
+    <div id="hud-layer" class="hidden hud-compact">
+        <div class="visor-frame"></div>
+
+        <!-- TOP HUD BAR -->
+        <div class="hud-top-bar">
+            <!-- Left: Station Zone, Survival Resources & Live Physics Telemetry -->
+            <div class="hud-panel station-status-box">
+                <div class="panel-label">
+                    <span>● ORBITAL RESEARCH STATION // HELIOS-9</span>
+                    <span id="hud-steam-badge" style="color:#ff5c77;">⚠ STEAM LEAK (O2 DRAIN x2)</span>
+                </div>
+                <div id="hud-zone-name" class="zone-name">中央ハブ：トカマク対消滅反応炉コア</div>
+                <div class="sub-telemetry">
+                    <span>ALT: 418.2 km</span>
+                    <span>ORB VEL: 7.66 km/s</span>
+                    <span>WET MASS: <strong id="hud-mass-val" style="color:#fff;">1,932 kg</strong></span>
+                </div>
+
+                <!-- Survival Resource Gauges -->
+                <div class="resource-bars">
+                    <div class="res-bar-row">
+                        <span class="res-bar-label">SUIT O2</span>
+                        <div class="res-bar-track"><div id="bar-suit-o2" class="res-bar-fill" style="width:100%; background:#00f0ff;"></div></div>
+                        <span id="val-suit-o2" class="res-bar-val">100%</span>
+                    </div>
+                    <div class="res-bar-row">
+                        <span class="res-bar-label">POD O2</span>
+                        <div class="res-bar-track"><div id="bar-pod-o2" class="res-bar-fill" style="width:32%; background:#ffae00;"></div></div>
+                        <span id="val-pod-o2" class="res-bar-val">32%</span>
+                    </div>
+                    <div class="res-bar-row">
+                        <span class="res-bar-label">POD RCS</span>
+                        <div class="res-bar-track"><div id="bar-pod-rcs" class="res-bar-fill" style="width:28%; background:#ffae00;"></div></div>
+                        <span id="val-pod-rcs" class="res-bar-val">28%</span>
+                    </div>
+                    <div class="res-bar-row">
+                        <span class="res-bar-label">PWR BUS</span>
+                        <div class="res-bar-track"><div id="bar-pwr-bus" class="res-bar-fill" style="width:83%; background:#00ff9d;"></div></div>
+                        <span id="val-pwr-bus" class="res-bar-val">100/120kW</span>
+                    </div>
+                </div>
+
+                <!-- Computed Ballistic & Impulse Telemetry -->
+                <div class="sub-telemetry" style="margin-top:7px; padding-top:6px; border-top:1px solid rgba(0,229,255,0.16);">
+                    <span>ΔV: <strong id="hud-dv-val" style="color:#00f0ff;">1.85 km/s</strong></span>
+                    <span>SHOCK: <strong id="hud-g-val" style="color:#ffae00;">16.2 G</strong></span>
+                    <span>ENTRY γ: <strong id="hud-gamma-val" style="color:#ffae00;">-3.10°</strong></span>
+                </div>
+            </div>
+
+            <!-- Center: Reactor Criticality Countdown -->
+            <div id="timer-box" class="hud-panel timer-box">
+                <div class="panel-label" style="justify-content:center;">TOKAMAK CONTAINMENT TIMER</div>
+                <div id="countdown-display">05:30.00</div>
+                <div id="reactor-state-badge">CONTAINMENT DECAY // 磁場減衰中</div>
+            </div>
+
+            <!-- Right: Escape Pod Module & Physics Calibration Checklist -->
+            <div class="hud-panel checklist-box">
+                <div class="panel-label">
+                    <span>ESCAPE POD [KESTREL-01] // 帰還演算・装備</span>
+                    <span id="hud-ready-count" style="color:#00ff9d;">0 / 6 READY</span>
+                </div>
+                <ul id="hud-checklist" class="checklist-items"></ul>
+                <div id="predicted-outcome-bar">
+                    <span>現在発射時の予測:</span>
+                    <strong id="predicted-outcome-text">反動推力不足・軌道永久漂流</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- CENTER RETICLE & CONTEXT INTERACTION PROMPT -->
+        <div id="objective-marker" class="objective-marker hidden">
+            <div class="objective-diamond"></div>
+            <div class="objective-label"><span id="objective-name">OBJECTIVE</span><span id="objective-dist">0.0 m</span></div>
+        </div>
+        <div id="tremor-alert" class="tremor-alert hidden">⚠ STRUCTURAL TREMOR — 船体構造に亀裂伝播</div>
+        <div class="hud-center">
+            <div id="reticle"></div>
+            <div id="interact-prompt" class="hidden">
+                <div id="prompt-title" class="prompt-title">対象オブジェクト</div>
+                <div id="prompt-desc" class="prompt-desc">説明テキスト</div>
+                <span id="prompt-key" class="prompt-key">[E] 端末操作・回収</span>
+            </div>
+        </div>
+
+        <!-- BOTTOM HUD BAR -->
+        <div class="hud-bottom-bar">
+            <!-- Left: Live Tactical Station Minimap -->
+            <div class="hud-panel minimap-panel">
+                <div class="panel-label">HELIOS-9 TACTICAL RADAR</div>
+                <canvas id="minimap-canvas" width="210" height="210"></canvas>
+                <div style="font-size:10px; color:#8fb2d4; margin-top:4px;">
+                    <span style="color:#00f0ff;">●</span>中央炉/配電　<span style="color:#00ff9d;">●</span>南ポッド　<span style="color:#ffae00;">●</span>未完了課題
+                </div>
+            </div>
+
+            <!-- Center: Mission Log / Suit Comms -->
+            <div class="hud-panel message-log-box">
+                <div class="panel-label">EVA SUIT ASTRO-ENGINEERING LOG // 航法AIガイダンス</div>
+                <div id="hud-toast">
+                    各区画の工学端末で物理パズルと軌道計算を解き、5つの帰還モジュールをロック解除せよ。電力を必要とする区画には中央ハブ東側の「120kW非常配電盤」から電力をルーティングできる。
+                </div>
+            </div>
+
+            <!-- Right: Controls & Quick Simulator Shortcuts -->
+            <div class="hud-panel controls-bar">
+                <div class="panel-label">CONTROLS & ENGINEERING TOOLS</div>
+                <div class="control-row"><span class="key-cap">W A S D</span> 移動 / <span class="key-cap">Shift</span> ダッシュ</div>
+                <div class="control-row"><span class="key-cap">マウス</span> 視点操作 / <span class="key-cap">E / クリック</span> 端末・回収</div>
+                <div class="control-row"><span class="key-cap">B</span> 設計図 / <span class="key-cap">P</span> 配電盤 / <span class="key-cap">M</span> 分岐テスト</div>
+                <div class="control-row"><span class="key-cap">F</span> ライト / <span class="key-cap">H</span> HUD簡易表示（ナビ表示は維持）</div>
+                <div class="hud-action-btns">
+                    <button id="btn-hud-collect-all" class="hud-btn">⚡ 全計算＆装備を最適解で即完了</button>
+                    <button id="btn-hud-blueprints" class="hud-btn">📐 設計図・外観</button>
+                    <button id="btn-hud-sim" class="hud-btn warn">🎬 10種分岐シミュレーター</button>
+                    <button id="btn-hud-mute" class="hud-btn">🔊 SOUND: ON</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button id="btn-hud-details" class="hud-details-toggle hidden" aria-expanded="false" aria-controls="hud-layer"><span class="key-cap">H</span> 装備・操作</button>
+
+    <!-- =========================================================
+         2. CINEMATIC ENDING TELEMETRY OVERLAY
+         ========================================================= -->
+    <div id="cinematic-layer" class="hidden">
+        <div class="cine-bar cine-bar-top">
+            <div class="cine-recorder">
+                <div class="cine-rec-dot"></div>
+                <div>
+                    <div class="panel-label">FLIGHT RECORDER // ESCAPE POD KESTREL-01</div>
+                    <div class="cine-op-title">OPERATION BLAST-SAIL — 臨界爆縮反動・地球帰還シークエンス</div>
+                </div>
+            </div>
+            <div class="telemetry-grid">
+                <div class="tele-metric">
+                    <span class="tele-label">VELOCITY</span>
+                    <span id="tele-vel" class="tele-val">7.66 km/s</span>
+                </div>
+                <div class="tele-metric">
+                    <span class="tele-label">SHOCK / G-LOAD</span>
+                    <span id="tele-g" class="tele-val">1.0 G</span>
+                </div>
+                <div class="tele-metric">
+                    <span class="tele-label">HULL TEMP</span>
+                    <span id="tele-temp" class="tele-val">24 °C</span>
+                </div>
+                <div class="tele-metric">
+                    <span class="tele-label">ALTITUDE</span>
+                    <span id="tele-alt" class="tele-val">418.0 km</span>
+                </div>
+            </div>
+        </div>
+
+        <ol id="cine-phase-track"></ol>
+
+        <button id="cine-skip" class="cine-skip-btn">SKIP ▶▶ <span>[Space]</span></button>
+
+        <div class="cine-bar cine-bar-bottom">
+            <div id="cinematic-subtitle-box">
+                <div id="cinematic-phase-title">PHASE 01 // UNDOCKING</div>
+                <div id="cinematic-subtitle">脱出ポッド分離完了。宇宙ステーション臨界爆縮まであとわずか…！</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hypoxia POV: capsule viewport frame with creeping frost -->
+    <div id="pod-window-overlay" class="hidden">
+        <div class="pod-window-frost"></div>
+        <div class="pod-window-frame"></div>
+    </div>
+
+    <!-- Post-cinematic ending title card -->
+    <div id="ending-card" class="hidden">
+        <div class="ending-card-inner">
+            <div id="ending-card-code" class="ending-card-code">TRUE ENDING // 10</div>
+            <div id="ending-card-title" class="ending-card-title">エンディング</div>
+            <div id="ending-card-rank" class="ending-card-rank">RANK</div>
+            <div class="ending-card-hint">クリックでフライトレコーダー解析へ</div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         3. AAA TITLE SCREEN & BLUEPRINT ARCHIVE MODAL
+         ========================================================= -->
+    <div id="title-modal" class="modal-backdrop">
+        <div class="title-art" aria-hidden="true"></div>
+        <header class="title-masthead">
+            <div class="title-identity"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="10"/><path d="M3 24 29 8M23 4l5 1-1 5"/></svg><span>OR <i></i> HELIOS-9</span></div>
+            <span class="title-orbit-label">418 KM / LOW EARTH ORBIT</span>
+        </header>
+        <div class="title-shell">
+            <section class="title-menu" aria-label="メインメニュー">
+                <h1 class="orbital-wordmark"><span>ORBITAL</span><span>RECOIL</span></h1>
+                <p class="orbital-jp">臨界軌道脱出</p>
+                <div class="title-intro"><p>残された時間は、5分30秒。</p><p>崩壊する宇宙ステーションから、<br class="mobile-break">地球へ帰還せよ。</p></div>
+                <div class="title-actions">
+                    <button id="btn-start-mission" class="mission-start" disabled><span>ミッション開始</span><svg viewBox="0 0 40 20" aria-hidden="true"><path d="M2 10h34M28 3l8 7-8 7"/></svg></button>
+                    <button id="btn-open-sim-title" class="mission-simulator" disabled>シミュレーター</button>
+                </div>
+                <nav class="title-secondary" aria-label="ミッション資料">
+                    <button data-open-archive="tab-briefing">作戦概要</button>
+                    <button data-open-archive="tab-station-bp">機体設計図</button>
+                    <button data-open-archive="tab-endings">帰還記録</button>
+                </nav>
+                <p id="boot-status" role="status">システムを準備しています<span class="loading-dots">…</span></p>
+            </section>
+        </div>
+        <footer class="title-footer">
+            <div class="title-keyboard"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移動</span><span><svg viewBox="0 0 18 26" aria-hidden="true"><rect x="2" y="1" width="14" height="24" rx="7"/><path d="M2 11h14M9 1v10"/></svg> MOUSE 視点</span><span><kbd>E</kbd> 操作</span></div>
+            <span class="title-mobile-note">キーボード・マウスでプレイ</span>
+            <span class="title-trajectory">HELIOS-9 <svg viewBox="0 0 40 20" aria-hidden="true"><path d="M2 10h34M28 3l8 7-8 7"/></svg> EARTH <span class="earth-dot"></span></span>
+        </footer>
+        <section id="title-archive" class="mission-archive hidden" role="dialog" aria-modal="true" aria-labelledby="archive-title">
+            <div class="archive-header"><div><span class="archive-kicker">HELIOS-9 / MISSION ARCHIVE</span><h2 id="archive-title">ミッション資料</h2></div><button id="btn-close-archive" aria-label="ミッション資料を閉じる"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 14 14M5 19 19 5"/></svg></button></div>
+            <!-- Navigation Tabs -->
+            <div class="nav-tabs">
+                <button class="nav-tab-btn active" data-title-tab="tab-briefing">作戦概要</button>
+                <button class="nav-tab-btn" data-title-tab="tab-station-bp">ステーション</button>
+                <button class="nav-tab-btn" data-title-tab="tab-pod-bp">脱出ポッド</button>
+                <button class="nav-tab-btn" data-title-tab="tab-endings">帰還記録</button>
+            </div>
+
+            <!-- TAB 1: Mission Briefing & High-Difficulty Physics Guide -->
+            <div id="tab-briefing" class="title-tab-pane">
+                <div class="title-grid">
+                    <div class="briefing-box">
+                        <h3>■ 爆縮反動帰還作戦（OPERATION BLAST-SAIL）</h3>
+                        <p>
+                            高度 418km の低軌道を周回する研究ステーション<strong>「HELIOS-9」</strong>はデブリ群の直撃により致命的な損傷を受け、南ハンガーの脱出ポッド<strong>「KESTREL-01」</strong>もメイン推進系を喪失した。
+                            唯一の生還手段は、<strong>中央トカマク対消滅反応炉 [TR-1] を指向性臨界爆縮させ、その爆発衝撃波（ブラスト・リコイル）をポッド後部のプッシャープレートで受け止めて減速量 ΔV = 3.20 km/s を獲得し、地球大気圏へ帰還する</strong>ことだけだ！
+                        </p>
+                        <p style="margin-bottom:6px; color:#00e5ff; font-weight:700;">■ 高難易度エンジニアリング＆物理演算システム：</p>
+                        <ul class="module-guide-list">
+                            <li><strong>⚡ 120kW 非常配電バス管理（中央ハブ）</strong>：全5区画の消費電力合計（160kW）に対し供給上限は120kW。作業する区画へ電力を切り替えよ。</li>
+                            <li><strong>① 電磁ソレノイド共振パズル（東・機関室）</strong>：オシロスコープ波形（周波数115Hz・振幅6.5T・位相140°）を同期させ<strong>プラズマ増強セル</strong>を抽出。</li>
+                            <li><strong>② 油圧マニホールド＆28G減衰計算（西・整備ベイ）</strong>：4連バルブで240barを生成し、N2蓄圧18.5MPa・減衰比ζ=0.82を計算して<strong>爆風反動ダンパー</strong>を解放。</li>
+                            <li><strong>③ 蒸気バイパス＆耐熱アブレーション計算（北西・熱制御ラボ）</strong>：蒸気漏れを止めスーツO2消費を半減させ、耐熱厚64mm・放射率0.88で<strong>炭素耐熱シールド</strong>を較正。</li>
+                            <li><strong>④ 大気圏再突入回廊角 γ<sub>e</sub> 計算（北・司令ブリッジ）</strong>：ピッチ・ヨー・バンク角から進入角 <strong>-6.20° ± 0.55°</strong> を導出し<strong>光学ジャイロ航法コア</strong>をロック。</li>
+                            <li><strong>⑤ 推進剤・酸素充填＆3段減速シーケンス（南・ハンガー）</strong>：ポッドO2（85%以上）・RCS（80%以上）を充填し、ドローグ（15km）・メイン（4.2km）・逆噴射（26m）高度を設定。</li>
+                            <li><strong>⑥ トカマク反応炉インパルス ΔV ＆ピーク衝撃 G 計算（中央ハブ）</strong>：ポッド総質量 m<sub>pod</sub> に応じて炉心出力（82TJ）・ノズル収束率（85%）・離脱ディレイ（2.6秒）を調整せよ！</li>
+                        </ul>
+                    </div>
+
+                    <div class="briefing-box">
+                        <h3>■ 物理パラメータのズレが招く10通りのリアルな死と生還</h3>
+                        <p>
+                            本作では単にアイテムを拾うだけでなく、<strong>質量・推力・衝撃G・進入角・開傘マッハ数・酸素残量</strong>のすべてがリアルタイム物理演算で評価される。
+                        </p>
+                        <ul class="module-guide-list">
+                            <li><strong style="color:#00ff9d;">[TRUE END 10] 完全地球帰還</strong>：全モジュール装着＋全物理計算が許容ウィンドウ内に完全一致！</li>
+                            <li><strong style="color:#00f0ff;">[BAD END 01] 反動推力不足・軌道永久漂流</strong>：プラズマセル未装着、または炉心出力計算ミスで ΔV &lt; 3.05 km/s。</li>
+                            <li><strong style="color:#ff2a4b;">[BAD END 02] 40G超・耐G限界突破で軌道上爆散</strong>：ダンパー未装着・減衰計算ミス・または離脱ディレイが短すぎて衝撃 &gt; 30.5 G。</li>
+                            <li><strong style="color:#ffae00;">[BAD END 03] 大気圏水切りスキップで深宇宙喪失</strong>：ナビコア未装着、または進入角が浅すぎた（γ<sub>e</sub> &gt; -5.3°）。</li>
+                            <li><strong style="color:#ff5500;">[BAD END 04] 3,200℃プラズマ空中分解大破</strong>：耐熱シールド未装着、または進入角が急すぎた（γ<sub>e</sub> &lt; -7.2°）。</li>
+                            <li><strong style="color:#ff2a4b;">[BAD END 05] 減速不能・時速880km地表激突</strong>：パラシュート未装着、または開傘高度が低すぎた。</li>
+                            <li><strong style="color:#ff6b35;">[BAD END 06] 超音速マッハ4.5開傘・キャノピー断裂</strong>：ドローグシュートを高度 19.5km 以上で開傘し空力動圧で吹き飛ぶ。</li>
+                            <li><strong style="color:#ffae00;">[BAD END 07] 逆噴射ロケット高度ミス・着水圧壊</strong>：固体レトロロケットの点火高度（適正 20〜35m）を誤り海面激突。</li>
+                            <li><strong style="color:#7fa2c4;">[BAD END 08] 酸素・推進剤枯渇・虚空の棺</strong>：ポッドO2（80%未満）またはRCS推進剤（75%未満）の充填不足で遷移軌道中窒息。</li>
+                            <li><strong style="color:#ff2a4b;">[BAD END 09] 時間切れ／スーツO2枯渇・炉心融解</strong>：脱出前にカウントダウン00:00またはEVAスーツ酸素0%。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: Station Exterior Multi-Angle & Blueprint Gallery -->
+            <div id="tab-station-bp" class="title-tab-pane hidden">
+                <div class="blueprint-gallery">
+                    <div class="blueprint-card">
+                        <img src="assets/helios9_reference_sheet.jpg" alt="HELIOS-9 Multi-Angle Exterior Reference">
+                        <div class="blueprint-caption">
+                            <strong>FIG 01 // HELIOS-9 MULTI-ANGLE EXTERIOR ARCHITECTURE</strong><br>
+                            北側キュポラ観測ドーム、中央12コイル・トカマク反応炉、オクタゴナル・トラス、白銀の熱放射ラジエーター、南側脱出ポッド発射ベイの4方向外観リファレンス。3D空間内の各モジュールと外部ビューはこの設計に基づき構築されている。
+                        </div>
+                    </div>
+                    <div class="blueprint-card">
+                        <img src="assets/blueprint_station_helios9.jpg" alt="HELIOS-9 Master Engineering Blueprint">
+                        <div class="blueprint-caption">
+                            <strong>FIG 02 // HELIOS-9 MASTER ENGINEERING BLUEPRINT &amp; BLAST-SAIL PHYSICS</strong><br>
+                            6区画の内部通路レイアウト、トカマク炉から南ハンガーへ抜ける指向性爆縮インパルス経路（Blast-Sail Impulse Channel）、ホーマン遷移減速式 ΔV = 3.20 km/s の技術ブループリント。
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: Escape Pod KESTREL-01 & UI Console Blueprints -->
+            <div id="tab-pod-bp" class="title-tab-pane hidden">
+                <div class="blueprint-gallery">
+                    <div class="blueprint-card">
+                        <img src="assets/blueprint_escape_pod.jpg" alt="Escape Pod KESTREL-01 Blueprint">
+                        <div class="blueprint-caption">
+                            <strong>FIG 03 // ESCAPE POD [KESTREL-01] STRUCTURAL SCHEMATIC</strong><br>
+                            後部28G耐衝撃ゴールドカプトン・プッシャープレート、4連油圧ショックアブソーバー、ハニカム炭素フェノール耐熱シールド（64mm）、3段減速パラシュート＆4基の固体逆噴射ノズルの断面設計図。
+                        </div>
+                    </div>
+                    <div class="blueprint-card">
+                        <img src="assets/ui_console_reference.jpg" alt="Hard-SF Cockpit & Console Reference">
+                        <div class="blueprint-caption">
+                            <strong>FIG 04 // HARD-SF ASTRODYNAMICS &amp; TELEMETRY CONSOLE SPECIFICATION</strong><br>
+                            大気圏再突入回廊プロッター（γ<sub>e</sub> = -6.20°）、ソレノイド共振オシロスコープ、ΔV インパルス計算ダイヤル、生命維持・非常配電マトリクスのUIリファレンス。
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: All 10 Endings Archive -->
+            <div id="tab-endings" class="title-tab-pane hidden">
+                <div class="briefing-box">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <h3 style="margin-bottom:0;">■ 全10種・物理法則マルチエンディング到達記録</h3>
+                        <span class="endings-count-label" style="font-family:var(--font-mono); font-size:13px; color:#00ff9d;">エンディング回収率: 0 / 10</span>
+                    </div>
+                    <div class="endings-archive-grid endings-archive-list"></div>
+                </div>
+            </div>
+
+        </section>
+    </div>
+
+    <!-- =========================================================
+         4. INTERACTIVE ENGINEERING & PHYSICS TERMINAL MODAL
+         ========================================================= -->
+    <div id="engineering-modal" class="modal-backdrop hidden">
+        <div class="modal-card" style="width:min(960px, 95vw);">
+            <div class="title-header" style="margin-bottom:12px;">
+                <div>
+                    <div id="eng-modal-title" class="game-MainTitle" style="font-size:22px;">ENGINEERING TERMINAL</div>
+                    <div id="eng-modal-subtitle" class="game-SubTitle">ASTRO-ENGINEERING CALIBRATION &amp; REALTIME TELEMETRY</div>
+                </div>
+                <div id="eng-power-badge" class="engine-badge">SECTOR POWER: ONLINE</div>
+            </div>
+
+            <!-- Dynamic Engineering Workspace rendered by main.js -->
+            <div id="eng-modal-body"></div>
+
+            <div class="btn-row" style="margin-top:14px;">
+                <button id="btn-eng-close" class="secondary-btn">閉じる [ESC]</button>
+                <button id="btn-eng-route-power" class="secondary-btn" style="border-color:#ffae00; color:#ffae00;">⚡ この区画へ電力を自動ルーティング</button>
+                <button id="btn-eng-autosolve" class="secondary-btn" style="border-color:#00e5ff; color:#00e5ff;">💡 AI最適解を自動計算・入力</button>
+                <button id="btn-eng-commit" class="primary-btn">✔ キャリブレーション確定・モジュールロック解除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         5. 10-ENDING BRANCH & PHYSICS SIMULATOR MODAL
+         ========================================================= -->
+    <div id="simulator-modal" class="modal-backdrop hidden">
+        <div class="modal-card">
+            <div class="title-header">
+                <div>
+                    <div class="game-MainTitle" style="font-size:23px;">脱出ポッド物理パラメータ ＆ 全10種エンディング分岐シミュレーター</div>
+                    <div class="game-SubTitle">装着モジュールと物理演算値（ΔV・衝撃G・再突入角γ・開傘高度・O2/RCS残量）に応じて10通りの3Dエンディングへ分岐します</div>
+                </div>
+            </div>
+
+            <!-- 1-Click Preset Buttons for All 10 Endings -->
+            <div style="margin-bottom:12px;">
+                <div class="panel-label" style="margin-bottom:6px;">ワンクリック・シナリオプリセット（全10パターン検証）:</div>
+                <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                    <button class="hud-btn" data-sim-preset="TRUE">★ 10: 完全地球帰還 (S+ TRUE)</button>
+                    <button class="hud-btn warn" data-sim-preset="WEAK_DV">01: 推力不足・軌道永久漂流 (ΔV&lt;3.05)</button>
+                    <button class="hud-btn warn" data-sim-preset="OVER_G">02: 40G超・爆風衝撃で軌道上木っ端微塵</button>
+                    <button class="hud-btn warn" data-sim-preset="SKIP_OFF">03: 進入角浅すぎ・大気圏スキップ深宇宙喪失</button>
+                    <button class="hud-btn warn" data-sim-preset="BURN_UP">04: 耐熱不全/急角度・3,200℃空中分解</button>
+                    <button class="hud-btn warn" data-sim-preset="GROUND_CRASH">05: 減速不能・時速880km地表激突</button>
+                    <button class="hud-btn warn" data-sim-preset="CHUTE_SHRED">06: 高高度マッハ4.5開傘・シュート断裂</button>
+                    <button class="hud-btn warn" data-sim-preset="RETRO_ERROR">07: 逆噴射高度ミス・着水寸前失速大破</button>
+                    <button class="hud-btn warn" data-sim-preset="HYPOXIA">08: 酸素/RCS枯渇・地球目前で虚空の棺</button>
+                    <button class="hud-btn warn" data-sim-preset="TIMEOUT">09: 時間切れ・ステーション臨界爆縮</button>
+                </div>
+            </div>
+
+            <div id="sim-toggle-container" class="sim-toggle-list"></div>
+
+            <!-- Physics Override Sliders in Simulator -->
+            <div class="eng-workspace" style="margin-bottom:12px;">
+                <div class="eng-pane">
+                    <h4>■ 反応炉インパルス ＆ 大気圏再突入パラメータ</h4>
+                    <div class="slider-group">
+                        <div class="slider-header"><span>獲得減速量 ΔV (適正 3.08〜3.38 km/s)</span><strong id="sim-val-dv" style="color:#00e5ff;">3.20 km/s</strong></div>
+                        <input type="range" id="sim-slider-dv" min="1.20" max="4.20" step="0.05" value="3.20">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-header"><span>ピーク爆風衝撃 G (限界 30.5 G)</span><strong id="sim-val-g" style="color:#00ff9d;">25.4 G</strong></div>
+                        <input type="range" id="sim-slider-g" min="12.0" max="46.0" step="0.5" value="25.4">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-header"><span>大気圏再突入角 γ (適正 -5.65°〜-6.75°)</span><strong id="sim-val-gamma" style="color:#00ff9d;">-6.20°</strong></div>
+                        <input type="range" id="sim-slider-gamma" min="-9.5" max="-3.0" step="0.1" value="-6.2">
+                    </div>
+                </div>
+                <div class="eng-pane">
+                    <h4>■ 減速シーケンス高度 ＆ 生命維持残量</h4>
+                    <div class="slider-group">
+                        <div class="slider-header"><span>ドローグ開傘高度 (適正 13〜17.5km / &gt;19.5km断裂)</span><strong id="sim-val-drogue" style="color:#00ff9d;">15.2 km</strong></div>
+                        <input type="range" id="sim-slider-drogue" min="5.0" max="28.0" step="0.5" value="15.2">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-header"><span>逆噴射ロケット点火高度 (適正 20〜35 m)</span><strong id="sim-val-retro" style="color:#00ff9d;">26 m</strong></div>
+                        <input type="range" id="sim-slider-retro" min="0" max="95" step="1" value="26">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-header"><span>ポッド酸素 / RCS推進剤充填率 (最低 80% / 75%)</span><strong id="sim-val-o2" style="color:#00ff9d;">96%</strong></div>
+                        <input type="range" id="sim-slider-o2" min="20" max="100" step="2" value="96">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flight-report-box" style="margin-bottom:12px;">
+                <div class="panel-label">PREDICTED FLIGHT OUTCOME // 物理演算による予測結末</div>
+                <div id="sim-predicted-ending" style="font-size:15px; margin-top:4px;"></div>
+            </div>
+
+            <div class="btn-row">
+                <button id="btn-sim-close" class="secondary-btn">探索へ戻る / 閉じる</button>
+                <button id="btn-sim-launch" class="primary-btn">💥 この構成＆物理パラメータでステーションを爆破して発射！</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         6. FLIGHT RECORDER ENDING RESULT MODAL
+         ========================================================= -->
+    <div id="result-modal" class="modal-backdrop hidden">
+        <div class="modal-card">
+            <div id="res-rank-badge" class="ending-rank-badge">ENDING</div>
+            <div id="res-title" class="ending-title-large">エンディングタイトル</div>
+            <div id="res-subtitle" style="font-family:var(--font-mono); font-size:13px; color:#00f0ff; margin-bottom:14px;">SUBTITLE</div>
+
+            <div class="flight-report-box">
+                <div class="panel-label">BLACK BOX FLIGHT RECORDER ANALYSIS // フライトレコーダー物理テレメトリ解析</div>
+                <p id="res-report" style="margin-top:6px;"></p>
+                <div id="res-physics-summary" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.2); font-family:var(--font-mono); font-size:12px; color:#9ec3e6;"></div>
+            </div>
+
+            <div class="title-grid" style="margin-bottom:14px;">
+                <div class="briefing-box">
+                    <h3>■ 発射時の脱出ポッド装備＆物理較正ステータス</h3>
+                    <div id="res-modules-grid" class="endings-archive-grid"></div>
+                </div>
+                <div class="briefing-box">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <h3 style="margin-bottom:0;">■ 全10種マルチエンディング図鑑</h3>
+                        <span class="endings-count-label" style="font-family:var(--font-mono); font-size:12px; color:#00ff9d;"></span>
+                    </div>
+                    <div class="endings-archive-grid endings-archive-list"></div>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button id="btn-result-title" class="secondary-btn">タイトル・設計図画面へ</button>
+                <button id="btn-result-retry-station" class="secondary-btn">🔄 脱出直前のハンガーから再開</button>
+                <button id="btn-result-open-sim" class="primary-btn">🎬 別の物理パラメータ・欠損パターンで再発射テスト</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Scripts (Order matters: Audio -> Textures -> PostFX -> VFX -> Surface -> MeshArchitect -> StationBuilder -> Puzzles -> Endings -> Director -> Main) -->
+    <script src="js/audio.js"></script>
+    <script src="js/pbr-textures.js"></script>
+    <script src="js/post-effects.js"></script>
+    <script src="js/vfx-particles.js"></script>
+    <script src="js/surface-environment.js"></script>
+    <script src="js/mesh-architect.js"></script>
+    <script src="js/station-builder.js"></script>
+    <script src="js/puzzles-physics.js"></script>
+    <script src="js/cinematic-endings.js"></script>
+    <script src="js/cinematic-director.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
