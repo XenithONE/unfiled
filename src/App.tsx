@@ -1,11 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUpRight, Github } from "lucide-react";
+import type { CSSProperties } from "react";
 import { assetUrl, loadProjects } from "./data";
 import type { Project } from "./types";
+import gsap from "gsap";
 import { useStage } from "./stage/useStage";
-import WorksIndex from "./components/WorksIndex";
+import { Soundscape } from "./audio/Soundscape";
+import Loader from "./components/Loader";
+import Cursor from "./components/Cursor";
+import Topbar from "./components/Topbar";
+import HeroCopy from "./components/HeroCopy";
+import Station from "./components/Station";
+import Rail from "./components/Rail";
+import DetailOverlay from "./components/DetailOverlay";
+import IndexOverlay from "./components/IndexOverlay";
+import Ending from "./components/Ending";
 import Hud from "./components/Hud";
-import InfoDialog from "./components/InfoDialog";
+
+export type Mode = "hero" | "archive" | "end";
 
 function useReducedMotion() {
   // ?motion=full / ?motion=reduce override the OS setting (useful for
@@ -28,149 +39,147 @@ function useReducedMotion() {
   return reduced;
 }
 
-type Section = "hero" | "works" | "about";
+function useNarrow() {
+  const [narrow, setNarrow] = useState(() => window.innerWidth < 900);
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 899px)");
+    const update = () => setNarrow(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  return narrow;
+}
 
 const smooth = (a: number, b: number, x: number) => {
   const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
   return t * t * (3 - 2 * t);
 };
 
+/** Scroll geometry: hero, then one station per work, then the ending. */
+function geometry(vh: number, count: number, narrow: boolean) {
+  const heroH = vh;
+  const stationH = Math.round(vh * (narrow ? 0.85 : 0.7));
+  const railStart = Math.round(heroH * 0.85);
+  const railLength = count * stationH;
+  const spacer = Math.max(0, railStart + railLength + Math.round(vh * 0.45) - heroH);
+  return { heroH, stationH, railStart, railLength, spacer };
+}
+
 export default function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
   const [attempt, setAttempt] = useState(0);
-  const [selected, setSelected] = useState<Project | null>(null);
+  const [mode, setMode] = useState<Mode>("hero");
+  const [active, setActive] = useState<number | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [indexOpen, setIndexOpen] = useState(false);
+  const [loaderDone, setLoaderDone] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [hovered, setHovered] = useState<string | null>(null);
-  const [centered, setCentered] = useState<string | null>(null);
-  const [section, setSection] = useState<Section>("hero");
+  const [soundOn, setSoundOn] = useState(false);
   const [scrollP, setScrollP] = useState(0);
+  const [dissolve, setDissolve] = useState(0);
+  const [vh, setVh] = useState(() => window.innerHeight);
   const reduced = useReducedMotion();
+  const narrow = useNarrow();
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const heroRef = useRef<HTMLElement | null>(null);
-  const worksRef = useRef<HTMLElement | null>(null);
-  const aboutRef = useRef<HTMLElement | null>(null);
   const { stage, status, stats } = useStage(canvasRef, reduced);
+  const soundRef = useRef<Soundscape | null>(null);
+  const unsupported = status.state === "unsupported";
+  const ready = status.state === "ready";
 
   /* ------------------------------------------------------------------ */
   /* data                                                                */
   /* ------------------------------------------------------------------ */
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
     setError("");
     loadProjects(controller.signal)
       .then(setProjects)
       .catch((err: Error) => {
         if (err.name !== "AbortError") setError(err.message);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
   }, [attempt]);
 
   useEffect(() => {
-    function syncHash() {
-      const id = window.location.hash.slice(1);
-      if (!id || id === "works" || id === "about" || id === "top") {
-        setSelected(null);
-        return;
-      }
-      setSelected(projects.find((project) => project.id === id) || null);
-    }
-    syncHash();
-    window.addEventListener("hashchange", syncHash);
-    return () => window.removeEventListener("hashchange", syncHash);
-  }, [projects]);
-
-  const openProject = useCallback((project: Project) => {
-    setSelected(project);
-    window.history.replaceState(null, "", `#${project.id}`);
-  }, []);
-  const closeDialog = useCallback(() => {
-    setSelected(null);
-    window.history.replaceState(
-      null,
-      "",
-      window.location.pathname + window.location.search,
+    if (!stage || projects.length === 0) return;
+    stage.setWorks(
+      projects.map((p) => ({ id: p.id, url: assetUrl(p.cover), accent: p.accent })),
     );
+  }, [stage, projects]);
+
+  useEffect(() => {
+    const onResize = () => setVh(window.innerHeight);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  /* ------------------------------------------------------------------ */
-  /* text targets (wordmark, tagline)                                    */
-  /* ------------------------------------------------------------------ */
-  const narrow = useNarrow();
-  const showText = useCallback(
-    (which: "wordmark" | "tagline") => {
-      if (!stage) return;
-      if (which === "wordmark") {
-        void stage.showText(
-          "wordmark",
-          "UNFILED",
-          {
-            font: "400 420px Anton, Impact, sans-serif",
-            width: 2048,
-            height: 560,
-            stretch: 1.28,
-            letterSpacing: "-0.02em",
-            fill: ["#fff6e8", "#ff9a6a"],
-          },
-          "hero",
-          { thickness: 0.5, relief: 0.05, gain: 1.3 },
-        );
-        return;
-      }
-      void stage.showText(
-        "tagline",
-        "好奇心に、完成はない。",
-        {
-          font: '600 220px "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, "Noto Sans JP", sans-serif',
-          width: 2048,
-          height: 384,
-          fill: ["#eef0ff", "#f3efe6"],
-        },
-        narrow ? "center" : "side",
-        { thickness: 0.3, relief: 0.03, lumHigh: 0.45, gain: 1.2 },
-      );
+  const count = projects.length;
+  const geo = useMemo(() => geometry(vh, count, narrow), [vh, count, narrow]);
+
+  const scrollToStation = useCallback(
+    (index: number, instant = false) => {
+      const top = geo.railStart + index * geo.stationH;
+      window.scrollTo({ top, behavior: instant || reduced ? "auto" : "smooth" });
     },
-    [stage, narrow],
+    [geo, reduced],
   );
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
+  }, [reduced]);
+  const scrollToEnd = useCallback(() => {
+    const top = geo.railStart + geo.railLength + Math.round(vh * 0.45);
+    window.scrollTo({ top, behavior: reduced ? "auto" : "smooth" });
+  }, [geo, vh, reduced]);
 
   /* ------------------------------------------------------------------ */
   /* scroll choreography                                                 */
   /* ------------------------------------------------------------------ */
+  const modeRef = useRef<Mode>("hero");
+  const activeRef = useRef<number | null>(null);
   useEffect(() => {
+    if (unsupported) return;
     let raf = 0;
     const update = () => {
       raf = 0;
       const y = window.scrollY;
-      const vh = window.innerHeight || 1;
       const doc = document.documentElement;
-      const max = Math.max(1, doc.scrollHeight - vh);
+      const max = Math.max(1, doc.scrollHeight - window.innerHeight);
       setScrollP(Math.min(1, y / max));
       stage?.setScroll(y);
 
-      const worksTop = worksRef.current?.getBoundingClientRect().top ?? 1e9;
-      const aboutTop = aboutRef.current?.getBoundingClientRect().top ?? 1e9;
-      let next: Section = "hero";
-      if (aboutTop < vh * 0.55) next = "about";
-      else if (worksTop < vh * 0.3) next = "works";
-      setSection(next);
+      const n = count;
+      const p = (y - geo.railStart) / geo.stationH;
+      let next: Mode = "hero";
+      let nextActive: number | null = null;
+      if (n > 0 && p >= -0.5 && p < n - 0.5) {
+        next = "archive";
+        nextActive = Math.max(0, Math.min(n - 1, Math.round(p)));
+      } else if (n > 0 && p >= n - 0.5) {
+        next = "end";
+      }
+      const d = smooth(0.04, 0.62, y / (geo.heroH * 0.9));
+      setDissolve(d);
 
       if (stage) {
-        if (next === "hero") {
-          // The wordmark rides up with the page and dissolves to dust before
-          // the works index takes over.
-          const p = y / (vh * 0.9);
-          stage.setFormedScale(1 - smooth(0.04, 0.62, p));
-          stage.setOffset(0, (y / vh) * stage.visibleHeight * 0.6, 0);
-        } else {
-          stage.setFormedScale(1);
-          stage.setOffset(0, 0, 0);
+        stage.setProgress(n > 0 ? p : -1);
+        stage.setHeroDissolve(d, (y / Math.max(1, vh)) * stage.visibleHeight * 0.6);
+        if (next !== modeRef.current) stage.setMode(next);
+        if (next === "archive" && nextActive !== activeRef.current) {
+          stage.setActive(nextActive);
+          if (activeRef.current !== null && nextActive !== null)
+            soundRef.current?.tick(nextActive);
         }
+      }
+      if (next !== modeRef.current) {
+        modeRef.current = next;
+        setMode(next);
+      }
+      if (nextActive !== activeRef.current) {
+        activeRef.current = nextActive;
+        setActive(nextActive);
       }
     };
     const onScroll = () => {
@@ -179,8 +188,7 @@ export default function App() {
     update();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
-    // Test seam: headless checks cannot wait for a frame, so they dispatch
-    // this event to sync the choreography with the current scroll position.
+    // test seam: headless checks cannot wait for a frame
     window.addEventListener("unfiled:sync", update);
     return () => {
       window.removeEventListener("scroll", onScroll);
@@ -188,47 +196,133 @@ export default function App() {
       window.removeEventListener("unfiled:sync", update);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [stage]);
+  }, [stage, geo, count, vh, unsupported]);
 
   /* ------------------------------------------------------------------ */
-  /* which target should the field hold?                                 */
+  /* detail / index / hash                                               */
   /* ------------------------------------------------------------------ */
-  const activeId = selected?.id ?? hovered ?? centered;
-  const activeProject = useMemo(
-    () => projects.find((p) => p.id === activeId) ?? null,
-    [projects, activeId],
+  const activeProject = active !== null ? (projects[active] ?? null) : null;
+  const detailProject = useMemo(
+    () => projects.find((p) => p.id === detailId) ?? null,
+    [projects, detailId],
+  );
+
+  const openDetail = useCallback(
+    (project: Project) => {
+      const index = projects.indexOf(project);
+      if (index < 0) return;
+      setIndexOpen(false);
+      if (index !== activeRef.current) scrollToStation(index, true);
+      setDetailId(project.id);
+      window.history.replaceState(null, "", `#${project.id}`);
+      soundRef.current?.open();
+    },
+    [projects, scrollToStation],
+  );
+  const closeDetail = useCallback(() => {
+    setDetailId((cur) => {
+      if (cur) soundRef.current?.close();
+      return null;
+    });
+    window.history.replaceState(
+      null,
+      "",
+      window.location.pathname + window.location.search,
+    );
+  }, []);
+
+  useEffect(() => {
+    stage?.setDetail(Boolean(detailId));
+  }, [stage, detailId]);
+
+  // deep link: #id opens that work
+  const hashHandled = useRef(false);
+  useEffect(() => {
+    if (hashHandled.current || projects.length === 0) return;
+    hashHandled.current = true;
+    const id = window.location.hash.slice(1);
+    const project = projects.find((p) => p.id === id);
+    if (project) {
+      const index = projects.indexOf(project);
+      scrollToStation(index, true);
+      window.setTimeout(() => setDetailId(project.id), 400);
+    }
+  }, [projects, scrollToStation]);
+
+  const stepStation = useCallback(
+    (delta: number) => {
+      if (count === 0) return;
+      const current = activeRef.current;
+      if (modeRef.current === "hero") {
+        if (delta > 0) scrollToStation(0);
+        return;
+      }
+      if (modeRef.current === "end") {
+        if (delta < 0) scrollToStation(count - 1);
+        return;
+      }
+      const next = (current ?? 0) + delta;
+      if (next < 0) scrollToTop();
+      else if (next >= count) scrollToEnd();
+      else scrollToStation(next);
+    },
+    [count, scrollToStation, scrollToTop, scrollToEnd],
   );
 
   useEffect(() => {
-    if (!stage) return;
-    if (section === "hero" || section === "about") {
-      showText(section === "hero" ? "wordmark" : "tagline");
-      return;
-    }
-    if (!activeProject) {
-      stage.scatter();
-      return;
-    }
-    void stage.showCover(
-      activeProject.id,
-      assetUrl(activeProject.cover),
-      activeProject.accent,
-      narrow ? "center" : "side",
-    );
-  }, [stage, section, activeProject, narrow, showText]);
-
-  // Warm the cache for the first few covers once the page is idle.
-  useEffect(() => {
-    if (!stage || projects.length === 0) return;
-    const idle =
-      (window as { requestIdleCallback?: (cb: () => void) => number })
-        .requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1200));
-    idle(() => {
-      projects.slice(0, 6).forEach((p) => {
-        stage.prefetchCover(assetUrl(p.cover));
-      });
-    });
-  }, [stage, projects]);
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+      if (e.key === "Escape") {
+        if (detailId) closeDetail();
+        else if (indexOpen) setIndexOpen(false);
+        return;
+      }
+      if (detailId) {
+        if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+          e.preventDefault();
+          const i = projects.findIndex((p) => p.id === detailId);
+          if (i >= 0 && i < count - 1) openDetail(projects[i + 1]);
+        } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+          e.preventDefault();
+          const i = projects.findIndex((p) => p.id === detailId);
+          if (i > 0) openDetail(projects[i - 1]);
+        }
+        return;
+      }
+      if (indexOpen) return;
+      if (e.key === "i" || e.key === "I") {
+        setIndexOpen(true);
+      } else if (e.key === "ArrowDown" || e.key === "ArrowRight" || e.key === "PageDown") {
+        e.preventDefault();
+        stepStation(1);
+      } else if (e.key === "ArrowUp" || e.key === "ArrowLeft" || e.key === "PageUp") {
+        e.preventDefault();
+        stepStation(-1);
+      } else if (e.key === "Enter" && activeProject && modeRef.current === "archive") {
+        openDetail(activeProject);
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        scrollToTop();
+      } else if (e.key === "End") {
+        e.preventDefault();
+        scrollToEnd();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [
+    detailId,
+    indexOpen,
+    projects,
+    count,
+    activeProject,
+    openDetail,
+    closeDetail,
+    stepStation,
+    scrollToTop,
+    scrollToEnd,
+  ]);
 
   /* ------------------------------------------------------------------ */
   /* pointer                                                             */
@@ -244,7 +338,7 @@ export default function App() {
       if (t) stage.setPointer(t.clientX, t.clientY);
     };
     const down = (e: PointerEvent) => {
-      if ((e.target as HTMLElement | null)?.closest("a, button, dialog")) return;
+      if ((e.target as HTMLElement | null)?.closest("a, button, [role=dialog]")) return;
       stage.setPointer(e.clientX, e.clientY);
       stage.pulse(0.9);
     };
@@ -262,6 +356,15 @@ export default function App() {
     stage?.setPaused(paused);
   }, [stage, paused]);
 
+  // test seam: headless checks drive GSAP by hand when no frame fires
+  useEffect(() => {
+    if (!stage || !window.__unfiled) return;
+    window.__unfiled.tick = () => {
+      gsap.ticker.lagSmoothing(0);
+      gsap.ticker.tick();
+    };
+  }, [stage]);
+
   useEffect(() => {
     const onVisibility = () => {
       if (!stage) return;
@@ -273,18 +376,61 @@ export default function App() {
   }, [stage, paused]);
 
   /* ------------------------------------------------------------------ */
+  /* sound                                                               */
+  /* ------------------------------------------------------------------ */
+  const toggleSound = useCallback(() => {
+    if (!soundRef.current) soundRef.current = new Soundscape();
+    const on = soundRef.current.toggle();
+    setSoundOn(on);
+  }, []);
+  useEffect(() => {
+    // a remembered "on" still needs a gesture before audio may start
+    if (!Soundscape.remembered()) return;
+    const arm = () => {
+      if (!soundRef.current) {
+        soundRef.current = new Soundscape();
+        void soundRef.current.enable();
+        setSoundOn(true);
+      }
+      window.removeEventListener("pointerdown", arm);
+      window.removeEventListener("keydown", arm);
+    };
+    window.addEventListener("pointerdown", arm);
+    window.addEventListener("keydown", arm);
+    return () => {
+      window.removeEventListener("pointerdown", arm);
+      window.removeEventListener("keydown", arm);
+    };
+  }, []);
+  useEffect(() => {
+    if (!stage) return;
+    const id = window.setInterval(() => {
+      const v = Math.min(1, Math.abs(stage.velocity) / 1.6);
+      soundRef.current?.setIntensity(v);
+    }, 100);
+    return () => window.clearInterval(id);
+  }, [stage]);
+  useEffect(() => () => soundRef.current?.dispose(), []);
+
+  /* ------------------------------------------------------------------ */
   /* render                                                              */
   /* ------------------------------------------------------------------ */
-  const figureIndex = activeProject ? projects.indexOf(activeProject) + 1 : 0;
-  const unsupported = status.state === "unsupported";
   const year = new Date().getFullYear();
+  const showStations = !unsupported && count > 0;
+  const siteClass = [
+    "site",
+    unsupported ? "is-static" : "",
+    ready ? "is-ready" : "",
+    loaderDone ? "is-revealed" : "",
+    `mode-${mode}`,
+    detailId ? "has-detail" : "",
+    indexOpen ? "has-index" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <div
-      className={`site ${unsupported ? "is-static" : ""} ${
-        status.state === "ready" ? "is-ready" : ""
-      } section-${section}`}
-    >
+    <div className={siteClass} style={{ "--dissolve": dissolve } as CSSProperties}>
       <canvas ref={canvasRef} className="stage-canvas" aria-hidden="true" />
       <div className="stage-grid" aria-hidden="true" />
       <div
@@ -292,222 +438,140 @@ export default function App() {
         aria-hidden="true"
         style={{ transform: `scaleX(${scrollP})` }}
       />
-      <span className="corner corner-tl" aria-hidden="true" />
-      <span className="corner corner-tr" aria-hidden="true" />
-      <span className="corner corner-bl" aria-hidden="true" />
-      <span className="corner corner-br" aria-hidden="true" />
 
-      <a className="skip-link" href="#works">
-        作品へスキップ
+      <a
+        className="skip-link"
+        href="#index"
+        onClick={(e) => {
+          e.preventDefault();
+          setIndexOpen(true);
+        }}
+      >
+        作品の索引へ
       </a>
 
-      <header className="topbar">
-        <a
-          className="wordmark"
-          href="#top"
-          aria-label="UNFILED ホーム"
-          onClick={(e) => {
-            e.preventDefault();
-            closeDialog();
-            window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
-          }}
-        >
-          UNFILED<span className="wordmark-dot">.</span>
-        </a>
-        <p className="topbar-thought">
-          <span className="mono">WORK IN PROGRESS</span>
-          <span className="sep">—</span>
-          つくる。ためす。また、つくる。
-        </p>
-        <nav aria-label="メインナビゲーション">
-          <a href="#works">作品</a>
-          <a href="#about">この場所について</a>
-          <a
-            className="github-link"
-            href="https://github.com/XenithONE"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="XenithONEのGitHub（新しいタブ）"
-          >
-            <Github size={20} strokeWidth={1.7} />
-            <ArrowUpRight size={18} strokeWidth={1.5} />
-          </a>
-        </nav>
-      </header>
+      <Topbar
+        year={year}
+        onIndex={() => setIndexOpen(true)}
+        onAbout={scrollToEnd}
+        onHome={() => {
+          closeDetail();
+          scrollToTop();
+        }}
+        reduced={reduced}
+      />
 
-      <main id="top">
-        <section className="hero" ref={heroRef} aria-labelledby="hero-title">
-          <div className="hero-copy">
-            <p className="eyebrow mono">
-              <span>FIELD NOTES</span>
-              <span className="dot" aria-hidden="true">
-                ●
-              </span>
-              <span>VOL. {year}</span>
-              {projects.length > 0 && (
-                <>
-                  <span className="dot" aria-hidden="true">
-                    ●
-                  </span>
-                  <span>{String(projects.length).padStart(2, "0")} WORKS</span>
-                </>
-              )}
-            </p>
-            <h1 id="hero-title" className={unsupported ? "hero-title" : "sr-only"}>
-              UNFILED
-            </h1>
-            <p className="lede">好奇心の、散らばるままに。</p>
-            <p className="sub">AIとつくった、まだ分類できないものたち。</p>
-            <p className="hint mono">
-              {unsupported
-                ? "この環境では粒子を描けません。作品一覧はそのまま使えます。"
-                : status.state === "ready"
-                  ? reduced
-                    ? "動きを抑えた表示です。触れると粒子がゆっくり逃げ、下へ進むとほどけます。"
-                    : "触れると、粒子が逃げる。下へ進むと、ほどける。"
-                  : "粒子を組み立てています…"}
-            </p>
-          </div>
-          <div className="hero-stamp" aria-hidden="true">
-            <span>WIP</span>
-            <small>UNFILED / {year}</small>
-          </div>
-          <a className="scroll-cue mono" href="#works" aria-label="作品へ">
-            <span>SCROLL</span>
-            <i aria-hidden="true" />
-          </a>
-        </section>
+      <main>
+        <HeroCopy
+          count={count}
+          year={year}
+          status={status}
+          reduced={reduced}
+          revealed={loaderDone}
+          onEnter={() => scrollToStation(0)}
+        />
 
-        <section className="works" id="works" ref={worksRef} tabIndex={-1}>
-          <header className="section-head">
-            <span className="mono">01</span>
-            <h2>作品</h2>
-            <span className="mono">
-              INDEX / {String(projects.length).padStart(2, "0")}
-            </span>
-          </header>
-          {loading ? (
-            <div className="status-message" role="status">
-              <span className="loading-mark">＊</span>
-              <p>作品をひらいています。</p>
-            </div>
-          ) : error ? (
-            <div className="status-message" role="alert">
-              <p>{error}</p>
-              <button
-                className="text-button"
-                onClick={() => setAttempt((a) => a + 1)}
-              >
-                もう一度読み込む
-                <ArrowUpRight size={18} />
-              </button>
-            </div>
-          ) : projects.length === 0 ? (
-            <div className="status-message">
-              <p>次の好奇心を、ここに。</p>
-            </div>
-          ) : (
-            <WorksIndex
+        {showStations ? (
+          <div className="scroll-space" style={{ height: geo.spacer }} aria-hidden="true" />
+        ) : null}
+
+        {unsupported && count > 0 ? (
+          <section className="static-index" aria-label="作品一覧">
+            <IndexOverlay
+              inline
               projects={projects}
-              activeId={activeId}
-              showCovers={unsupported}
-              onHover={setHovered}
-              onCentered={setCentered}
-              onOpen={openProject}
+              activeIndex={null}
+              onPick={(p) => openDetail(p)}
+              onClose={() => undefined}
             />
-          )}
-          <p className="works-note mono">
-            {unsupported
-              ? ""
-              : narrow
-                ? "画面の中央にある作品を、粒子が組み立てます。"
-                : "作品名に触れると、粒子がその表紙を組み立てます。"}
-          </p>
-        </section>
+          </section>
+        ) : null}
 
-        <section className="about" id="about" ref={aboutRef} tabIndex={-1}>
-          <header className="section-head">
-            <span className="mono">02</span>
-            <h2>この場所について</h2>
-            <span className="mono">ABOUT</span>
-          </header>
-          <div className="about-body">
-            <p className="about-lead">
-              つくる。ためす。
-              <br />
-              また、つくる。
-            </p>
-            <div className="about-copy">
-              <p>
-                つくりたいものは、そのときの好奇心で変わる。
-                <br />
-                宇宙へ行ったり、時間を旅したり、ただ海を眺めたり。
-              </p>
-              <p>
-                AIといっしょに、思いつきをかたちにする。
-                <br />
-                つくること自体が楽しくて、テーマも、目的も、まだばらばら。
-              </p>
-              <p>
-                ここは、そんな制作物が集まる場所。
-                <br />
-                分類するより先に、まずは並べてみました。
-              </p>
-              <p className="about-tech mono">
-                THIS PAGE: three.js WebGPURenderer + TSL compute · {" "}
-                {stats ? stats.count.toLocaleString() : "—"} particles ·{" "}
-                {status.state === "ready"
-                  ? status.backend === "webgpu"
-                    ? "WebGPU"
-                    : "WebGL2 fallback"
-                  : "—"}
-              </p>
-            </div>
+        {error ? (
+          <div className="status-message" role="alert">
+            <p>{error}</p>
+            <button className="text-button" onClick={() => setAttempt((a) => a + 1)}>
+              もう一度読み込む
+            </button>
           </div>
-        </section>
+        ) : null}
+
+        <Ending
+          stats={stats}
+          status={status}
+          onTop={scrollToTop}
+          onIndex={() => setIndexOpen(true)}
+          year={year}
+        />
       </main>
 
-      <footer className="site-footer">
-        <span>XenithONE © {year}</span>
-        <span className="mono">好奇心に、完成はない。</span>
-        <a
-          href="https://github.com/XenithONE/unfiled"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          SOURCE
-          <ArrowUpRight size={14} strokeWidth={1.5} aria-hidden="true" />
-        </a>
-      </footer>
+      {showStations ? (
+        <>
+          <Station
+            project={activeProject}
+            index={active}
+            total={count}
+            visible={mode === "archive" && !detailId}
+            reduced={reduced}
+            narrow={narrow}
+            onOpen={openDetail}
+          />
+          <Rail
+            projects={projects}
+            active={active}
+            mode={mode}
+            onPick={(i) => scrollToStation(i)}
+          />
+        </>
+      ) : null}
 
       <Hud
         status={status}
         stats={stats}
-        figureIndex={figureIndex}
-        total={projects.length}
-        figureTitle={activeProject?.title ?? (section === "hero" ? "UNFILED" : "—")}
+        figureIndex={active !== null ? active + 1 : 0}
+        total={count}
+        figureTitle={activeProject?.title ?? (mode === "hero" ? "UNFILED" : "—")}
         paused={paused}
+        soundOn={soundOn}
         reducedMotion={reduced}
         onTogglePaused={() => setPaused((p) => !p)}
-        onScatter={() => {
-          if (!stage) return;
-          stage.pulse(1.4);
+        onToggleSound={toggleSound}
+        onIndex={() => setIndexOpen(true)}
+        onTop={scrollToTop}
+      />
+
+      <DetailOverlay
+        project={detailProject}
+        index={detailProject ? projects.indexOf(detailProject) : -1}
+        total={count}
+        narrow={narrow}
+        reduced={reduced}
+        onClose={closeDetail}
+        onPrev={() => {
+          const i = detailProject ? projects.indexOf(detailProject) : -1;
+          if (i > 0) openDetail(projects[i - 1]);
+        }}
+        onNext={() => {
+          const i = detailProject ? projects.indexOf(detailProject) : -1;
+          if (i >= 0 && i < count - 1) openDetail(projects[i + 1]);
         }}
       />
 
-      <InfoDialog project={selected} onClose={closeDialog} />
+      {indexOpen ? (
+        <IndexOverlay
+          projects={projects}
+          activeIndex={active}
+          onPick={(p) => {
+            setIndexOpen(false);
+            const i = projects.indexOf(p);
+            if (i >= 0) scrollToStation(i);
+          }}
+          onClose={() => setIndexOpen(false)}
+        />
+      ) : null}
+
+      <Loader status={status} reduced={reduced} onDone={() => setLoaderDone(true)} />
+      <Cursor />
     </div>
   );
-}
-
-function useNarrow() {
-  const [narrow, setNarrow] = useState(() => window.innerWidth < 900);
-  useEffect(() => {
-    const query = window.matchMedia("(max-width: 899px)");
-    const update = () => setNarrow(query.matches);
-    update();
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
-  }, []);
-  return narrow;
 }

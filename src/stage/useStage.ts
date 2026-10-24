@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
-import type { ParticleStage, StageStats } from "./ParticleStage";
+import type { Stage, StageStats } from "./Stage";
 
 export type StageStatus =
   | { state: "booting" }
@@ -10,14 +10,15 @@ export type StageStatus =
 declare global {
   interface Window {
     __unfiled?: {
-      stage: ParticleStage;
+      stage: Stage;
       step: (dt?: number) => void;
+      tick?: () => void;
     };
   }
 }
 
 interface Ready {
-  stage: ParticleStage;
+  stage: Stage;
   backend: "webgpu" | "webgl2";
   count: number;
   gpu: string;
@@ -35,8 +36,8 @@ interface Entry {
  * kill the context the second mount is about to use. So disposal is deferred
  * and cancelled when the canvas is reclaimed within the same tick.
  *
- * The stage module (three.js WebGPU + TSL, ~270 kB gzipped) is loaded lazily
- * so the page text renders before the particle field boots.
+ * The stage module (three.js WebGPU + TSL, ~200 kB gzipped) is loaded lazily
+ * so the page text renders before the field boots.
  */
 const registry = new WeakMap<HTMLCanvasElement, Entry>();
 
@@ -60,8 +61,8 @@ function acquire(canvas: HTMLCanvasElement) {
     tierParam === "low"
       ? tierParam
       : undefined;
-  const ready = import("./ParticleStage").then(async ({ ParticleStage }) => {
-    const stage = new ParticleStage(canvas);
+  const ready = import("./Stage").then(async ({ Stage }) => {
+    const stage = new Stage(canvas);
     const info = await stage.init({ forceWebGL, tier });
     return { stage, ...info };
   });
@@ -85,18 +86,14 @@ function release(canvas: HTMLCanvasElement, entry: Entry) {
   }, 200);
 }
 
-/**
- * Mounts a ParticleStage on the given canvas. Returns the stage (once ready),
- * its status and the latest performance stats.
- */
 export function useStage(
   canvasRef: RefObject<HTMLCanvasElement | null>,
   reducedMotion: boolean,
 ) {
-  const stageRef = useRef<ParticleStage | null>(null);
+  const stageRef = useRef<Stage | null>(null);
   const [status, setStatus] = useState<StageStatus>({ state: "booting" });
   const [stats, setStats] = useState<StageStats | null>(null);
-  const [stage, setStage] = useState<ParticleStage | null>(null);
+  const [stage, setStage] = useState<Stage | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -115,7 +112,7 @@ export function useStage(
     }
 
     let active = true;
-    let mounted: ParticleStage | null = null;
+    let mounted: Stage | null = null;
     const entry = acquire(canvas);
     entry.ready
       .then((info) => {
@@ -146,7 +143,7 @@ export function useStage(
         });
       })
       .catch((err: unknown) => {
-        console.error("UNFILED: particle stage failed", err);
+        console.error("UNFILED: stage failed", err);
         if (active) setStatus({ state: "unsupported", reason: String(err) });
       });
 
@@ -157,7 +154,6 @@ export function useStage(
       stageRef.current = null;
       release(canvas, entry);
     };
-    // The stage is created once per canvas; reduced motion is applied below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canvasRef]);
 

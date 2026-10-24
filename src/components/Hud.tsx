@@ -1,5 +1,5 @@
-import { ArrowUp, Pause, Play, Sparkles } from "lucide-react";
-import type { StageStats } from "../stage/ParticleStage";
+import { ArrowUp, LayoutGrid, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import type { StageStats } from "../stage/Stage";
 import type { StageStatus } from "../stage/useStage";
 
 interface Props {
@@ -9,9 +9,12 @@ interface Props {
   total: number;
   figureTitle: string;
   paused: boolean;
+  soundOn: boolean;
   reducedMotion: boolean;
   onTogglePaused: () => void;
-  onScatter: () => void;
+  onToggleSound: () => void;
+  onIndex: () => void;
+  onTop: () => void;
 }
 
 const BUILD = typeof __BUILD_STAMP__ === "string" ? __BUILD_STAMP__ : "dev";
@@ -23,9 +26,12 @@ export default function Hud({
   total,
   figureTitle,
   paused,
+  soundOn,
   reducedMotion,
   onTogglePaused,
-  onScatter,
+  onToggleSound,
+  onIndex,
+  onTop,
 }: Props) {
   const ready = status.state === "ready";
   const backend = ready
@@ -35,19 +41,17 @@ export default function Hud({
     : status.state === "booting"
       ? "BOOT"
       : "STATIC";
-  const count = ready ? status.count : 0;
+  const count = stats?.count ?? (ready ? status.count : 0);
   return (
     <>
       <div className="hud mono" aria-hidden="true">
         <div className="hud-line">
           <span className="hud-key">SYS</span>
           <span className={`hud-chip ${ready ? "is-on" : ""}`}>{backend}</span>
-          <span>{count ? `${count.toLocaleString("en-US")} PARTICLES` : "—"}</span>
+          <span>{count ? `${count.toLocaleString("en-US")} PTC` : "—"}</span>
           <span>{stats ? `${String(stats.fps).padStart(3, " ")} FPS` : ""}</span>
           <span className="hud-faint">
-            {stats && stats.renderScale < 1
-              ? `SCALE ${Math.round(stats.renderScale * 100)}%`
-              : ""}
+            {stats && stats.renderScale < 1 ? `×${stats.renderScale.toFixed(2)}` : ""}
           </span>
         </div>
         <div className="hud-line">
@@ -59,23 +63,42 @@ export default function Hud({
           </span>
           <span className="hud-title">{figureTitle}</span>
         </div>
+        <div className="hud-line hud-faint hud-keys">
+          <span className="hud-key">KEY</span>
+          <span>↑↓ MOVE</span>
+          <span>↵ OPEN</span>
+          <span>I INDEX</span>
+          <span>ESC BACK</span>
+        </div>
         <div className="hud-line hud-faint">
           <span className="hud-key">BLD</span>
           <span>{BUILD}</span>
-          <span>{stats?.gpu ? stats.gpu.toUpperCase() : ""}</span>
         </div>
       </div>
 
       <div className="hud-controls">
         <button
           type="button"
-          className="hud-button"
-          onClick={onScatter}
-          disabled={!ready}
-          aria-label="粒子をはじく"
-          title="粒子をはじく"
+          className={`hud-button ${soundOn ? "is-on" : ""}`}
+          onClick={onToggleSound}
+          aria-pressed={soundOn}
+          aria-label={soundOn ? "音を止める" : "音を鳴らす"}
+          title={soundOn ? "音を止める" : "音を鳴らす（生成音・素材なし）"}
+          data-cursor={soundOn ? "MUTE" : "SOUND"}
         >
-          <Sparkles size={16} strokeWidth={1.6} />
+          {soundOn ? <Volume2 size={15} strokeWidth={1.6} /> : <VolumeX size={15} strokeWidth={1.6} />}
+          <span className="mono">SND</span>
+        </button>
+        <button
+          type="button"
+          className="hud-button"
+          onClick={onIndex}
+          aria-label="作品の索引"
+          title="作品の索引（I）"
+          data-cursor="INDEX"
+        >
+          <LayoutGrid size={15} strokeWidth={1.6} />
+          <span className="mono">IDX</span>
         </button>
         <button
           type="button"
@@ -91,16 +114,13 @@ export default function Hud({
                 ? "動きを再生"
                 : "動きを停止"
           }
+          data-cursor={paused ? "PLAY" : "PAUSE"}
         >
-          {paused ? (
-            <Play size={15} fill="currentColor" strokeWidth={1.4} />
-          ) : (
-            <Pause size={15} fill="currentColor" strokeWidth={1.4} />
-          )}
+          {paused ? <Play size={14} fill="currentColor" strokeWidth={1.4} /> : <Pause size={14} fill="currentColor" strokeWidth={1.4} />}
         </button>
-        <a className="hud-button" href="#top" aria-label="ページの先頭へ" title="先頭へ">
-          <ArrowUp size={16} strokeWidth={1.6} />
-        </a>
+        <button type="button" className="hud-button" onClick={onTop} aria-label="最初へ戻る" title="最初へ" data-cursor="TOP">
+          <ArrowUp size={15} strokeWidth={1.6} />
+        </button>
       </div>
     </>
   );

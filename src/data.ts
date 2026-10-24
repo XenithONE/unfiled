@@ -32,10 +32,10 @@ export async function loadProjects(signal: AbortSignal): Promise<Project[]> {
       throw new Error("作品のsourceを確認してください。");
     if (
       !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(project.id) ||
-      ["about", "works"].includes(project.id)
+      ["about", "works", "top", "index"].includes(project.id)
     ) {
       throw new Error(
-        "作品のIDには小文字の英数字とハイフンを使い、aboutとworks以外を指定してください。",
+        "作品のIDには小文字の英数字とハイフンを使い、about・works・top・index 以外を指定してください。",
       );
     }
     if (seen.has(project.id)) throw new Error("作品のIDが重複しています。");
@@ -53,4 +53,22 @@ export async function loadProjects(signal: AbortSignal): Promise<Project[]> {
       throw new Error("アクセント色を確認してください。");
     return project;
   });
+}
+
+export type Group = "worlds" | "games" | "tools" | "stories";
+
+export const GROUP_LABEL: Record<Group, { ja: string; en: string }> = {
+  worlds: { ja: "世界", en: "WORLDS" },
+  games: { ja: "ゲーム", en: "GAMES" },
+  tools: { ja: "道具", en: "TOOLS" },
+  stories: { ja: "物語", en: "STORIES" },
+};
+
+/** Coarse grouping derived from the free-form category label. */
+export function groupOf(project: Project): Group {
+  const c = project.category.toUpperCase();
+  if (/GAME|PINBALL|PUZZLE|PLATFORMER|DEFENSE|RPG|RACING|BATTLE/.test(c)) return "games";
+  if (/FILM|COMIC|STORY/.test(c)) return "stories";
+  if (/STUDIO|ATELIER|TOOL|PAINT/.test(c)) return "tools";
+  return "worlds";
 }

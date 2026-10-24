@@ -9,12 +9,10 @@
  */
 import {
   CanvasTexture,
-  Color,
   ImageLoader,
   LinearFilter,
   SRGBColorSpace,
 } from "three/webgpu";
-import type { TargetSpec } from "./ParticleStage";
 
 export interface TextOptions {
   font: string;
@@ -30,6 +28,8 @@ export interface TextOptions {
 export interface Painted {
   aspect: number;
   uvScale: [number, number];
+  /** Fraction of the content area that is bright enough to bind particles. */
+  cover: number;
 }
 
 async function ensureFont(font: string) {
@@ -102,6 +102,8 @@ export class TargetPainter {
   readonly texture: CanvasTexture;
   private ctx: CanvasRenderingContext2D;
   private textCache = new Map<string, HTMLCanvasElement>();
+  private probe = document.createElement("canvas");
+  private probeCtx: CanvasRenderingContext2D;
 
   constructor(width = 2048, height = 1024) {
     this.width = width;
@@ -118,6 +120,23 @@ export class TargetPainter {
     texture.magFilter = LinearFilter;
     texture.generateMipmaps = false;
     this.texture = texture;
+    this.probe.width = 64;
+    this.probe.height = 64;
+    this.probeCtx = this.probe.getContext("2d", { willReadFrequently: true })!;
+  }
+
+  /** Share of pixels with luminance above ~0.2 (cheap 64×64 estimate). */
+  private brightFraction(source: CanvasImageSource, sw: number, sh: number) {
+    const ctx = this.probeCtx;
+    ctx.clearRect(0, 0, 64, 64);
+    ctx.drawImage(source, 0, 0, sw, sh, 0, 0, 64, 64);
+    const data = ctx.getImageData(0, 0, 64, 64).data;
+    let bright = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      const lum = data[i] * 0.2126 + data[i + 1] * 0.7152 + data[i + 2] * 0.0722;
+      if (lum > 52) bright++;
+    }
+    return bright / (data.length / 4);
   }
 
   /** Paint any drawable, bottom-left aligned, as large as fits. */
@@ -138,11 +157,18 @@ export class TargetPainter {
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(source, 0, this.height - h, w, h);
     this.texture.needsUpdate = true;
-    return { aspect, uvScale: [w / this.width, h / this.height] };
+    const cover = this.brightFraction(source, sw, sh);
+    return { aspect, uvScale: [w / this.width, h / this.height], cover };
   }
 
   paintImage(img: HTMLImageElement | ImageBitmap): Painted {
     return this.paint(img, img.width, img.height);
+  }
+
+  /** Load (cached) and paint a cover image. */
+  async paintImageUrl(url: string): Promise<Painted> {
+    const img = await loadImage(url);
+    return this.paintImage(img);
   }
 
   async paintText(key: string, text: string, opts: TextOptions): Promise<Painted> {
@@ -168,47 +194,4 @@ export function loadImage(url: string) {
     entry.catch(() => imageCache.delete(url));
   }
   return entry;
-}
-
-export function coverSpec(
-  id: string,
-  painted: Painted,
-  accent: string,
-  anchor: TargetSpec["anchor"],
-): TargetSpec {
-  const tint = new Color(accent).lerp(new Color(1, 1, 1), 0.82);
-  return {
-    key: `cover:${id}`,
-    aspect: painted.aspect,
-    uvScale: painted.uvScale,
-    anchor,
-    lumLow: 0.03,
-    lumHigh: 0.3,
-    relief: 0.45,
-    thickness: 0.18,
-    feather: 0.05,
-    tint,
-    gain: 1.7,
-  };
-}
-
-export function textSpec(
-  key: string,
-  painted: Painted,
-  anchor: TargetSpec["anchor"],
-  extra: Partial<TargetSpec> = {},
-): TargetSpec {
-  return {
-    key,
-    aspect: painted.aspect,
-    uvScale: painted.uvScale,
-    anchor,
-    lumLow: 0.08,
-    lumHigh: 0.5,
-    relief: 0.08,
-    thickness: 0.42,
-    feather: 0.01,
-    gain: 1.0,
-    ...extra,
-  };
 }
