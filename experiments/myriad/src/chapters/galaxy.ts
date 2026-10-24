@@ -13,7 +13,10 @@
 import { AdditiveBlending, MeshBasicNodeMaterial, Vector3 } from "three/webgpu";
 import type { Mesh } from "three/webgpu";
 import {
+  abs,
   atan,
+  cameraPosition,
+  normalize,
   cos,
   exp,
   float,
@@ -76,7 +79,6 @@ export class GalaxyChapter extends Chapter {
   }
 
   build(ctx: Ctx) {
-    this.group.rotation.set(-0.38, 0, 0.12);
     this.group.add(
       this.buildStars(Math.round(2_100_000 * ctx.q)),
       this.buildDust(Math.round(260_000 * Math.max(0.35, ctx.q))),
@@ -154,9 +156,14 @@ export class GalaxyChapter extends Chapter {
     const youngGlow = select(young, inArm.mul(4.5).add(0.04), float(0.3));
     const bright = rnd(i, 21).pow(6).mul(4).add(0.3).mul(youngGlow).mul(select(isBulge, float(1.4), float(1))).toVar();
     // during the time-lapse the fast inner orbits would smear into a blinding core
-    const calm = select(isBulge, float(1).sub(this.lapse.mul(0.8)), float(1).sub(this.lapse.mul(0.25)));
+    const calm = select(isBulge, float(1).sub(this.lapse.mul(0.88)), float(1).sub(this.lapse.mul(0.55)));
     // #17: every star owns a band of the spectrum
     const beat = fftAt(i).mul(T(17)).mul(1.4);
+    // seen edge-on, a disk of additive stars piles up into a white bar; treat
+    // it as optically thick: scale by (1 − e^(−τ/μ)) / (τ/μ) along grazing rays
+    const mu = max(abs(normalize(pos.sub(cameraPosition)).y), 0.03);
+    const tau = exp(r.div(-150)).mul(0.9).add(0.04).div(mu);
+    const thick = float(1).sub(exp(tau.negate())).div(tau);
     const sprite = spriteVertex({
       center: pos,
       radius: float(0.45).mul(bright.sqrt().mul(0.5).add(0.6)),
@@ -168,7 +175,7 @@ export class GalaxyChapter extends Chapter {
     });
     const mat = new MeshBasicNodeMaterial();
     mat.vertexNode = sprite.clip;
-    mat.colorNode = varying(col.mul(bright.mul(beat.add(1))).mul(calm).mul(0.05).mul(this.level));
+    mat.colorNode = varying(col.mul(bright.mul(beat.add(1))).mul(calm).mul(thick).mul(0.065).mul(this.level));
     mat.opacityNode = glowShape(sprite, 0.35).mul(sprite.energy);
     mat.transparent = true;
     mat.depthWrite = false;
@@ -193,7 +200,9 @@ export class GalaxyChapter extends Chapter {
     const size = rnd(i, 7).mul(2.2).add(1.4);
     const sprite = spriteVertex({ center: rot, radius: size, minPx: 0.8, maxPx: 200 });
     const lump = snoiseGrad(rot.mul(0.03)).w.mul(0.5).add(0.5);
-    const alpha = varying(smoothstep(0.25, 0.75, lump).mul(0.85).mul(this.level));
+    // grains near the camera dissolve (#5) instead of filling the view with tiles
+    const near = smoothstep(30, 110, length(rot.sub(cameraPosition)));
+    const alpha = varying(smoothstep(0.25, 0.75, lump).mul(0.85).mul(near).mul(this.level));
     const mat = new MeshBasicNodeMaterial();
     mat.vertexNode = sprite.clip;
     mat.colorNode = vec3(0.035, 0.022, 0.016);
@@ -230,8 +239,8 @@ export class GalaxyChapter extends Chapter {
     const mat = new MeshBasicNodeMaterial();
     mat.vertexNode = sprite.clip;
     const p = sprite.local;
-    mat.colorNode = vec3(1.0, 0.82, 0.6).mul(this.level);
-    mat.opacityNode = exp(dot(p, p).mul(-9)).mul(0.22).add(exp(length(p).mul(-4.5)).mul(0.035));
+    mat.colorNode = vec3(1.0, 0.82, 0.6).mul(this.level).mul(float(1).sub(this.lapse.mul(0.6)));
+    mat.opacityNode = exp(dot(p, p).mul(-9)).mul(0.2).add(exp(length(p).mul(-4.5)).mul(0.03));
     mat.transparent = true;
     mat.depthWrite = false;
     mat.blending = AdditiveBlending;
@@ -301,7 +310,8 @@ export class GalaxyChapter extends Chapter {
   }
 
   look(t: number, out: Look) {
-    out.bloom = [0.6, 0.55, 0.7];
+    const lapse = ramp(t, 9, 13) * (1 - ramp(t, 17, 20));
+    out.bloom = [0.6 - lapse * 0.25, 0.55, 0.7 + lapse * 0.3];
     out.sky = 0;
     out.near = 0.5;
     out.far = 20000;
