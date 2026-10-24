@@ -1,28 +1,46 @@
 .info-dialog {
-  --dialog-paper: #e9e9e6;
-  --dialog-ink: #242521;
-  --dialog-rule: #b5b5b0;
-  width: min(940px, calc(100vw - 64px));
+  --dialog-bg: #0d0f13;
+  --dialog-ink: #ece9e2;
+  --dialog-dim: rgba(236, 233, 226, 0.58);
+  --dialog-rule: rgba(236, 233, 226, 0.14);
+  --accent: #fa512c;
+  width: min(960px, calc(100vw - 48px));
   max-width: none;
-  max-height: calc(100dvh - 64px);
+  max-height: calc(100dvh - 56px);
   margin: auto;
   padding: 0;
-  border: 1px solid var(--dialog-ink);
+  border: 1px solid rgba(236, 233, 226, 0.22);
   border-radius: 0;
   color: var(--dialog-ink);
-  background: var(--dialog-paper);
+  background: var(--dialog-bg);
   overflow: auto;
   overscroll-behavior: contain;
   font-family: var(--sans, sans-serif);
-  box-shadow: 0 24px 90px #0003;
+  box-shadow:
+    0 30px 120px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(0, 0, 0, 0.6);
 }
-
 .info-dialog::backdrop {
-  background: #24252170;
-  backdrop-filter: blur(5px);
+  background: rgba(7, 8, 10, 0.55);
+  backdrop-filter: blur(10px) saturate(1.1);
 }
 .info-dialog[open] {
-  animation: info-dialog-in 240ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+  animation: info-dialog-in 260ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+@keyframes info-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .info-dialog[open] {
+    animation: none;
+  }
 }
 .info-dialog__paper {
   min-width: 0;
@@ -31,60 +49,59 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 57px;
-  padding-left: 24px;
+  min-height: 54px;
+  padding-left: 22px;
   border-bottom: 1px solid var(--dialog-rule);
 }
 .info-dialog__eyebrow {
   font-family: var(--mono, monospace);
   font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.055em;
+  letter-spacing: 0.12em;
+  color: var(--dialog-dim);
 }
 .info-dialog__close {
   display: grid;
   place-items: center;
-  flex: 0 0 56px;
-  width: 56px;
-  height: 56px;
-  padding: 0;
-  border: 0;
+  flex: 0 0 54px;
+  width: 54px;
+  height: 54px;
   border-left: 1px solid var(--dialog-rule);
-  border-radius: 0;
-  background: transparent;
   color: var(--dialog-ink);
-  cursor: pointer;
   transition:
     background 160ms,
     color 160ms;
 }
 .info-dialog__close:hover {
-  color: var(--dialog-paper);
+  color: var(--dialog-bg);
   background: var(--dialog-ink);
 }
 .info-dialog :is(a, button):focus-visible {
-  outline: 2px solid #fa512c;
+  outline: 2px solid var(--accent);
   outline-offset: -5px;
 }
 .info-dialog__project {
   display: grid;
-  grid-template-columns: 0.95fr 1.05fr;
+  grid-template-columns: 1fr 1fr;
 }
 .info-dialog__figure {
   display: flex;
   flex-direction: column;
   margin: 0;
-  padding: 24px;
+  padding: 22px;
   border-right: 1px solid var(--dialog-rule);
+  background:
+    radial-gradient(ellipse at 30% 20%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 60%),
+    #090a0d;
 }
 .info-dialog__figure img {
   display: block;
   width: 100%;
   min-height: 0;
   flex: 1;
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 3 / 2;
   object-fit: cover;
-  background: #d1d1cb;
+  background: #111317;
+  outline: 1px solid var(--dialog-rule);
 }
 .info-dialog__figure figcaption {
   display: flex;
@@ -92,276 +109,121 @@
   padding-top: 12px;
   font-family: var(--mono, monospace);
   font-size: 9px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.12em;
+  color: var(--dialog-dim);
 }
 .info-dialog__details {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding: 35px 28px 24px;
+  padding: 32px 28px 26px;
 }
 .info-dialog__metadata {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 25px;
+  margin-bottom: 24px;
   font-family: var(--mono, monospace);
   font-size: 9px;
-  letter-spacing: 0.025em;
+  letter-spacing: 0.1em;
+  color: var(--dialog-dim);
+}
+.info-dialog__metadata span:first-child {
+  color: var(--accent);
 }
 .info-dialog__title {
-  margin: 0 0 16px;
+  margin: 0 0 14px;
   font-family: var(--display, sans-serif);
-  font-size: clamp(44px, 6.8vw, 66px);
+  font-size: clamp(40px, 6vw, 64px);
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.01em;
   font-weight: 400;
   overflow-wrap: anywhere;
 }
 .info-dialog__subtitle {
-  margin: 0 0 25px;
-  font-size: 17px;
-  line-height: 1.6;
-  letter-spacing: -0.04em;
-  font-weight: 650;
+  margin: 0 0 20px;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
 }
 .info-dialog__description {
-  max-width: 34em;
-  margin: 0 0 32px;
-  font-size: 12px;
-  line-height: 2;
-  text-wrap: pretty;
+  margin: 0 0 30px;
+  font-size: 13px;
+  line-height: 1.95;
+  color: var(--dialog-dim);
+  letter-spacing: 0.02em;
 }
 .info-dialog__links {
+  margin-top: auto;
   display: flex;
   flex-direction: column;
-  margin-top: auto;
+  gap: 12px;
 }
 .info-dialog__visit {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  min-height: 80px;
-  padding: 15px 20px;
-  color: #242521;
-  background: #fa512c;
-  text-decoration: none;
+  padding: 16px 18px;
+  background: var(--dialog-ink);
+  color: var(--dialog-bg);
+  font-size: 15px;
+  font-weight: 500;
   transition:
     background 160ms,
-    color 160ms;
-}
-.info-dialog__visit > span:first-child {
-  font-size: 15px;
-  font-weight: 650;
+    color 160ms,
+    transform 160ms;
 }
 .info-dialog__visit:hover {
-  background: var(--dialog-ink);
-  color: var(--dialog-paper);
+  background: var(--accent);
+  color: #fff;
 }
 .info-dialog__link-note {
   display: block;
-  margin-top: 7px;
+  margin-top: 4px;
   font-family: var(--mono, monospace);
-  font-size: 8px;
-  font-weight: 400;
-  letter-spacing: 0.045em;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  opacity: 0.7;
 }
 .info-dialog__source {
-  display: flex;
-  justify-content: space-between;
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  min-height: 48px;
-  padding: 10px 0;
-  color: var(--dialog-ink);
+  gap: 8px;
+  align-self: flex-start;
+  padding: 8px 0;
   font-family: var(--mono, monospace);
   font-size: 10px;
-  letter-spacing: 0.02em;
-  text-decoration: none;
+  letter-spacing: 0.12em;
+  color: var(--dialog-dim);
+  border-bottom: 1px solid var(--dialog-rule);
 }
-.info-dialog__source:hover > span:first-child {
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-.info-dialog__about {
-  padding: 28px 48px 0;
-}
-.info-dialog__about-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.info-dialog__asterisk {
-  color: #fa512c;
-  font-family: Arial, sans-serif;
-  font-size: 57px;
-  font-weight: 700;
-  line-height: 1;
-}
-.info-dialog__about-title {
-  margin: 18px 0 30px;
-  font-size: clamp(36px, 5.9vw, 66px);
-  font-weight: 850;
-  line-height: 1.28;
-  letter-spacing: -0.07em;
-}
-.info-dialog__about-copy {
-  margin: 0 0 36px;
-  font-size: 13px;
-  line-height: 2.1;
-}
-.info-dialog__about-copy p {
-  margin: 0 0 16px;
-}
-.info-dialog__about-copy p:last-child {
-  margin-bottom: 0;
-}
-.info-dialog__about-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-  padding: 20px 0;
-  border-top: 1px solid var(--dialog-rule);
-}
-.info-dialog__about-footer > span {
-  font-size: 11px;
-}
-.info-dialog__about-footer a {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 30px;
-  color: var(--dialog-ink);
-  text-decoration: none;
-  font-family: var(--mono, monospace);
-  font-size: 11px;
-}
-.info-dialog__about-footer a:hover {
-  text-decoration: underline;
-  text-underline-offset: 4px;
+.info-dialog__source:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 .info-dialog__sr-only {
   position: absolute;
   width: 1px;
   height: 1px;
-  padding: 0;
-  margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip: rect(0 0 0 0);
   white-space: nowrap;
-  border: 0;
 }
-
-@keyframes info-dialog-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (max-width: 700px) {
+@media (max-width: 760px) {
   .info-dialog {
-    width: calc(100vw - 28px);
-    max-height: calc(100dvh - 28px);
-  }
-  .info-dialog__bar {
-    position: sticky;
-    z-index: 1;
-    top: 0;
-    min-height: 49px;
-    padding-left: 17px;
-    background: var(--dialog-paper);
-  }
-  .info-dialog__eyebrow {
-    font-size: 8px;
-  }
-  .info-dialog__close {
-    flex-basis: 48px;
-    width: 48px;
-    height: 48px;
+    width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
   }
   .info-dialog__project {
     grid-template-columns: 1fr;
   }
   .info-dialog__figure {
-    padding: 16px 16px 0;
-    border: 0;
-  }
-  .info-dialog__figure img {
-    flex: initial;
-    aspect-ratio: 16 / 10;
-    max-height: 340px;
-    object-position: center;
-  }
-  .info-dialog__figure figcaption {
-    padding-top: 8px;
-    font-size: 8px;
+    border-right: 0;
+    border-bottom: 1px solid var(--dialog-rule);
+    padding: 16px;
   }
   .info-dialog__details {
-    padding: 26px 20px 14px;
-  }
-  .info-dialog__metadata {
-    margin-bottom: 17px;
-    font-size: 8px;
-  }
-  .info-dialog__title {
-    margin-bottom: 13px;
-    font-size: clamp(40px, 11.9vw, 76px);
-  }
-  .info-dialog__subtitle {
-    margin-bottom: 17px;
-    font-size: 16px;
-  }
-  .info-dialog__description {
-    margin-bottom: 24px;
-    font-size: 12px;
-    line-height: 1.9;
-  }
-  .info-dialog__visit {
-    min-height: 73px;
-    padding: 13px 17px;
-  }
-  .info-dialog__about {
-    padding: 22px 24px 0;
-  }
-  .info-dialog__asterisk {
-    font-size: 43px;
-  }
-  .info-dialog__about-title {
-    margin: 27px 0 28px;
-    font-size: clamp(33px, 8vw, 52px);
-    line-height: 1.4;
-  }
-  .info-dialog__about-copy {
-    margin-bottom: 30px;
-    font-size: 12px;
-    line-height: 2.1;
-  }
-  .info-dialog__desktop-break {
-    display: none;
-  }
-  .info-dialog__about-footer {
-    flex-wrap: wrap;
-    gap: 12px;
-    padding: 17px 0;
-  }
-  .info-dialog__about-footer a {
-    font-size: 10px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .info-dialog[open] {
-    animation: none;
-  }
-  .info-dialog__close,
-  .info-dialog__visit {
-    transition: none;
+    padding: 24px 18px 20px;
   }
 }
