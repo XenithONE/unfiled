@@ -22,7 +22,9 @@ import {
   vec4,
 } from "../tsl/t";
 import { bloom } from "three/addons/tsl/display/BloomNode.js";
+import { lensflare } from "three/addons/tsl/display/LensflareNode.js";
 import type { N } from "../tsl/common";
+import { T } from "../tsl/common";
 
 export class Post {
   readonly scenePass: PassNode;
@@ -37,6 +39,8 @@ export class Post {
   readonly grain = uniform(0.018);
   readonly aberration = uniform(0.0012);
   readonly bloomGain = uniform(1);
+  /** Strength of the lens ghosts (#33). */
+  readonly flare = uniform(0.6);
   readonly time = uniform(0);
 
   constructor(renderer: WebGPURenderer, scene: Scene, camera: PerspectiveCamera) {
@@ -46,6 +50,16 @@ export class Post {
     this.bloom = bloom(color, 0.9, 0.55, 0.32);
     // runtime method is getTextureNode(); the typings still say getTexture()
     const bloomTex: N = (this.bloom as unknown as { getTextureNode(): TextureNode }).getTextureNode();
+    // #33 lens ghosts: the bloom mirrored through the centre (r18x LensflareNode);
+    // a high threshold, so only intense points (a sun, a blast) throw ghosts
+    const ghosts: N = lensflare(bloomTex, {
+      ghostTint: vec3(1.0, 0.8, 0.64),
+      threshold: float(2.0),
+      ghostSamples: float(5),
+      ghostSpacing: float(0.27),
+      ghostAttenuationFactor: float(18),
+      downSampleRatio: 4,
+    });
 
     const output = Fn(() => {
       const uv0: N = screenUV;
@@ -70,7 +84,7 @@ export class Post {
         bloomTex.sample(uv0).g,
         bloomTex.sample(uv0.sub(ab)).b,
       ).mul(this.bloomGain);
-      let out: N = base.add(glow);
+      let out: N = base.add(glow).add(vec3(ghosts.rgb).mul(this.flare.mul(T(33))));
 
       // #14 impact frame: a stark two-tone negative held for a frame or two
       const lum = dot(out, vec3(0.2126, 0.7152, 0.0722));

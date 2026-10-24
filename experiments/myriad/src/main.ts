@@ -19,12 +19,16 @@ import { Rig, makePose } from "./engine/rig";
 import { G, setTechnique, techniqueOn } from "./tsl/common";
 import { FoamChapter } from "./chapters/foam";
 import { GalaxyChapter } from "./chapters/galaxy";
+import { ImpactChapter } from "./chapters/impact";
 import { KnotChapter } from "./chapters/knot";
+import { LivingChapter } from "./chapters/living";
+import { MeteorChapter } from "./chapters/meteor";
 import { MoonChapter } from "./chapters/moon";
 import { NurseryChapter } from "./chapters/nursery";
 import { PlanetSystem } from "./chapters/planet";
 import { RingsChapter } from "./chapters/rings";
 import { Sky } from "./chapters/sky";
+import { SunChapter } from "./chapters/sun";
 import { WebChapter } from "./chapters/web";
 import { Prologue, TitleField } from "./chapters/title";
 import { Ui } from "./ui";
@@ -210,6 +214,8 @@ class Engine {
     if (this.playing) {
       for (const e of ch.events) if (this.prevLocal < e.t && local >= e.t) this.score.event(e.name);
     }
+    // a hard cut inside a chapter is not camera motion either
+    if (ch.track.cutBetween(this.prevLocal, local)) ctx.rig.cut();
     this.prevLocal = local;
 
     // #14 stop-motion: animation time advances in 1/12 s steps, camera stays smooth
@@ -299,6 +305,7 @@ class Engine {
     b.radius.value = look.bloom[1];
     b.threshold.value = look.bloom[2];
     post.bloomGain.value = look.bloomGain;
+    post.flare.value = look.flare;
     post.vignette.value = look.vignette;
     post.warp.value = this.ctx.reduced ? look.warp * 0.4 : look.warp;
     post.flash.value = this.ctx.reduced ? look.flash * 0.35 : look.flash;
@@ -402,7 +409,7 @@ async function boot() {
   galaxy.setMarkerHandler((x, y, v) => ui.marker(x, y, v));
   const web = new WebChapter();
   web.setCountHandler((v, n) => ui.counter(v, n));
-  const chapters: Chapter[] = [prologue, new RingsChapter(planet), new MoonChapter(planet), new KnotChapter(), new NurseryChapter(), galaxy, web, new FoamChapter(title, prologue)];
+  const chapters: Chapter[] = [prologue, new SunChapter(), new ImpactChapter(), new LivingChapter(), new MeteorChapter(), new RingsChapter(planet), new MoonChapter(planet), new KnotChapter(), new NurseryChapter(), galaxy, web, new FoamChapter(title, prologue)];
 
   for (let k = 0; k < chapters.length; k++) {
     ui.progress(0.1 + (0.4 * k) / chapters.length, `場面をつくっています… ${k + 1}/${chapters.length}`);

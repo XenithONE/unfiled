@@ -3,7 +3,7 @@
     "id": "myriad",
     "title": "MYRIAD",
     "subtitle": "塵から、宇宙の果てまで。",
-    "description": "ひと粒の塵から、環をもつ巨大惑星、砕ける月、星の川、星の揺籃、銀河、宇宙の網、そして泡の向こうへ。数百万の粒子をWebGPUとTSLの31の小技で描く、約3分の宇宙航行。",
+    "description": "ひと粒の塵から、灼熱の星、巨大衝突、命の星、猛る隕石、環をもつ巨大惑星、砕ける月、星の揺籃、銀河、宇宙の網、そして泡の向こうへ。数百万の粒子をWebGPUとTSLの37の小技で描く、約5分の宇宙航行。",
     "category": "TSL PARTICLE COSMOS",
     "year": "2026",
     "url": "https://xenithone.github.io/unfiled/experiments/myriad/",

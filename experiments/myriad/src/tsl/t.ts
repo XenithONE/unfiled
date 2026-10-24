@@ -79,6 +79,7 @@ export const {
   step,
   storage,
   storageTexture3D,
+  struct,
   tan,
   texture,
   texture3D,

@@ -109,6 +109,33 @@ export class Track {
     out.roll = key.roll ?? 0;
     return out;
   }
+
+  /** Whether the camera cuts (jumps) between local times a and b. */
+  cutBetween(_a: number, _b: number): boolean {
+    return false;
+  }
+}
+
+/** Several tracks played back to back, with hard cuts between them. */
+export class Shots extends Track {
+  private readonly parts: Track[];
+  private readonly cuts: number[];
+
+  constructor(parts: Key[][]) {
+    super(parts.flat());
+    this.parts = parts.map((k) => new Track(k));
+    this.cuts = this.parts.slice(1).map((p) => p.keys[0].t);
+  }
+
+  sample(t: number, out: Pose): Pose {
+    let i = 0;
+    while (i < this.cuts.length && t >= this.cuts[i]) i++;
+    return this.parts[i].sample(t, out);
+  }
+
+  cutBetween(a: number, b: number): boolean {
+    return this.cuts.some((c) => a < c && b >= c);
+  }
 }
 
 export const makePose = (): Pose => ({ pos: new Vector3(), look: new Vector3(), fov: 50, roll: 0 });

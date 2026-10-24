@@ -1,6 +1,7 @@
 /**
- * The 31 techniques, in the numbering of the brief. `toggle` marks the ones
- * whose 0/1 uniform visibly changes the picture (compare on/off live).
+ * The 31 techniques, in the numbering of the brief, then the newer ones the
+ * second edition adds (#32–). `toggle` marks the ones whose 0/1 uniform
+ * visibly changes the picture (compare on/off live).
  */
 export interface Technique {
   n: number;
@@ -41,4 +42,10 @@ export const TECHNIQUES: Technique[] = [
   { n: 29, name: "ピンポン不要の履歴リングバッファ", note: "1本の大きなバッファを「粒の番号×履歴数＋コマ番号」で使い回し、長いリボンの軌跡を描く。", toggle: true },
   { n: 30, name: "フラスタムカリング付きIndirect Draw", note: "見えている銀河だけを計算シェーダーで選び、描く数もGPUが決める。画面外の頂点処理を省く。", toggle: true },
   { n: 31, name: "小型の粒子表現", note: "すべての土台。数百万の小さな粒が、塵にも環にも銀河にもなる。", toggle: false },
+  { n: 32, name: "動く3Dボロノイ（r186 の新しい雑音）", note: "three.js r186 に加わった、特徴点が細胞の中を回る3Dボロノイ。太陽の粒状斑、溶岩の海の対流、雲の細胞、小惑星の小さなクレーターに使う。", toggle: false },
+  { n: 33, name: "レンズのゴースト（LensflareNode）", note: "ブルームの像を画面の中心で鏡に映して重ね、強い光の向かい側にレンズ内の反射を浮かべる。", toggle: true },
+  { n: 34, name: "大気の単一散乱（レイリーとミー）", note: "視線を大気の殻に沿って22歩たどり、各点から太陽までの光の減衰を求める。青い縁、赤い明暗境界、朝日のまわりの輝きがテクスチャなしで出る。", toggle: true },
+  { n: 35, name: "構造体のストレージバッファ（TSL struct）", note: "位置・熱・速度・生まれた時刻を一つの構造体にまとめ、計算シェーダーで積分する。160万の溶けた岩が落ち、軌道に乗り、円盤に集まって月になる。", toggle: false },
+  { n: 36, name: "テクスチャなしの凹凸（画面微分のバンプ）", note: "手続きで作った高さの画面上の変化から法線を傾ける。小惑星の細かいクレーターと砂粒に、本物の太陽光と影が落ちる。", toggle: true },
+  { n: 37, name: "点過程の街あかり", note: "格子ごとに街を一つ置くかを乱数で決め、近い8マスだけを調べる。人口はべき乗則で、海岸と低地に灯りが集まる。", toggle: false },
 ];

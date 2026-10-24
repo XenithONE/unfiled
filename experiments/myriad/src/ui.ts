@@ -161,8 +161,9 @@ export class Ui {
       else if (k === "m" || k === "M") this.setSound(h.toggleSound());
       else if (k === "f" || k === "F") this.fullscreen();
       else if (k === "q" || k === "Q") this.toast(h.toggleStopMotion() ? "コマ撮りモード：オン（1秒12コマ）" : "コマ撮りモード：オフ");
-      else if (/^[1-9]$/.test(k)) {
-        const i = Number(k) - 1;
+      else if (/^[0-9]$/.test(k)) {
+        // 1–9 then 0 for the tenth; the rest by the arrows
+        const i = k === "0" ? 9 : Number(k) - 1;
         if (i < this.chapters.length) h.seekChapter(i);
       } else return;
       this.poke();

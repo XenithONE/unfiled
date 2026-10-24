@@ -36,6 +36,8 @@ export interface Look {
   flashColor: [number, number, number];
   impact: number;
   bloomGain: number;
+  /** Lens ghosts (#33). */
+  flare: number;
 }
 
 export const defaultLook = (): Look => ({
@@ -52,6 +54,7 @@ export const defaultLook = (): Look => ({
   flashColor: [1, 1, 1],
   impact: 0,
   bloomGain: 1,
+  flare: 0.15,
 });
 
 /** Smooth 0→1 ramp of t between a and b. */
