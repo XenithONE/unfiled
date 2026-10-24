@@ -497,6 +497,7 @@ export default function App() {
         ) : null}
 
         <Ending
+          count={count}
           stats={stats}
           status={status}
           onTop={scrollToTop}
@@ -570,7 +571,7 @@ export default function App() {
         />
       ) : null}
 
-      <Loader status={status} reduced={reduced} onDone={() => setLoaderDone(true)} />
+      <Loader works={count} status={status} reduced={reduced} onDone={() => setLoaderDone(true)} />
       <Cursor />
     </div>
   );

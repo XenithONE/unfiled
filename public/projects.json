@@ -1,5 +1,16 @@
 [
   {
+    "id": "myriad",
+    "title": "MYRIAD",
+    "subtitle": "塵から、宇宙の果てまで。",
+    "description": "ひと粒の塵から、環をもつ巨大惑星、砕ける月、星の川、星の揺籃、銀河、宇宙の網、そして泡の向こうへ。数百万の粒子をWebGPUとTSLの31の小技で描く、約3分の宇宙航行。",
+    "category": "TSL PARTICLE COSMOS",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/experiments/myriad/",
+    "cover": "images/myriad.webp",
+    "accent": "#f0a35a"
+  },
+  {
     "id": "orbital-recoil",
     "title": "ORBITAL RECOIL",
     "subtitle": "臨界軌道脱出。",

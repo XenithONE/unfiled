@@ -13,6 +13,15 @@ interface Props {
 
 const LEDE = "好奇心の、散らばるままに。";
 
+const DIGITS = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+
+/** 1..99 in kanji numerals (三十二). */
+function kanjiCount(n: number) {
+  const tens = Math.floor(n / 10) % 10;
+  const ones = n % 10;
+  return `${tens > 1 ? DIGITS[tens] : ""}${tens > 0 ? "十" : ""}${DIGITS[ones]}` || "〇";
+}
+
 export default function HeroCopy({ count, year, status, reduced, revealed, onEnter }: Props) {
   const root = useRef<HTMLElement>(null);
   const unsupported = status.state === "unsupported";
@@ -60,7 +69,7 @@ export default function HeroCopy({ count, year, status, reduced, revealed, onEnt
           <i aria-hidden="true" />
           <span>VOL. {year}</span>
           <i aria-hidden="true" />
-          <span>{String(count || 31).padStart(2, "0")} WORKS</span>
+          <span>{String(count || 32).padStart(2, "0")} WORKS</span>
           <i aria-hidden="true" />
           <span>
             {status.state === "ready"
@@ -85,7 +94,7 @@ export default function HeroCopy({ count, year, status, reduced, revealed, onEnt
         <p className="hero-sub hero-reveal">
           AIとつくった、まだ分類できないものたち。
           <br />
-          三十一の実験を、ひとつの粒子の場に並べました。
+          {kanjiCount(count || 32)}の実験を、ひとつの粒子の場に並べました。
         </p>
         <div className="hero-actions hero-reveal">
           <button type="button" className="enter-button" onClick={onEnter} data-cursor="ENTER">

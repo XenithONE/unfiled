@@ -3,36 +3,39 @@ import gsap from "gsap";
 import type { StageStatus } from "../stage/useStage";
 
 interface Props {
+  works: number;
   status: StageStatus;
   reduced: boolean;
   onDone: () => void;
 }
 
-const LINES = [
+const bootLines = (works: number) => [
   "UNFILED / FIELD BOOT",
   "> adapter ............ probing",
   "> particles .......... allocating",
   "> shaders ............ compiling",
-  "> archive ............ filing 31 works",
+  `> archive ............ filing ${works || "the"} works`,
 ];
 
 const MIN_MS = 1700;
 
-export default function Loader({ status, reduced, onDone }: Props) {
+export default function Loader({ works, status, reduced, onDone }: Props) {
   const root = useRef<HTMLDivElement>(null);
   const bar = useRef<HTMLDivElement>(null);
   const [lines, setLines] = useState<string[]>([]);
   const [gone, setGone] = useState(false);
   const started = useRef(performance.now());
   const finished = useRef(false);
+  const worksRef = useRef(works);
+  worksRef.current = works;
 
   // typed boot lines
   useEffect(() => {
     let i = 0;
     const id = window.setInterval(() => {
       i++;
-      setLines(LINES.slice(0, i));
-      if (i >= LINES.length) window.clearInterval(id);
+      setLines(bootLines(worksRef.current).slice(0, i));
+      if (i >= bootLines(0).length) window.clearInterval(id);
     }, 190);
     return () => window.clearInterval(id);
   }, []);

@@ -3,6 +3,7 @@ import type { StageStats } from "../stage/Stage";
 import type { StageStatus } from "../stage/useStage";
 
 interface Props {
+  count: number;
   stats: StageStats | null;
   status: StageStatus;
   year: number;
@@ -11,7 +12,7 @@ interface Props {
 }
 
 /** The chamber at the end of the rail: field notes, colophon, footer. */
-export default function Ending({ stats, status, year, onTop, onIndex }: Props) {
+export default function Ending({ count, stats, status, year, onTop, onIndex }: Props) {
   const backend =
     status.state === "ready"
       ? status.backend === "webgpu"
@@ -70,7 +71,7 @@ export default function Ending({ stats, status, year, onTop, onIndex }: Props) {
         <div className="ending-actions">
           <button type="button" className="big-button" onClick={onIndex} data-cursor="INDEX">
             <span>作品の索引をひらく</span>
-            <span className="mono">31 FILED</span>
+            <span className="mono">{count || "—"} FILED</span>
           </button>
           <button type="button" className="big-button ghost" onClick={onTop} data-cursor="TOP">
             <span>最初へ戻る</span>
