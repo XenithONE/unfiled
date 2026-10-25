@@ -9,6 +9,7 @@ import type { Ctx, Look } from "../engine/chapter";
 import { Chapter, ramp } from "../engine/chapter";
 import { Track } from "../engine/rig";
 import type { PlanetSystem } from "./planet";
+import { SUN } from "./planet";
 
 export class RingsChapter extends Chapter {
   readonly id = "rings";
@@ -16,7 +17,7 @@ export class RingsChapter extends Chapter {
   readonly name = "環の塵";
   readonly caption = "巨大な惑星の環は、数えきれない氷の粒でできている。";
   readonly duration = 26;
-  readonly techniques = [31, 1, 3, 4, 5, 6, 10, 12, 23];
+  readonly techniques = [31, 1, 3, 4, 5, 6, 10, 12, 23, 39];
   private sys: PlanetSystem;
 
   constructor(sys: PlanetSystem) {
@@ -68,5 +69,11 @@ export class RingsChapter extends Chapter {
     out.exposure = 1.0;
     // the prologue ends in white; come out of it
     out.flash = (1 - ramp(t, 0, 1.4)) * 1.2;
+    // #39 shafts of sunlight through the ring's grains while we skim it
+    out.rays = 0.22 * (1 - ramp(t, 10, 14));
+    // the skim through the ring is already full of glare: a lighter touch of lens dirt
+    out.dirt = 0.28;
+    out.raysDir = [SUN.x, SUN.y, SUN.z];
+    out.raysColor = [1.0, 0.94, 0.84];
   }
 }

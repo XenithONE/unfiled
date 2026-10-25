@@ -38,7 +38,27 @@ export interface Look {
   bloomGain: number;
   /** Lens ghosts (#33). */
   flare: number;
+  /** #38 dirt on the lens, anamorphic streak, halation. */
+  dirt: number;
+  streak: number;
+  halation: number;
+  /** #39 light shafts toward a world point (or along a direction from the camera). */
+  rays: number;
+  raysAt: [number, number, number] | null;
+  raysDir: [number, number, number] | null;
+  raysColor: [number, number, number];
+  /** #40 grade after tone mapping. */
+  grade: Grade;
 }
+
+export interface Grade {
+  lift: [number, number, number];
+  gamma: [number, number, number];
+  gain: [number, number, number];
+  saturation: number;
+}
+
+export const neutralGrade = (): Grade => ({ lift: [0, 0, 0], gamma: [1, 1, 1], gain: [1, 1, 1], saturation: 1 });
 
 export const defaultLook = (): Look => ({
   bloom: [0.9, 0.55, 0.3],
@@ -55,6 +75,14 @@ export const defaultLook = (): Look => ({
   impact: 0,
   bloomGain: 1,
   flare: 0.15,
+  dirt: 0.45,
+  streak: 0.25,
+  halation: 0.12,
+  rays: 0,
+  raysAt: null,
+  raysDir: null,
+  raysColor: [1, 0.92, 0.8],
+  grade: neutralGrade(),
 });
 
 /** Smooth 0→1 ramp of t between a and b. */

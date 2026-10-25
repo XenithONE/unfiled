@@ -10,15 +10,19 @@ import { FFT_BINS, G, fftData, fftTexture } from "../tsl/common";
 
 const CHORDS: number[][] = [
   [38, 50, 57, 62, 64], // prologue: D sus2
+  [34, 46, 53, 57, 60, 64], // sun: B♭ maj9♯11
+  [36, 48, 51, 55, 62], // impact: C m(add9)
+  [41, 53, 57, 60, 64, 67], // living: F maj9
+  [44, 56, 63, 66, 70], // meteor: A♭ sus2 (♭7)
   [43, 55, 59, 62, 66, 69], // rings: G maj9
   [41, 53, 56, 60, 63], // moon: F m7
   [36, 48, 55, 62, 65], // knot: C sus
   [45, 57, 61, 64, 68], // nursery: A maj7
   [40, 52, 59, 63, 66, 71], // galaxy: E maj9
-  [37, 49, 56, 61, 63], // web: C# sus2
+  [37, 49, 56, 61, 63], // web: C♯ sus2
   [50, 57, 62, 66, 69, 74], // foam: D major
 ];
-const SPARKLE_RATE = [0.6, 2.4, 1.2, 1.8, 2.0, 3.0, 2.6, 3.4];
+const SPARKLE_RATE = [0.6, 1.4, 0.8, 2.0, 1.0, 2.4, 1.2, 1.8, 2.0, 3.0, 2.6, 3.4];
 
 const hz = (midi: number) => 440 * Math.pow(2, (midi - 69) / 12);
 

@@ -137,7 +137,7 @@ export class MeteorChapter extends Chapter {
   readonly name = "猛る隕石";
   readonly caption = "山ほどの岩が、空気に灼かれながら落ちてくる。";
   readonly duration = 26;
-  readonly techniques = [36, 32, 20, 9, 15, 33, 31];
+  readonly techniques = [36, 32, 20, 9, 15, 33, 38, 31];
 
   private readonly level = uniform(1);
   private readonly sun = uniform(L2.clone());

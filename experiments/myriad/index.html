@@ -6,11 +6,11 @@
     <meta name="theme-color" content="#030306" />
     <meta
       name="description"
-      content="ひと粒の塵から、灼熱の星、巨大衝突、命の星、猛る隕石、環をもつ巨大惑星、砕ける月、星の揺籃、銀河、宇宙の網、そして泡の向こうへ。数百万の粒子をWebGPUとTSLの37の小技で描く、約5分の宇宙航行。"
+      content="ひと粒の塵から、灼熱の星、巨大衝突、命の星、猛る隕石、環をもつ巨大惑星、砕ける月、星の揺籃、銀河、宇宙の網、そして泡の向こうへ。数百万の粒子をWebGPUとTSLの44の小技で描く、約5分の宇宙航行。"
     />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="MYRIAD — 塵から、宇宙の果てまで。" />
-    <meta property="og:description" content="数百万の粒子とTSLの37の小技で描く、ブラウザの中の宇宙航行。" />
+    <meta property="og:description" content="数百万の粒子とTSLの44の小技で描く、ブラウザの中の宇宙航行。" />
     <meta property="og:url" content="https://xenithone.github.io/unfiled/experiments/myriad/" />
     <meta property="og:image" content="https://xenithone.github.io/unfiled/images/myriad.webp" />
     <meta name="twitter:card" content="summary_large_image" />
@@ -25,6 +25,7 @@
     <canvas id="c" aria-label="粒子で描かれた宇宙の映像"></canvas>
 
     <div id="subtitle" aria-hidden="true">塵から、宇宙の果てまで。</div>
+    <div id="card" aria-hidden="true"><span class="num"></span><span class="name"></span><span class="cap"></span></div>
     <div id="marker" aria-hidden="true"><span>太陽系 ― あなたはここ</span></div>
     <div id="counter" class="mono" aria-hidden="true"></div>
 
@@ -37,7 +38,7 @@
           <span class="caption" id="ch-caption"></span>
         </div>
         <div class="tools">
-          <button id="tech-btn" class="pill" aria-expanded="false" aria-controls="tech">37の小技</button>
+          <button id="tech-btn" class="pill" aria-expanded="false" aria-controls="tech">44の小技</button>
           <button id="snd-btn" class="icon" aria-label="音を切り替える"></button>
           <button id="fs-btn" class="icon" aria-label="全画面"></button>
         </div>
@@ -49,7 +50,7 @@
       </footer>
       <aside id="tech" hidden>
         <div class="tech-head">
-          <h2>37の小技</h2>
+          <h2>44の小技</h2>
           <p>光っている番号が、いまの場面で使っている技です。切り替えると違いを見比べられます。</p>
         </div>
         <ol id="tech-list"></ol>
@@ -62,7 +63,7 @@
         <h1>MYRIAD</h1>
         <p class="lede">塵から、宇宙の果てまで。</p>
         <p class="body">
-          ひと粒の塵から、灼熱の星、星どうしの巨大衝突、命の星、猛る隕石、環をもつ巨大惑星、砕ける月、星の川の巨大構造物、星の揺籃、銀河、宇宙の網、そして泡の向こうへ。数百万の粒子を、WebGPU と TSL の37の小技（three.js r186 の新しい技を含む）で描く約5分の宇宙航行です。
+          ひと粒の塵から、灼熱の星、星どうしの巨大衝突、命の星、猛る隕石、環をもつ巨大惑星、砕ける月、星の川の巨大構造物、星の揺籃、銀河、宇宙の網、そして泡の向こうへ。数百万の粒子を、WebGPU と TSL の44の小技（three.js r186 の新しい技を含む）で描く約5分の宇宙航行です。
         </p>
         <div class="start">
           <button id="start-sound" class="go" disabled>音ありで はじめる</button>

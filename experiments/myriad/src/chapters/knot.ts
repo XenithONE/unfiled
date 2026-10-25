@@ -30,6 +30,7 @@ import {
   abs,
   cameraFar,
   cameraNear,
+  cameraPosition,
   clamp,
   cross,
   dot,
@@ -300,7 +301,8 @@ export class KnotChapter extends Chapter {
     const hot = vec3(1.0, 0.95, 0.9);
     const col = mix(slow, fast, smoothstep(10, 22, speed));
     const sheath = vel.w;
-    const base = varying(mix(col, hot, sheath.mul(0.8)).mul(sheath.mul(2.5).add(0.45)).mul(this.level));
+    const clear = smoothstep(2.5, 9, length(pos.sub(cameraPosition)));
+    const base = varying(mix(col, hot, sheath.mul(0.8)).mul(sheath.mul(2.5).add(0.45)).mul(clear).mul(this.level));
     const viewZ = varying(G.viewMatrix.mul(vec4(pos, 1)).z);
     const mat = new MeshBasicNodeMaterial();
     mat.vertexNode = sprite.clip;
@@ -366,6 +368,8 @@ export class KnotChapter extends Chapter {
     const tail = H.element(tr.mul(uint(HIST)).add(tailSlot));
     const ok = head.w.mul(tail.w).mul(select(length(head.xyz.sub(tail.xyz)).lessThan(6), float(1), float(0)));
     const age = k.toFloat().div(segs);
+    // ribbons sweeping right past the lens would be thick bars across the frame: let them go
+    const clear = smoothstep(5, 16, length(head.xyz.sub(cameraPosition)));
     const sprite = spriteVertex({
       center: head.xyz,
       radius: float(0.05),
@@ -373,7 +377,7 @@ export class KnotChapter extends Chapter {
       streakKeep: 1,
       minPx: 0.8,
       maxPx: 12,
-      visible: ok.mul(T(29)),
+      visible: ok.mul(T(29)).mul(clear),
     });
     const tint = mix(vec3(0.45, 0.95, 1.0), vec3(0.95, 0.4, 1.0), age);
     const mat = new MeshBasicNodeMaterial();

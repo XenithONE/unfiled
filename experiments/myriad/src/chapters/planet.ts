@@ -22,6 +22,7 @@ import {
 import {
   Fn,
   abs,
+  acos,
   asin,
   cameraPosition,
   clamp,
@@ -61,6 +62,11 @@ import type { N } from "../tsl/common";
 import { G, T, gauss, rnd } from "../tsl/common";
 import { impostorSphere, makeMatcap, matcapShade, voronoiCracks } from "../tsl/impostor";
 import { fbm2, snoiseGrad } from "../tsl/noise";
+import { blackbody } from "../tsl/palette";
+import { voronoi3d as voronoi3dTyped } from "three/addons/tsl/math/voronoiNoise.js";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const voronoi3d: any = voronoi3dTyped;
 import { bokehShape, ditherKeep, flareShape, spriteVertex } from "../tsl/sprite";
 
 export const RP = 60;
@@ -467,20 +473,38 @@ export class PlanetSystem {
   }
 
   private buildMoon(): Mesh {
-    const geo = new SphereGeometry(MOON_R, 160, 100);
+    const geo = new SphereGeometry(MOON_R, 192, 128);
     const mat = new MeshBasicNodeMaterial();
+    // the fractures start on the side that faces the giant (tidal stress) and spread
+    const o = MOON_POS.clone().negate().normalize();
+    const origin = vec3(o.x, o.y, o.z);
     mat.colorNode = Fn(() => {
-      const n = normalize(normalWorld);
-      const local = n.mul(3.2);
-      const craters = snoiseGrad(local).w.mul(0.5).add(snoiseGrad(local.mul(3.1)).w.mul(0.25));
-      const albedo = vec3(0.42, 0.4, 0.39).add(craters.mul(0.12));
+      const n = normalize(normalWorld).toVar();
+      // highlands and dark maria, craters at two scales (bowls with raised rims)
+      const maria = smoothstep(0.05, 0.35, fbm2(n.mul(1.7).add(4)));
+      const crater = (d: N, rc: number): N => {
+        const bowl = float(1).sub(smoothstep(rc * 0.62, rc, d));
+        const rim = exp(d.sub(rc).div(rc * 0.22).pow(2).negate());
+        return bowl.mul(-0.32).add(rim.mul(0.28));
+      };
+      const relief = crater(sqrt(voronoi3d(n.mul(5.5), float(0))), 0.32).add(crater(sqrt(voronoi3d(n.mul(14).add(2.5), float(0))), 0.28).mul(0.6));
+      const grit = snoiseGrad(n.mul(40)).w.mul(0.08).add(1);
+      const albedo = mix(vec3(0.46, 0.45, 0.43), vec3(0.19, 0.19, 0.2), maria).mul(relief.add(1)).mul(grit);
       const ndl = dot(n, this.sun);
       const lit = smoothstep(-0.05, 0.25, ndl).mul(max(ndl, 0).mul(0.8).add(0.2));
-      // the plates that will become chunks show first as glowing seams (#24)
-      const width = this.moonCrack.mul(0.05).add(0.004);
-      const crack = voronoiCracks(n.mul(2.6), width).mul(this.moonCrack);
-      const heat = vec3(1.0, 0.42, 0.1).mul(crack).mul(this.moonCrack.mul(5).add(1));
-      return albedo.mul(lit).mul(this.sunColor).add(heat).mul(this.level);
+      // #24 the fracture front: big plates crack first, finer splits follow behind it
+      const w = n.add(snoiseGrad(n.mul(2.2)).xyz.mul(0.07)).toVar();
+      const ang = acos(clamp(dot(n, origin), -1, 1));
+      const front = this.moonCrack.mul(3.4);
+      const reveal = smoothstep(front, front.sub(0.45), ang);
+      const revealFine = smoothstep(front.sub(0.6), front.sub(1.3), ang).mul(smoothstep(0.45, 0.8, this.moonCrack));
+      const width = this.moonCrack.mul(0.03).add(0.007);
+      const big = voronoiCracks(w.mul(2.4), width).mul(reveal);
+      const fine = voronoiCracks(w.mul(6.5).add(1.3), width.mul(0.5)).mul(revealFine).mul(0.6);
+      const halo = voronoiCracks(w.mul(2.4), width.mul(3)).mul(reveal).mul(0.12);
+      // dull red at first, orange, then white-hot just before it bursts
+      const glow = blackbody(float(1).sub(this.moonCrack.mul(0.72))).mul(max(big, fine).add(halo)).mul(this.moonCrack.mul(1.8).add(0.4));
+      return albedo.mul(lit).mul(this.sunColor).add(glow).mul(this.level);
     })();
     const mesh = new Mesh(geo, mat);
     mesh.position.copy(MOON_POS);

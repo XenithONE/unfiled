@@ -140,10 +140,47 @@ export function asteroidRock(seed: number, detail = 100, big = 18, small = 140, 
   return { geometry: geo, radiusAt, stretch };
 }
 
+/**
+ * A shard of broken rock: a sphere cut by random planes (each vertex is pulled
+ * in to the nearest plane along its direction), so the pieces have flat
+ * fracture faces and sharp edges, then a faint roughness. Flat-shaded.
+ */
+export function shardGeometry(seed: number, detail = 2, planes = 9): BufferGeometry {
+  const rand = makeRandom(seed * 131 + 7);
+  const noise = makeNoise3(seed + 3);
+  const cuts: { n: Vector3; d: number }[] = [];
+  for (let k = 0; k < planes; k++) {
+    const z = rand() * 2 - 1;
+    const a = rand() * Math.PI * 2;
+    const r = Math.sqrt(1 - z * z);
+    cuts.push({ n: new Vector3(r * Math.cos(a), r * Math.sin(a), z), d: 0.5 + rand() * 0.42 });
+  }
+  const stretch = new Vector3(1 + rand() * 0.5, 0.65 + rand() * 0.3, 0.85 + rand() * 0.3);
+  let geo: BufferGeometry = new IcosahedronGeometry(1, detail);
+  geo.deleteAttribute("normal");
+  geo.deleteAttribute("uv");
+  geo = mergeVertices(geo);
+  const pos = geo.getAttribute("position");
+  const v = new Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i).normalize();
+    let r = 1.2;
+    for (const c of cuts) {
+      const cos = v.dot(c.n);
+      if (cos > 1e-3) r = Math.min(r, c.d / cos);
+    }
+    r *= 1 + 0.035 * noise(v.x * 3.3, v.y * 3.3, v.z * 3.3);
+    pos.setXYZ(i, v.x * r * stretch.x, v.y * r * stretch.y, v.z * r * stretch.z);
+  }
+  geo = geo.toNonIndexed();
+  geo.computeVertexNormals();
+  return geo;
+}
+
 /** A small boulder: a lumpy, low-poly unit rock. */
-export function boulderGeometry(seed: number): BufferGeometry {
+export function boulderGeometry(seed: number, detail = 3): BufferGeometry {
   const noise = makeNoise3(seed);
-  let geo: BufferGeometry = new IcosahedronGeometry(1, 3);
+  let geo: BufferGeometry = new IcosahedronGeometry(1, detail);
   geo.deleteAttribute("normal");
   geo.deleteAttribute("uv");
   geo = mergeVertices(geo);

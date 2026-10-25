@@ -49,7 +49,6 @@ import {
   positionWorld,
   pow,
   select,
-  sign,
   sin,
   smoothstep,
   sqrt,
@@ -145,9 +144,9 @@ const DAY_A = dir(0.32, 0.62, -0.72);
 const DAY_B = dir(0.5, 0.56, -0.66);
 /** Cyclones: centre, angular radius (rad) and twist at the eye (rad). */
 const CYCLONES = [
-  { d: dir(0.62, 0.7, -0.36), r: 0.11, k: 5.0 },
-  { d: dir(0.3, 0.25, -0.92), r: 0.09, k: -4.2 },
-  { d: dir(-0.5, -0.55, 0.67), r: 0.1, k: 4.6 },
+  { d: dir(0.62, 0.7, -0.36), r: 0.12, k: 3.4 },
+  { d: dir(0.3, 0.25, -0.92), r: 0.1, k: -3.0 },
+  { d: dir(-0.5, -0.55, 0.67), r: 0.11, k: 3.2 },
 ];
 /** The point that shows at (x, y) in NDC, `dist` away, from a camera key with `up` up. */
 function onScreen(pos: Vector3, at: Vector3, up: Vector3, fov: number, x: number, y: number, dist: number) {
@@ -231,13 +230,21 @@ function ground(n: N): { h: N; land: N; slope: N } {
   const q = n.mul(1.45).add(warp).toVar();
   const base = snoiseGrad(q);
   const h0 = base.w.mul(0.62).add(fbm(q.mul(2.3).add(1.3), 4).mul(0.38)).sub(0.06).toVar();
-  // ridged ranges inland
+  // ridged ranges inland (a softened |n| keeps the crests from drawing hard lines),
+  // with a finer ridged octave branching off the main crests like eroded spurs
   const r = snoiseGrad(q.mul(6.5).add(11.0));
-  const ridge = float(1).sub(abs(r.w));
+  const s1 = sqrt(r.w.mul(r.w).add(0.004));
+  const ridge = float(1).sub(s1);
+  const r2 = snoiseGrad(q.mul(15).add(23.0));
+  const s2 = sqrt(r2.w.mul(r2.w).add(0.004));
+  const spur = float(1).sub(s2);
   const inland = smoothstep(0.03, 0.22, h0);
-  const h = h0.add(ridge.mul(ridge).mul(0.24).mul(inland)).toVar();
-  // ∇(ridge²) = −2·ridge·sign(n)·∇n, plus the continental slope
-  const slope = r.xyz.mul(sign(r.w).negate()).mul(ridge.mul(2 * 0.24 * 6.5)).mul(inland).add(base.xyz.mul(0.62));
+  const h = h0.add(ridge.mul(ridge).mul(0.2).add(ridge.mul(spur.mul(spur)).mul(0.1)).mul(inland)).toVar();
+  // ∇ by the chain rule: d(ridge) = −(n/|n|)·∇n·6.5, d(spur) = −(n₂/|n₂|)·∇n₂·15
+  const dRidge = r.xyz.mul(r.w.div(s1).negate()).mul(6.5);
+  const dSpur = r2.xyz.mul(r2.w.div(s2).negate()).mul(15);
+  const dMount = dRidge.mul(ridge.mul(0.4).add(spur.mul(spur).mul(0.1))).add(dSpur.mul(ridge.mul(spur).mul(0.2)));
+  const slope = dMount.mul(inland).add(base.xyz.mul(0.62));
   return { h, land: smoothstep(-0.004, 0.01, h), slope };
 }
 
@@ -308,7 +315,9 @@ export class LivingWorld {
       const tone = snoiseGrad(n.mul(16).add(2.2)).w.mul(0.5).add(0.5);
       const speckle = mix(float(1), snoiseGrad(n.mul(70).add(5.5)).w.mul(0.25).add(1), resolved(1.5));
       // biomes from warmth, moisture and height
-      const ocean = mix(vec3(0.003, 0.018, 0.055), vec3(0.012, 0.12, 0.17), smoothstep(-0.14, 0.0, h));
+      // the shelf widens and narrows along the coast (no even outline round every shore)
+      const shelf = snoiseGrad(n.mul(9).add(31)).w.mul(0.5).add(0.5).pow(2).mul(0.16).add(0.025);
+      const ocean = mix(vec3(0.003, 0.018, 0.055), vec3(0.01, 0.1, 0.15), smoothstep(shelf.negate(), 0.0, h).pow(1.6));
       const warm = float(1).sub(smoothstep(0.35, 0.8, lat));
       const dry = mix(vec3(0.13, 0.12, 0.05), vec3(0.45, 0.29, 0.14), smoothstep(0.5, 0.26, moist));
       const wet = mix(vec3(0.04, 0.075, 0.035), vec3(0.015, 0.065, 0.02), warm);
@@ -320,7 +329,9 @@ export class LivingWorld {
       // highlands brown, high ranges bare rock, snow only on the peaks and near the poles
       g = mix(g, g.mul(vec3(1.15, 0.95, 0.8)), smoothstep(0.25, 0.45, h));
       g = mix(g, vec3(0.22, 0.19, 0.16).mul(tone.mul(0.4).add(0.8)), smoothstep(0.5, 0.75, h));
-      g = mix(g, vec3(0.85, 0.88, 0.93), smoothstep(0.82, 0.95, h.add(lat.mul(0.35))));
+      // snowcaps over the high ground (broad, broken by the wind), not lines along the crests
+      const snowN = snoiseGrad(n.mul(34).add(7.7)).w.mul(0.05);
+      g = mix(g, vec3(0.8, 0.83, 0.88), smoothstep(0.68, 0.84, h.add(lat.mul(0.32)).add(snowN)));
       const ice = smoothstep(0.9, 0.95, lat.add(fbm(n.mul(6), 2).mul(0.05)));
       const albedo = mix(mix(ocean, g, land), vec3(0.84, 0.89, 0.95), ice).toVar();
       const sea = float(1).sub(land).mul(float(1).sub(ice)).toVar();
@@ -332,8 +343,9 @@ export class LivingWorld {
 
       // day: relief, cloud shadows, the glint of the sun on the sea
       If(mu.greaterThan(-0.12), () => {
-        const tang = slope.sub(nW.mul(dot(slope, nW)));
-        const bn = normalize(nW.sub(tang.mul(land.mul(0.045))));
+        // relief light from the analytic slope, its tilt capped so steep ranges stay rock, not gloss
+        const tang = slope.sub(nW.mul(dot(slope, nW))).mul(land.mul(0.03));
+        const bn = normalize(nW.sub(tang.mul(min(float(1), float(0.2).div(length(tang).max(1e-4))))));
         const day = smoothstep(-0.06, 0.2, mu).mul(max(dot(bn, this.sun), 0).mul(0.9).add(0.1));
         const shade = float(1).sub(this.cloudDensity(normalize(n.add(this.sun.mul(0.014))), 3).mul(0.62));
         const ripple = snoiseGrad(n.mul(240).add(G.clock.mul(0.12))).xyz.mul(resolved(1.2).mul(0.03));
@@ -408,14 +420,26 @@ export class LivingWorld {
     let d: N = systems.mul(0.55).add(body.v.mul(0.6)).add(belts);
     let g: N = body.g.mul(6.5 * 0.6);
     if (fine) {
-      // honeycomb decks of stratocumulus in the subtropics (r186's moving 3D Voronoi, #32)
-      const cells = smoothstep(0.5, 0.12, voronoi3d(qq.mul(130), G.clock.mul(0.03)));
-      const decks = smoothstep(0.55, 0.75, fbm(qq.mul(2.4).add(40), 2).mul(0.5).add(0.5)).mul(exp(lat.sub(0.45).div(0.18).pow(2).negate()));
-      d = d.add(cells.sub(0.5).mul(decks.mul(resolved(4.0)).mul(0.22)));
-      const k1 = resolved(2.0).mul(0.18);
-      const f1 = fbmD(qq.mul(60).add(3.3), 3);
-      d = d.add(f1.v.mul(k1)).add(snoiseGrad(qq.mul(240)).w.mul(resolved(0.5).mul(0.06)));
-      g = g.add(f1.g.mul(k1.mul(60 * 0.35)));
+      // honeycomb decks of stratocumulus in the subtropics (r186's moving 3D Voronoi, #32);
+      // the 27-cell search runs only where a deck is there and resolved
+      const decks = smoothstep(0.55, 0.75, fbm(qq.mul(2.4).add(40), 2).mul(0.5).add(0.5)).mul(exp(lat.sub(0.45).div(0.18).pow(2).negate())).mul(resolved(4.0)).toVar();
+      const deckTerm = float(0).toVar();
+      If(decks.greaterThan(0.002), () => {
+        const cells = smoothstep(0.5, 0.12, voronoi3d(qq.mul(130), G.clock.mul(0.03)));
+        deckTerm.assign(cells.sub(0.5).mul(decks).mul(0.22));
+      });
+      d = d.add(deckTerm);
+      // the fine octaves only while they span pixels
+      const k1 = resolved(2.0).mul(0.18).toVar();
+      const fineV = float(0).toVar();
+      const fineG = vec3(0).toVar();
+      If(k1.greaterThan(0.002), () => {
+        const f1 = fbmD(qq.mul(60).add(3.3), 3);
+        fineV.assign(f1.v.mul(k1).add(snoiseGrad(qq.mul(240)).w.mul(resolved(0.5).mul(0.06))));
+        fineG.assign(f1.g.mul(k1.mul(60 * 0.35)));
+      });
+      d = d.add(fineV);
+      g = g.add(fineG);
     }
     const dens = smoothstep(0.1, 0.3, d).mul(eye);
     if (!withGrad) return { dens, grad: vec3(0) };
@@ -440,7 +464,10 @@ export class LivingWorld {
       const nW = normalize(normalWorld);
       const mu = dot(nW, this.sun);
       // relief: the cloud tops are a height field of the noise, tilted by its gradient
-      const top = normalize(nW.sub(field.grad.sub(nW.mul(dot(field.grad, nW))).mul(0.02)));
+      // (the tilt is capped: where cyclones twist the field the gradient runs wild)
+      const tilt = field.grad.sub(nW.mul(dot(field.grad, nW))).mul(0.02);
+      const tiltCapped = tilt.mul(min(float(1), float(0.22).div(length(tilt).max(1e-4))));
+      const top = normalize(nW.sub(tiltCapped));
       // sunlit, plus a faint moonlit grey on the night side
       const lit = smoothstep(-0.1, 0.25, mu)
         .mul(max(dot(top, this.sun), 0).mul(0.8).add(0.2))
@@ -462,7 +489,9 @@ export class LivingWorld {
       const flick = sin(G.clock.mul(73).add(id.mul(40))).mul(0.5).add(0.5);
       const night = smoothstep(0.08, -0.08, mu);
       const bolt = vec3(0.65, 0.75, 1.0).mul(strike.mul(blob).mul(flick).mul(storm).mul(night).mul(6));
-      const shock = exp(length(positionWorld.sub(this.flashPos)).sub(this.ringRadius).div(1.4).pow(2).negate()).mul(this.ringPower);
+      // the shock front through the deck: a broad, torn swell, not a drawn circle
+      const torn = snoiseGrad(n.mul(60)).w.mul(1.6);
+      const shock = exp(length(positionWorld.sub(this.flashPos)).sub(this.ringRadius).add(torn).div(3.2).pow(2).negate()).mul(this.ringPower).mul(dens.mul(0.7).add(0.3));
       const flashLit = this.flashAt(positionWorld).mul(body).add(vec3(1.0, 0.9, 0.8).mul(shock));
       return vec4(tint.mul(lit).mul(body).add(bolt).add(flashLit).mul(this.level), dens.mul(0.94).add(shock.mul(0.3)).min(1));
     })();
@@ -581,7 +610,7 @@ export class LivingChapter extends Chapter {
   readonly name = "命の星";
   readonly caption = "海と雲と灯り。生きている星は、夜も眠らない。";
   readonly duration = 28;
-  readonly techniques = [34, 37, 11, 9, 15, 4, 12, 31];
+  readonly techniques = [34, 37, 39, 11, 9, 15, 4, 12, 31];
 
   private readonly world = new LivingWorld();
   private readonly level = this.world.level;
@@ -756,5 +785,11 @@ export class LivingChapter extends Chapter {
     out.flash = 0;
     out.flashColor = [1.0, 0.9, 0.78];
     out.warp = (1 - ramp(t, 0, 1.0)) * 0.5 + ramp(t, 26.8, 28) * 0.5;
+    // #39 the rising sun throws shafts across the limb
+    const sunrise = 1 - ramp(t, 5.4, 6.6);
+    const s = this.sun.value as Vector3;
+    out.rays = 0.55 * sunrise;
+    out.raysDir = [s.x, s.y, s.z];
+    out.raysColor = [1.0, 0.82, 0.6];
   }
 }

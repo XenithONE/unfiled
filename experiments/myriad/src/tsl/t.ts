@@ -66,6 +66,7 @@ export const {
   positionWorld,
   pow,
   reflect,
+  renderOutput,
   round,
   saturate,
   screenCoordinate,

@@ -95,7 +95,7 @@ export class SunChapter extends Chapter {
   readonly name = "灼熱の星";
   readonly caption = "表面は沸き立ち、磁場の弧が炎を吊り上げる。";
   readonly duration = 23;
-  readonly techniques = [32, 33, 20, 13, 9, 4, 12, 31];
+  readonly techniques = [32, 33, 38, 20, 13, 9, 4, 12, 40, 31];
 
   private readonly level = uniform(1);
   private readonly flare = uniform(0);
@@ -138,12 +138,16 @@ export class SunChapter extends Chapter {
       const n = normalize(normalLocal);
       const t = G.time;
       // #32 granulation: two scales of animated 3D Voronoi cells
-      const g1 = voronoi3d(n.mul(74), t.mul(0.45));
-      const g2 = voronoi3d(n.mul(190), t.mul(0.7));
-      const gran = mix(float(0.36), float(1.35), float(1).sub(smoothstep(0.05, 0.75, g1)))
-        .mul(mix(float(0.84), float(1.06), float(1).sub(smoothstep(0.1, 0.85, g2))));
-      const sup = fbm2(n.mul(5.5).add(t.mul(0.01))).mul(0.08).add(1);
-      let I: N = gran.mul(sup);
+      const g1 = voronoi3d(n.mul(150), t.mul(0.45));
+      const g2 = voronoi3d(n.mul(330), t.mul(0.7));
+      // bright granules, narrow darker lanes between them (a fine texture at this distance)
+      const gran = mix(float(0.42), float(1.12), float(1).sub(smoothstep(0.3, 0.92, g1.sqrt())))
+        .mul(mix(float(0.86), float(1.05), float(1).sub(smoothstep(0.2, 0.9, g2.sqrt()))));
+      // the supergranulation network: a bright mesh of magnetic field at a larger scale
+      const sg = voronoi3d(n.mul(22), t.mul(0.05));
+      const network = smoothstep(0.6, 0.95, sg.sqrt()).mul(0.2).add(1);
+      const sup = fbm2(n.mul(5.5).add(t.mul(0.01))).mul(0.1).add(1);
+      let I: N = gran.mul(sup).mul(network);
       // sunspots with penumbral filaments
       let active: N = float(0);
       for (const s of SPOTS) {
@@ -171,11 +175,13 @@ export class SunChapter extends Chapter {
       const ribbonMask = float(1).sub(smoothstep(0.03, 0.06, angE));
       const ribbons = exp(across.sub(0.012).div(0.003).pow(2).negate()).add(exp(across.add(0.012).div(0.003).pow(2).negate()));
       const flare = ribbons.mul(ribbonMask).mul(this.flare).mul(14);
-      const ring = exp(angE.sub(this.wave).div(0.012).pow(2).negate()).mul(smoothstep(0.0, 0.05, this.wave)).mul(float(1).sub(smoothstep(0.25, 0.6, this.wave))).mul(1.6);
-      // limb darkening and reddening
-      const ld = float(1).sub(float(1).sub(mu).mul(0.58)).sub(float(1).sub(mu).pow(2).mul(0.2));
-      const col = mix(vec3(1.0, 0.16, 0.02), vec3(1.0, 0.55, 0.16), pow(mu, 0.5));
-      return col.mul(I.mul(ld).add(ring)).mul(1.1).add(vec3(1.0, 0.95, 0.88).mul(flare)).mul(this.level);
+      // the Moreton wave: a ragged, broad swell racing over the surface, not a thin hoop
+      const ragged = snoiseGrad(n.mul(30).add(t.mul(0.4))).w.mul(0.012);
+      const ring = exp(angE.add(ragged).sub(this.wave).div(0.03).pow(2).negate()).mul(smoothstep(0.0, 0.05, this.wave)).mul(float(1).sub(smoothstep(0.25, 0.6, this.wave))).mul(0.9);
+      // limb darkening and reddening: golden at the centre, deep red at the edge
+      const ld = float(1).sub(float(1).sub(mu).mul(0.62)).sub(float(1).sub(mu).pow(2).mul(0.22));
+      const col = mix(mix(vec3(0.85, 0.08, 0.01), vec3(1.0, 0.3, 0.04), smoothstep(0.0, 0.35, mu)), vec3(1.0, 0.56, 0.14), smoothstep(0.3, 0.95, mu));
+      return col.mul(I.mul(ld).add(ring)).mul(0.95).add(vec3(1.0, 0.95, 0.88).mul(flare)).mul(this.level);
     })();
     const mesh = new Mesh(geo, mat);
     mesh.renderOrder = -5;
@@ -254,7 +260,7 @@ export class SunChapter extends Chapter {
     const up = base;
     const side = normalize(cross(normalize(B.sub(A)), up));
     // thread j: an offset that wanders coherently along s
-    const thread = floor(rnd(i, 3).mul(28));
+    const thread = floor(rnd(i, 3).mul(44));
     const seed = thread.mul(17.31).add(k.toFloat().mul(101.7));
     const wob = vec2(
       snoiseGrad(vec3(s.mul(2.6), seed, G.time.mul(0.06))).w,
@@ -264,18 +270,18 @@ export class SunChapter extends Chapter {
     const turn = s.mul(Math.PI * 2 * 0.8).mul(T(13));
     const ox = wob.x.mul(cos(turn)).sub(wob.y.mul(sin(turn)));
     const oy = wob.x.mul(sin(turn)).add(wob.y.mul(cos(turn)));
-    const jitter = vec3(gauss(i, 4), gauss(i, 6), gauss(i, 8)).mul(W.mul(0.06));
+    const jitter = vec3(gauss(i, 4), gauss(i, 6), gauss(i, 8)).mul(W.mul(0.025));
     const off = side.mul(ox).add(up.mul(oy)).mul(W.mul(swell)).add(jitter);
     const pos = base.mul(float(R).add(h)).add(off).toVar();
-    // knots of denser, hotter plasma along the threads
+    // knots of denser, hotter plasma along the threads; H-alpha red, orange where hot
     const knot = snoiseGrad(vec3(s.mul(9), seed.mul(0.37), G.time.mul(0.2))).w.mul(0.5).add(0.5);
-    const hot = mix(vec3(1.0, 0.18, 0.05), vec3(1.0, 0.55, 0.22), knot.pow(2));
+    const hot = mix(vec3(1.0, 0.1, 0.03), vec3(1.0, 0.45, 0.12), knot.pow(2));
     const foot = float(1).sub(smoothstep(0.0, 0.12, s.min(float(1).sub(s))));
-    const sprite = spriteVertex({ center: pos, radius: rnd(i, 5).mul(1.8).add(1.2), minPx: 0.75, maxPx: 60 });
+    const sprite = spriteVertex({ center: pos, radius: rnd(i, 5).mul(0.9).add(0.55), minPx: 0.75, maxPx: 60 });
     const fadeErupt = select(isErupting, float(1).sub(smoothstep(1.5, 5.0, this.erupt)), float(1));
     const mat = new MeshBasicNodeMaterial();
     mat.vertexNode = sprite.clip;
-    mat.colorNode = varying(hot.mul(knot.mul(1.4).add(0.3)).mul(foot.mul(1.5).add(1)).mul(fadeErupt).mul(0.032).mul(this.level));
+    mat.colorNode = varying(hot.mul(knot.mul(1.6).add(0.25)).mul(foot.mul(1.5).add(1)).mul(fadeErupt).mul(0.026).mul(this.level));
     mat.opacityNode = glowShape(sprite, 0.15).mul(sprite.energy);
     mat.transparent = true;
     mat.depthWrite = false;
@@ -331,15 +337,29 @@ export class SunChapter extends Chapter {
     const e = v3(E);
     const tl = max(this.cme.sub(rnd(i, 2).mul(0.25)), 0).toVar();
     // the bubble: centre rides out along E while its radius grows
-    const rb = tl.mul(80).add(tl.mul(tl).mul(4)).add(20);
+    const rb = tl.mul(80).add(tl.mul(tl).mul(4)).add(20).toVar();
     const centre = e.mul(float(R).add(rb.mul(0.9)));
     const u = normalize(vec3(gauss(i, 3), gauss(i, 5), gauss(i, 7)));
+    // the three parts of a CME: a bright front, a dark cavity, and the erupted
+    // prominence as a red, twisted rope low in the bubble (#13)
+    const isCore = rnd(i, 20).lessThan(0.28);
+    const e1 = normalize(cross(e, vec3(0, 1, 0)));
+    const e2 = cross(e, e1);
+    const s = rnd(i, 21);
+    const arc = s.mul(Math.PI);
+    const ropeC = e.mul(float(R).add(rb.mul(0.42))).add(e1.mul(cos(arc).mul(rb.mul(0.4)))).add(e.mul(sin(arc).mul(rb.mul(0.3))));
+    const tangent = normalize(e1.mul(sin(arc).negate()).add(e.mul(cos(arc).mul(0.75))));
+    const nrm = normalize(cross(tangent, e2));
+    const strand = floor(rnd(i, 22).mul(7));
+    const wob = snoiseGrad(vec3(s.mul(4), strand.mul(3.1), tl.mul(0.1))).w.mul(0.8);
+    const twist = s.mul(Math.PI * 4.5).add(strand.mul(Math.PI * 0.29)).add(wob).add(tl.mul(0.3)).mul(T(13));
+    const rope = ropeC.add(nrm.mul(cos(twist)).add(e2.mul(sin(twist))).mul(rb.mul(0.06).mul(rnd(i, 23).mul(0.9).add(0.5))));
     // no shell on the side that still touches the star
-    const keep = dot(u, e).greaterThan(-0.55);
+    const keep = dot(u, e).greaterThan(-0.55).or(isCore);
     const fil = snoiseGrad(u.mul(5.5).add(tl.mul(0.05))).w.mul(0.5).add(0.5);
     const shell = rb.mul(fil.mul(0.18).add(0.92)).add(gauss(i, 9).mul(rb.mul(0.012)));
-    const pos = centre.add(u.mul(shell)).toVar();
-    const vel = e.mul(95).add(u.mul(95 * 0.9));
+    const pos = select(isCore, rope, centre.add(u.mul(shell))).toVar();
+    const vel = e.mul(95).add(select(isCore, vec3(0), u.mul(95 * 0.9)));
     const view = normalize(pos.sub(cameraPosition));
     const limb = pow(float(1).sub(abs(dot(u, view))), 3);
     // grains sweeping past the camera blaze as they go by
@@ -349,18 +369,22 @@ export class SunChapter extends Chapter {
     // grains sweeping past the lens are thin streaks of light, not blobs
     const sprite = spriteVertex({
       center: pos,
-      radius: rnd(i, 10).mul(1.0).add(0.7).mul(tl.mul(0.05).add(1)).mul(mix(float(1), float(0.3), near)),
+      radius: rnd(i, 10).mul(1.0).add(0.7).mul(tl.mul(0.05).add(1)).mul(mix(float(1), float(0.3), near)).mul(select(isCore, float(0.7), float(1))),
       tail: pos.sub(vel.mul(mix(float(0.05), float(0.14), near)).mul(T(9))),
       streakKeep: 0.6,
       minPx: 0.8,
       maxPx: 70,
       visible: select(alive, float(1), float(0)),
     });
-    // dim plasma reads silvery like the corona (not brown); the bright rim is gold
-    const col = mix(vec3(0.7, 0.76, 0.92), vec3(1.0, 0.86, 0.62), limb.mul(fil.add(0.5)).add(near.mul(0.5)).min(1));
+    // the front glows white-gold where we look along it; the rope is H-alpha red
+    const front = mix(vec3(1.0, 0.74, 0.42), vec3(1.0, 0.95, 0.85), limb.mul(fil.add(0.4)).add(near.mul(0.5)).min(1));
+    // filaments, not smoke: most of the light sits in the brightest strands
+    const shellLight = limb.mul(limb).mul(9).add(0.03).add(near.mul(3)).mul(fil.pow(4).mul(3.2).add(0.06));
+    const ropeKnots = snoiseGrad(vec3(s.mul(14), strand.mul(9), tl.mul(0.4))).w.mul(0.5).add(0.5);
+    const ropeLight = vec3(1.0, 0.2, 0.06).mul(ropeKnots.mul(1.6).add(0.25)).mul(0.55);
     const mat = new MeshBasicNodeMaterial();
     mat.vertexNode = sprite.clip;
-    mat.colorNode = varying(col.mul(limb.mul(5).add(0.16).add(near.mul(3))).mul(fil.pow(2).mul(2.2).add(0.15)).mul(float(1).sub(age.mul(0.7)).pow(1.2)).mul(0.09).mul(this.level));
+    mat.colorNode = varying(select(isCore, ropeLight, front.mul(shellLight)).mul(float(1).sub(age.mul(0.7)).pow(1.2)).mul(0.09).mul(this.level));
     mat.opacityNode = glowShape(sprite, 0.25).mul(sprite.energy);
     mat.transparent = true;
     mat.depthWrite = false;
@@ -396,7 +420,8 @@ export class SunChapter extends Chapter {
   look(t: number, out: Look) {
     out.bloom = [0.55 + this.flareBoost(t), 0.6, 1.05];
     out.exposure = 1.0;
-    out.flare = 0.5;
+    // once the ejection fills the frame its glare would throw huge ghosts
+    out.flare = 0.5 - ramp(t, CME_T, CME_T + 2) * 0.4;
     out.sky = 0.3;
     out.near = 0.5;
     out.far = 12000;
@@ -406,6 +431,9 @@ export class SunChapter extends Chapter {
     out.flash = pulse(t, FLARE_T, 0.04, 0.12) * 0.14 + (1 - ramp(t, 0, 1.0)) * 1.2 + ramp(t, 22.0, 23) * 1.1;
     out.flashColor = [1.0, 0.92, 0.8];
     out.warp = ramp(t, 20.5, 23) * 0.8;
+    out.dirt = 0.6;
+    out.halation = 0.18;
+    out.grade = { lift: [0.01, 0.004, 0.0], gamma: [1.0, 1.0, 1.04], gain: [1.03, 0.99, 0.94], saturation: 1.12 };
   }
 
   private flareBoost(t: number) {

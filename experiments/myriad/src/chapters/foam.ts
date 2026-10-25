@@ -9,7 +9,7 @@
  *     MYRIAD — the morph of the prologue, run from a sphere shell — and the
  *     loop closes on the prologue's held title.
  */
-import { AdditiveBlending, MeshBasicNodeMaterial, Vector3 } from "three/webgpu";
+import { AdditiveBlending, MeshBasicNodeMaterial, NormalBlending, Vector3 } from "three/webgpu";
 import type { Mesh } from "three/webgpu";
 import {
   Fn,
@@ -20,6 +20,8 @@ import {
   length,
   max,
   pow,
+  screenSize,
+  screenUV,
   select,
   smoothstep,
   sqrt,
@@ -28,6 +30,7 @@ import {
   varying,
   vec2,
   vec3,
+  viewportSharedTexture,
 } from "../tsl/t";
 import type { Ctx, Look } from "../engine/chapter";
 import { Chapter, ramp } from "../engine/chapter";
@@ -78,7 +81,7 @@ export class FoamChapter extends Chapter {
   readonly name = "泡の海";
   readonly caption = "わたしたちの宇宙は、泡のひとつにすぎない。";
   readonly duration = 20;
-  readonly techniques = [21, 19, 10, 16, 18, 22, 31];
+  readonly techniques = [21, 19, 3, 10, 16, 18, 22, 31];
 
   private readonly level = uniform(1);
   private readonly heroLevel = uniform(1);
@@ -142,15 +145,20 @@ export class FoamChapter extends Chapter {
       // #19 a one-pixel rim at any distance
       const rim = outlineSdf(sqrt(r2), 1);
       const body = tint.mul(fres.mul(1.1));
-      return body.add(vec3(1, 1, 1).mul(spec.mul(0.7))).add(vec3(0.9, 0.95, 1.0).mul(rim).mul(0.75)).mul(this.level);
+      // #3 each universe is a lens: the cosmos behind it, bent toward its rim and turned over
+      const bend = p.mul(float(1).sub(nz).mul(1.6).add(0.35)).mul(sprite.rpx).div(screenSize).mul(vec2(-1, 1)).mul(T(3));
+      const behind = viewportSharedTexture(screenUV.add(bend)).rgb;
+      const lensed = behind.mul(float(1).sub(fres.mul(0.55))).mul(0.92);
+      return lensed.add(body.add(vec3(1, 1, 1).mul(spec.mul(0.7))).add(vec3(0.9, 0.95, 1.0).mul(rim).mul(0.75)).mul(this.level));
     })();
     mat.opacityNode = Fn(() => {
       const r2 = dot(sprite.local, sprite.local);
-      return select(r2.lessThan(1.06), float(1), float(0)).mul(0.9);
+      const aa = float(1.5).div(sprite.rpx.max(1));
+      return float(1).sub(smoothstep(float(1).sub(aa), float(1).add(aa), r2.sqrt())).mul(this.level);
     })();
     mat.transparent = true;
     mat.depthWrite = false;
-    mat.blending = AdditiveBlending;
+    mat.blending = NormalBlending;
     return particleMesh(this.nBubbles, mat, 6);
   }
 

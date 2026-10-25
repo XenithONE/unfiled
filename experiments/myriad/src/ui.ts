@@ -47,6 +47,7 @@ export class Ui {
   private current = -1;
   private idleTimer = 0;
   private toastTimer = 0;
+  private cardTimer = 0;
   private h!: UiHandlers;
   private soundOn = false;
 
@@ -233,10 +234,26 @@ export class Ui {
     void (box as HTMLElement).offsetWidth;
     box.classList.add("swap");
     this.segs.forEach((s, k) => s.classList.toggle("on", k === i));
+    this.titleCard(i, c);
     const live = new Set(c.techniques);
     document.querySelectorAll<HTMLLIElement>("#tech-list li").forEach((li) => {
       li.classList.toggle("live", live.has(Number(li.dataset.n)));
     });
+  }
+
+  /** The film-style title at a chapter's start (the prologue has its own title). */
+  private titleCard(i: number, c: ChapterInfo) {
+    const card = $("card");
+    window.clearTimeout(this.cardTimer);
+    card.classList.remove("on");
+    if (i === 0) return;
+    card.querySelector<HTMLElement>(".num")!.textContent = label(i);
+    card.querySelector<HTMLElement>(".name")!.textContent = c.name;
+    card.querySelector<HTMLElement>(".cap")!.textContent = c.caption;
+    this.cardTimer = window.setTimeout(() => {
+      card.classList.add("on");
+      this.cardTimer = window.setTimeout(() => card.classList.remove("on"), 4200);
+    }, 900);
   }
 
   /** Per-frame: timeline fill and clock. */

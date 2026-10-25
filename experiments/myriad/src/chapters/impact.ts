@@ -10,12 +10,14 @@
  * worlds crack along glowing plate borders (#24); after the hit a magma ocean
  * spreads over the Earth in churning moving-Voronoi cells (r186, #32).
  */
-import { AdditiveBlending, Mesh, MeshBasicNodeMaterial, SphereGeometry, Vector3 } from "three/webgpu";
+import { AdditiveBlending, DoubleSide, Mesh, MeshBasicNodeMaterial, RingGeometry, SphereGeometry, Vector3 } from "three/webgpu";
 import { voronoi3d as voronoi3dTyped } from "three/addons/tsl/math/voronoiNoise.js";
 import {
   Fn,
   If,
+  abs,
   acos,
+  atan,
   cameraPosition,
   clamp,
   cos,
@@ -26,6 +28,7 @@ import {
   instanceIndex,
   instancedArray,
   length,
+  log,
   max,
   min,
   mix,
@@ -43,6 +46,7 @@ import {
   uint,
   uniform,
   varying,
+  vec2,
   vec3,
   vec4,
 } from "../tsl/t";
@@ -101,7 +105,7 @@ export class ImpactChapter extends Chapter {
   readonly name = "巨大衝突";
   readonly caption = "若い地球に、火星ほどの星がぶつかる。砕けた岩はやがて月になる。";
   readonly duration = 26;
-  readonly techniques = [35, 32, 24, 20, 9, 14, 31];
+  readonly techniques = [35, 32, 24, 20, 9, 14, 40, 31];
 
   private readonly level = uniform(1);
   private readonly sun = uniform(SUN.clone());
@@ -122,6 +126,7 @@ export class ImpactChapter extends Chapter {
   private readonly coreR = uniform(0.2);
   private readonly wave = uniform(0);
   private readonly waveOn = uniform(0);
+  private readonly diskOn = uniform(0);
   private theia!: Mesh;
   private moonGlow!: Mesh;
   private moonBody!: Mesh;
@@ -144,6 +149,7 @@ export class ImpactChapter extends Chapter {
     this.moonBody = this.buildMoonBody();
     this.group.add(this.moonGlow, this.moonBody);
     this.group.add(this.buildDust(Math.round(160_000 * Math.max(0.4, ctx.q))));
+    this.group.add(this.buildDiskGlow());
     this.group.add(sunSprite({ dir: this.sun, level: this.level, planet: R1, size: 0.006, tint: [0.95, 0.97, 1.0] }));
 
     // shots, in the frame of the hit (HIT out, FWD along Theia's path, AX up):
@@ -159,8 +165,8 @@ export class ImpactChapter extends Chapter {
       [key(5.4, at(330, 60, 380), at(110, 40, 0), 48), key(12, at(380, 110, 430), at(90, 110, 20), 52)],
       // from above: the plume wraps round the planet
       [key(12, at(220, -160, 560), at(30, 40, 0), 50), key(19, at(120, -260, 640), at(0, 0, 0), 50)],
-      // low over the disk, the Moon gathering in it
-      [key(19, at(120, 560, 70), at(0, 120, -10), 46), key(26, at(200, 760, 110), at(0, 90, -10), 42)],
+      // above the disk, the Moon gathering in it: high enough to see the ring as a ring
+      [key(19, at(140, 540, 230), at(0, 110, -10), 46), key(26, at(230, 720, 330), at(0, 90, -10), 42)],
     ]);
   }
 
@@ -181,13 +187,15 @@ export class ImpactChapter extends Chapter {
       return bowl.mul(-0.38).add(rim.mul(0.3));
     };
     const relief = crater(sqrt(voronoi3d(n.mul(6.5), float(0))), 0.3).add(crater(sqrt(voronoi3d(n.mul(17).add(2.5), float(0))), 0.26).mul(0.7));
-    const rock = mix(vec3(0.05, 0.045, 0.042), vec3(0.16, 0.13, 0.11), rough).mul(grit).mul(relief.add(1)).mul(tint);
+    // dark, glassy young basalt (warm black), not the grey of an old moon
+    const rock = mix(vec3(0.035, 0.028, 0.025), vec3(0.1, 0.075, 0.06), rough).mul(grit).mul(relief.mul(0.7).add(1)).mul(tint);
     const ndl = dot(nW, this.sun);
     // the young sun's light is a cool white against the red of the melt
     const lit = rock.mul(vec3(0.92, 0.96, 1.06)).mul(smoothstep(-0.05, 0.3, ndl).mul(max(ndl, 0).mul(1.3).add(0.04)).add(0.01));
-    const province = smoothstep(float(0.62).sub(active.mul(0.5)), float(0.8).sub(active.mul(0.5)), fbm2(n.mul(2.4).add(1.7)).mul(0.5).add(0.5));
-    const fissures = max(voronoiCracks(n.mul(3.2), float(0.022)), voronoiCracks(n.mul(8.5).add(3), float(0.018)).mul(0.6)).mul(province);
-    const lakes = smoothstep(0.74, 0.86, fbm2(n.mul(5).add(9)).mul(0.5).add(0.5)).mul(province.mul(0.7).add(0.3));
+    // a young, violent crust: wide volcanic provinces, glowing fissures and lava lakes
+    const province = smoothstep(float(0.5).sub(active.mul(0.5)), float(0.72).sub(active.mul(0.5)), fbm2(n.mul(2.4).add(1.7)).mul(0.5).add(0.5));
+    const fissures = max(voronoiCracks(n.mul(3.2), float(0.03)), voronoiCracks(n.mul(8.5).add(3), float(0.022)).mul(0.65)).mul(province.mul(0.8).add(0.2));
+    const lakes = smoothstep(0.68, 0.84, fbm2(n.mul(5).add(9)).mul(0.5).add(0.5)).mul(province.mul(0.7).add(0.3));
     return lit.mul(float(1).sub(lakes.mul(0.8))).add(emberColor(float(0.55)).mul(fissures.mul(0.42))).add(emberColor(float(0.62)).mul(lakes.mul(0.35)));
   }
 
@@ -392,7 +400,7 @@ export class ImpactChapter extends Chapter {
     const phase = dot(normalize(cameraPosition.sub(pos)), this.sun).mul(0.5).add(0.5);
     const rock = vec3(0.3, 0.27, 0.25).mul(phase.mul(0.9).add(0.1));
     // grains settled in the disk are spread thin round it: give them more light
-    const inDisk = smoothstep(R1 * 1.4, R1 * 1.9, length(pos)).mul(this.settle.div(0.7)).mul(2.5).add(1);
+    const inDisk = smoothstep(R1 * 1.4, R1 * 1.9, length(pos)).mul(this.settle.div(0.7)).mul(4.5).add(1);
     const grainCol = hot.mul(heat.pow(1.5)).mul(0.022).mul(inDisk).add(rock.mul(float(1).sub(heat).pow(2).mul(0.008)));
     const vapCol = mix(vec3(1, 0.42, 0.12), vec3(1, 0.9, 0.7), heat).mul(heat.pow(2)).mul(0.0025).mul(exp(age.mul(-0.4)));
     const mat = new MeshBasicNodeMaterial();
@@ -429,6 +437,43 @@ export class ImpactChapter extends Chapter {
       return this.magma(n.add(5.5), float(0.08)).add(vec3(0.12, 0.1, 0.09).mul(lit)).mul(this.level);
     })();
     return new Mesh(geo, mat);
+  }
+
+  /**
+   * The protolunar disk's own glow: the hot debris settling into the plane is
+   * too fine to resolve, so a ring of light in that plane (wound into spiral
+   * wakes by the forming Moon) carries it.
+   */
+  private buildDiskGlow(): Mesh {
+    const geo = new RingGeometry(R1 * 1.25, R_MOON * 1.55, 160, 1);
+    const mat = new MeshBasicNodeMaterial();
+    const e1 = v3(HIT);
+    const e2 = v3(FWD);
+    mat.colorNode = Fn(() => {
+      const p = positionWorld;
+      const x = dot(p, e1);
+      const y = dot(p, e2);
+      const r = length(vec2(x, y));
+      const th = atan(y, x);
+      // spiral wakes trailing the Moon, and fine streaks of debris
+      const wake = sin(th.mul(2).sub(log(r).mul(9)).add(this.simT.mul(0.6))).mul(0.5).add(0.5);
+      const streaks = snoiseGrad(vec3(r.mul(0.08), th.mul(3), 0.5)).w.mul(0.5).add(0.5);
+      const radial = smoothstep(R1 * 1.25, R1 * 1.9, r).mul(float(1).sub(smoothstep(R_MOON * 1.1, R_MOON * 1.55, r)));
+      const heat = float(1).sub(this.cooling.mul(4)).max(0.2);
+      const col = emberColor(float(0.45).sub(heat.mul(0.15)));
+      const view = normalize(cameraPosition.sub(p));
+      const incl = min(float(1).div(abs(dot(view, v3(AX))).max(0.08)), 4);
+      return col.mul(radial).mul(wake.mul(0.6).add(0.4)).mul(streaks.mul(0.8).add(0.2)).mul(incl).mul(this.diskOn).mul(0.05).mul(this.level);
+    })();
+    mat.side = DoubleSide;
+    mat.transparent = true;
+    mat.depthWrite = false;
+    mat.blending = AdditiveBlending;
+    const mesh = new Mesh(geo, mat);
+    // the ring's plane is the debris plane (AX up)
+    mesh.quaternion.setFromUnitVectors(new Vector3(0, 0, 1), AX);
+    mesh.renderOrder = 4;
+    return mesh;
   }
 
   /** The young system's debris disk, far off: a broad dusty band across the sky. */
@@ -518,6 +563,7 @@ export class ImpactChapter extends Chapter {
     this.wave.value = Math.max(0, tau) * 0.55;
     this.waveOn.value = tau <= 0 ? 0 : (1 - ramp(t, T_HIT + 2, T_HIT + 6)) * ramp(t, T_HIT, T_HIT + 0.3);
     this.moonGlow.visible = t > T_MOON;
+    this.diskOn.value = ramp(t, T_HIT + 4, T_HIT + 9);
     // the Moon's orbit is a closed form, so the body can follow it exactly
     this.setForces(t);
     const grow = ramp(t, T_MOON + 0.8, T_MOON + 6.5);
@@ -529,16 +575,22 @@ export class ImpactChapter extends Chapter {
   }
 
   look(t: number, out: Look) {
-    out.bloom = [0.8 + pulse(t, T_HIT, 0.05, 0.8) * 0.4, 0.6, 0.9];
+    // the contact is blinding: a tight bloom, so the frame does not wash out to grey
+    const hit = pulse(t, T_HIT, 0.05, 0.8);
+    out.bloom = [0.8 + hit * 0.25, 0.6 - hit * 0.25, 0.9 + hit * 0.6];
     out.exposure = 1.0;
     // the plume is a huge bright area: its lens ghosts (#33) would swamp the frame
-    out.flare = 0.12;
+    out.flare = t > T_HIT - 0.5 && t < T_HIT + 6 ? 0.03 : 0.12;
+    out.dirt = 0.25;
+    out.halation = 0.2;
+    out.grade = { lift: [0.006, 0.003, 0.002], gamma: [1, 1, 1], gain: [1.03, 0.99, 0.95], saturation: 1.1 };
     out.sky = 0.55;
     out.near = 0.5;
     out.far = 16000;
     out.focus = 400;
     out.aperture = 0;
-    out.flash = (1 - ramp(t, 0, 0.8)) * 1.0 + pulse(t, T_HIT, 0.02, 0.08) * 0.8;
+    // a short blink on contact (a long one only lifts the blacks into a beige fog)
+    out.flash = (1 - ramp(t, 0, 0.8)) * 1.0 + pulse(t, T_HIT, 0.02, 0.045) * 0.7;
     out.flashColor = [1.0, 0.9, 0.78];
     // #14 a two-frame impact frame on contact
     out.impact = t >= T_HIT && t < T_HIT + 0.07 ? 1 : 0;

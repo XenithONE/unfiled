@@ -1,7 +1,7 @@
 /**
  * The 31 techniques, in the numbering of the brief, then the newer ones the
- * second edition adds (#32–). `toggle` marks the ones whose 0/1 uniform
- * visibly changes the picture (compare on/off live).
+ * second (#32–37) and third (#38–44) editions add. `toggle` marks the ones
+ * whose 0/1 uniform visibly changes the picture (compare on/off live).
  */
 export interface Technique {
   n: number;
@@ -48,4 +48,11 @@ export const TECHNIQUES: Technique[] = [
   { n: 35, name: "構造体のストレージバッファ（TSL struct）", note: "位置・熱・速度・生まれた時刻を一つの構造体にまとめ、計算シェーダーで積分する。160万の溶けた岩が落ち、軌道に乗り、円盤に集まって月になる。", toggle: false },
   { n: 36, name: "テクスチャなしの凹凸（画面微分のバンプ）", note: "手続きで作った高さの画面上の変化から法線を傾ける。小惑星の細かいクレーターと砂粒に、本物の太陽光と影が落ちる。", toggle: true },
   { n: 37, name: "点過程の街あかり", note: "格子ごとに街を一つ置くかを乱数で決め、近い8マスだけを調べる。人口はべき乗則で、海岸と低地に灯りが集まる。", toggle: false },
+  { n: 38, name: "レンズの汚れと横長の光筋", note: "強い光がレンズを満たすと、手続きで描いたガラスのほこり・指紋・傷が浮かぶ。いちばん明るい点だけを横へ引き伸ばした青い光筋と、明るい縁の赤いにじみ（ハレーション）も重ねる。", toggle: true },
+  { n: 39, name: "光の筋（画面上で光源へ光を集める）", note: "各画素から光源の位置へ向かってブルームの像を36歩たどり、集めた光を足す。手前の柱や破片が遮ったところだけ暗い筋が残り、光の帯になる。", toggle: true },
+  { n: 40, name: "トーンマップ後の色づくり", note: "トーンマップの後に、章ごとに暗部の持ち上げ・中間調・明部の色と彩度を整える。最後にフィルムの粒子と、階調の段差を消すディザを加える。", toggle: true },
+  { n: 41, name: "焼き込んだ3Dテクスチャのレイマーチ", note: "柱の形と星団の光の届き方を計算シェーダーで3Dテクスチャに焼き、画素ごとに光線を最大128歩進める。空っぽの所は大股、塵の近くは小股で歩き、塵は光を吸い、ガスは光る。", toggle: false },
+  { n: 42, name: "解析的な塵の吸収", note: "星ひとつひとつが、自分とカメラを結ぶ線が銀河面を横切る点の塵の濃さを読み、e^(−τ) で暗く赤くなる。腕の内側の塵の帯が、中心のふくらみの前に黒く浮かぶ。", toggle: true },
+  { n: 43, name: "数えた銀河からガスの体積", note: "300万の銀河を atomicAdd で数えた格子を、計算シェーダーでなめらかな3Dテクスチャにし、箱の中を光線で歩いて銀河のあいだのガスの光を足す。", toggle: true },
+  { n: 44, name: "頂点で動かす本物の破片", note: "ランダムな平面で切った角ばった岩を9000個インスタンスで描き、頂点ごとに自分の破片の飛び方と回転を式で求める。本物の太陽光と影が落ち、ひびは岩に固定されたまま光る。", toggle: false },
 ];

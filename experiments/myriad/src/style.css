@@ -452,6 +452,55 @@ body.hide-ui #hud {
   opacity: 0.92;
   filter: none;
 }
+/* a title card at each chapter's start, like a film's: it stays even when the HUD sleeps */
+#card {
+  position: fixed;
+  left: max(28px, env(safe-area-inset-left));
+  bottom: calc(max(18px, env(safe-area-inset-bottom)) + 64px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0;
+  filter: blur(10px);
+  transform: translateY(8px);
+  transition: opacity 1.6s ease, filter 1.6s ease, transform 2.4s ease;
+  text-shadow: 0 0 24px rgba(0, 0, 0, 0.85);
+}
+#card.on {
+  opacity: 1;
+  filter: none;
+  transform: none;
+}
+#card .num {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.42em;
+  color: var(--paper-faint);
+}
+#card .name {
+  font-size: clamp(26px, 4.2vw, 46px);
+  font-weight: 300;
+  letter-spacing: 0.32em;
+  color: var(--paper);
+}
+#card .cap {
+  font-size: clamp(12px, 1.4vw, 14px);
+  letter-spacing: 0.14em;
+  color: var(--paper-dim);
+}
+body.hide-ui #card {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  #card {
+    filter: none;
+    transform: none;
+    transition: opacity 1.2s ease;
+  }
+}
 #marker {
   position: fixed;
   left: 0;

@@ -9,6 +9,7 @@ import {
   Scene,
   UnsignedByteType,
   Vector2,
+  Vector3,
   WebGPURenderer,
 } from "three/webgpu";
 import type { Chapter, Ctx, Look, Tier } from "./engine/chapter";
@@ -51,6 +52,9 @@ declare global {
 const params = new URLSearchParams(window.location.search);
 const ui = new Ui();
 const _buf = new Vector2();
+const _lightP = new Vector3();
+const _lightD = new Vector3();
+const _fwd = new Vector3();
 
 function pickTier(): Tier {
   const q = params.get("tier");
@@ -311,6 +315,28 @@ class Engine {
     post.flash.value = this.ctx.reduced ? look.flash * 0.35 : look.flash;
     post.flashColor.value.setRGB(...look.flashColor);
     post.impact.value = !this.ctx.reduced && techniqueOn(14) ? look.impact : 0;
+    post.dirt.value = look.dirt;
+    post.streak.value = look.streak;
+    post.halation.value = look.halation;
+    post.raysColor.value.setRGB(...look.raysColor);
+    let rays = look.rays;
+    if (rays > 0 && (look.raysAt || look.raysDir)) {
+      if (look.raysAt) _lightP.set(...look.raysAt);
+      else _lightP.copy(camera.position).addScaledVector(_lightD.set(...look.raysDir!).normalize(), camera.far * 0.5);
+      // only while the light is ahead of the lens
+      _lightD.copy(_lightP).sub(camera.position).normalize();
+      camera.getWorldDirection(_fwd);
+      const facing = _lightD.dot(_fwd);
+      _lightP.project(camera);
+      post.raysPos.value.set(_lightP.x * 0.5 + 0.5, 0.5 - _lightP.y * 0.5);
+      rays *= ramp(facing, 0.05, 0.35);
+    } else rays = 0;
+    post.rays.value = rays;
+    const gr = look.grade;
+    post.lift.value.set(...gr.lift);
+    post.gamma.value.set(...gr.gamma);
+    post.gain.value.set(...gr.gain);
+    post.saturation.value = gr.saturation;
     const fadeIn = ch.fadeIn > 0 ? ramp(local, 0, ch.fadeIn) : 1;
     const fadeOut = ch.fadeOut > 0 ? 1 - ramp(local, ch.duration - ch.fadeOut, ch.duration) : 1;
     post.fade.value = fadeIn * fadeOut;

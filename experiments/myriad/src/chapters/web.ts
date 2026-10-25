@@ -7,40 +7,65 @@
  *     indirect draw, so the CPU never learns (or pays for) the number.
  * #25 the galaxies are counted into a 3D grid with atomicAdd once; crowded
  *     cells (the knots of the web) burn hotter.
+ * #43 the same counts become the gas between the galaxies: a compute pass
+ *     smooths them into a 3D texture, and a raymarch through the whole box
+ *     lets the filaments glow — violet where thin, gold and white in the hot
+ *     knots where clusters sit.
+ * The filaments meander: each bows to one side and wanders with a low noise,
+ * thicker in places, as in the simulations.
  * #12 a pixel floor keeps faraway galaxies from flickering; #17 nodes pulse
  *     with the low end of the soundtrack.
  */
 import {
   AdditiveBlending,
+  BackSide,
+  BoxGeometry,
   Frustum,
+  HalfFloatType,
   IndirectStorageBufferAttribute,
+  LinearFilter,
   Matrix4,
+  Mesh,
   MeshBasicNodeMaterial,
+  RGBAFormat,
+  Storage3DTexture,
   Vector3,
   Vector4,
 } from "three/webgpu";
-import type { Mesh } from "three/webgpu";
 import {
   Fn,
   If,
+  Loop,
   atomicAdd,
   atomicLoad,
   atomicStore,
+  cameraPosition,
   clamp,
   cos,
+  cross,
   dot,
+  exp,
   float,
   floor,
   instanceIndex,
   instancedArray,
+  int,
   length,
+  log,
   max,
   mix,
+  normalize,
+  positionWorld,
+  sin,
   smoothstep,
   storage,
+  storageTexture3D,
+  texture3D,
+  textureStore,
   uint,
   uniform,
   uniformArray,
+  uvec3,
   varying,
   vec2,
   vec3,
@@ -52,10 +77,12 @@ import { particleMesh } from "../engine/quad";
 import { Track } from "../engine/rig";
 import type { N } from "../tsl/common";
 import { T, fftAt, gauss, rnd } from "../tsl/common";
-import { glowShape, spriteVertex } from "../tsl/sprite";
+import { snoiseGrad } from "../tsl/noise";
+import { glowShape, ign, spriteVertex } from "../tsl/sprite";
+import { rayBox } from "../tsl/volume";
 
 const BOX = 2600;
-const GRID = 96;
+const GRID = 128;
 
 function mulberry32(seed: number) {
   let a = seed >>> 0;
@@ -113,7 +140,7 @@ export class WebChapter extends Chapter {
   readonly name = "宇宙の網";
   readonly caption = "銀河は糸になり、糸は網になる。";
   readonly duration = 22;
-  readonly techniques = [30, 25, 12, 17, 31];
+  readonly techniques = [43, 30, 25, 12, 17, 31];
 
   private readonly level = uniform(1);
   /** More galaxies on stronger tiers: keep the web's total light similar. */
@@ -130,6 +157,9 @@ export class WebChapter extends Chapter {
   private culled!: Mesh;
   private everything!: Mesh;
   private initialized = false;
+  private gasBake: unknown;
+  private gas!: Storage3DTexture;
+  private readonly gasSteps = uniform(60, "int");
   private frustum = new Frustum();
   private m = new Matrix4();
   private onCount: ((visible: number, total: number) => void) | null = null;
@@ -173,13 +203,20 @@ export class WebChapter extends Chapter {
         pos.assign(nd.xyz.add(dir.div(length(dir).max(1e-4)).mul(r)));
         bright.assign(rnd(i, 9).pow(3).mul(1.2).add(0.35));
       }).ElseIf(kind.lessThan(0.86), () => {
-        // filament: denser toward both ends, a narrow tube around the axis
+        // filament: denser toward both ends, a tube round an axis that bows to
+        // one side and meanders, thicker in places
         const k = uint(rnd(i, 10).mul(nSegs)).min(uint(nSegs - 1));
         const a = segs.element(k.mul(uint(2)));
         const b = segs.element(k.mul(uint(2)).add(uint(1)));
-        const u = float(0.5).sub(cos(rnd(i, 11).mul(Math.PI)).mul(0.5));
-        const axis = mix(a.xyz, b.xyz, u);
-        const width = float(7).add(mix(a.w, b.w, u).mul(5));
+        const u = float(0.5).sub(cos(rnd(i, 11).mul(Math.PI)).mul(0.5)).toVar();
+        const ab = b.xyz.sub(a.xyz);
+        const side = normalize(cross(ab, vec3(gauss(k, 1), gauss(k, 3), gauss(k, 5))).add(vec3(0, 1e-4, 0)));
+        const bow = side.mul(rnd(k, 7).mul(2).sub(1).mul(length(ab)).mul(0.22).mul(sin(u.mul(Math.PI))));
+        const straight = mix(a.xyz, b.xyz, u);
+        const wander = snoiseGrad(straight.mul(1 / 420).add(vec3(rnd(k, 8).mul(9), 0, 0))).xyz.mul(26).mul(sin(u.mul(Math.PI)));
+        const axis = straight.add(bow).add(wander);
+        const swell = snoiseGrad(vec3(u.mul(5), rnd(k, 9).mul(40), 0.5)).w.mul(0.45).add(1);
+        const width = float(6).add(mix(a.w, b.w, u).mul(5)).mul(swell);
         pos.assign(axis.add(vec3(gauss(i, 12), gauss(i, 14), gauss(i, 16)).mul(width)));
         bright.assign(rnd(i, 17).pow(4).mul(1.6).add(0.45));
       }).Else(() => {
@@ -202,9 +239,42 @@ export class WebChapter extends Chapter {
       const c = atomicLoad(grid.element(cellOf(g.xyz))).toFloat();
       const p = g.xyz.toVar();
       const b = g.w.toVar();
-      const crowd = clamp(c.div(400), 0, 1);
+      const crowd = clamp(c.div(170), 0, 1);
       g.assign(vec4(p, floor(crowd.mul(999)).mul(10).add(b.min(9.99))));
     })().compute(this.count, [256]);
+
+    // #43 the gas: the counts smoothed (a 3×3×3 weighted kernel) into a 3D texture
+    const gas = new Storage3DTexture(GRID, GRID, GRID);
+    gas.format = RGBAFormat;
+    gas.type = HalfFloatType;
+    gas.generateMipmaps = false;
+    gas.magFilter = LinearFilter;
+    gas.minFilter = LinearFilter;
+    this.gas = gas;
+    const gasStore = storageTexture3D(gas);
+    this.gasBake = Fn(() => {
+      const i = instanceIndex;
+      const x = int(i.mod(uint(GRID)));
+      const y = int(i.div(uint(GRID)).mod(uint(GRID)));
+      const z = int(i.div(uint(GRID * GRID)));
+      const acc = float(0).toVar();
+      const wsum = float(0).toVar();
+      Loop(27, ({ i: k }: { i: N }) => {
+        const ox = k.mod(3).sub(1);
+        const oy = k.div(3).mod(3).sub(1);
+        const oz = k.div(9).sub(1);
+        const cx = x.add(ox).max(int(0)).min(int(GRID - 1));
+        const cy = y.add(oy).max(int(0)).min(int(GRID - 1));
+        const cz = z.add(oz).max(int(0)).min(int(GRID - 1));
+        const w = exp(float(ox.mul(ox).add(oy.mul(oy)).add(oz.mul(oz))).mul(-1.4));
+        const c = atomicLoad(grid.element(uint(cx).add(uint(cy).mul(uint(GRID))).add(uint(cz).mul(uint(GRID * GRID))))).toFloat();
+        acc.addAssign(c.mul(w));
+        wsum.addAssign(w);
+      });
+      const v = log(acc.div(wsum).mul(this.densityGain).add(1)).div(Math.log(1 + 110));
+      textureStore(gasStore, uvec3(uint(x), uint(y), uint(z)), vec4(v, 0, 0, 1));
+    })().compute(GRID * GRID * GRID, [64]);
+    this.group.add(this.buildGas());
 
     // #30: indirect args (indexCount, instanceCount, firstIndex, baseVertex, firstInstance)
     this.args = new IndirectStorageBufferAttribute(new Uint32Array([6, 0, 0, 0, 0]), 1);
@@ -245,9 +315,11 @@ export class WebChapter extends Chapter {
       const col = mix(blue, red, smoothstep(0.3, 0.9, crowd.add(hue.mul(0.4))));
       const pulse = fftAt(id, 2, 18).mul(T(17)).mul(crowd.mul(2).add(0.3));
       const sprite = spriteVertex({ center: g.xyz, radius: b.sqrt().mul(1.6).add(0.9), minPx: 0.75, maxPx: 60, edgeFade: true });
+      // the box's corners fade out, so the web reads as a region of space, not a cube
+      const edge = smoothstep(BOX * 0.52, BOX * 0.34, length(g.xyz));
       const mat = new MeshBasicNodeMaterial();
       mat.vertexNode = sprite.clip;
-      mat.colorNode = varying(col.mul(b.mul(pulse.add(1))).mul(0.055 * this.densityGain).mul(this.level));
+      mat.colorNode = varying(col.mul(b.mul(pulse.add(1))).mul(edge).mul(0.055 * this.densityGain).mul(this.level));
       // a tilted disc for galaxies close enough to resolve
       const ang = varying(hue.mul(Math.PI * 2));
       const asp = varying(rnd(id, 4).mul(2.2).add(1));
@@ -277,6 +349,48 @@ export class WebChapter extends Chapter {
     ]);
   }
 
+  /** #43 the raymarched glow of the gas between the galaxies (emission only). */
+  private buildGas(): Mesh {
+    const hx = BOX / 2;
+    const hy = (BOX * 0.8) / 2;
+    const geo = new BoxGeometry(BOX, BOX * 0.8, BOX);
+    const mat = new MeshBasicNodeMaterial();
+    const bmin = vec3(-hx, -hy, -hx);
+    const bmax = vec3(hx, hy, hx);
+    mat.colorNode = Fn(() => {
+      const ro = cameraPosition;
+      const rd = normalize(positionWorld.sub(ro)).toVar();
+      const hit = rayBox(ro, rd, bmin, bmax);
+      const t0 = max(hit.x, 0);
+      const ds = max(hit.y.sub(t0), 0).div(this.gasSteps.toFloat()).toVar();
+      const t = t0.add(ds.mul(ign())).toVar();
+      const L = vec3(0).toVar();
+      Loop(this.gasSteps, () => {
+        const p = ro.add(rd.mul(t)).toVar();
+        // (no fine noise here: far along the ray a fine texture would be read sparsely,
+        // which misses the texture cache on every step and only adds shimmer)
+        const d = texture3D(this.gas, p.div(BOX).add(0.5)).level(0).x;
+        const thin = mix(vec3(0.22, 0.36, 1.0), vec3(0.6, 0.34, 1.0), smoothstep(0.3, 0.6, d));
+        const col = mix(thin, vec3(1.0, 0.78, 0.52), smoothstep(0.62, 0.95, d));
+        // the soft gas right round the lens would only be a blur: it thins away up close
+        const near = smoothstep(60, 320, t);
+        const e = smoothstep(0.12, 1.0, d).pow(2.2).mul(near).mul(smoothstep(BOX * 0.52, BOX * 0.36, length(p)));
+        L.addAssign(col.mul(e));
+        t.addAssign(ds);
+      });
+      return L.mul(ds).mul(0.0062).mul(T(43)).mul(this.level);
+    })();
+    mat.side = BackSide;
+    mat.transparent = true;
+    mat.depthWrite = false;
+    mat.depthTest = false;
+    mat.blending = AdditiveBlending;
+    const mesh = new Mesh(geo, mat);
+    mesh.frustumCulled = false;
+    mesh.renderOrder = 2;
+    return mesh;
+  }
+
   enter(ctx: Ctx) {
     if (!this.initialized) {
       this.initialized = true;
@@ -284,6 +398,7 @@ export class WebChapter extends Chapter {
       ctx.renderer.compute(this.densityClear as never);
       ctx.renderer.compute(this.densityCount as never);
       ctx.renderer.compute(this.densityRead as never);
+      ctx.renderer.compute(this.gasBake as never);
     }
   }
 
@@ -337,6 +452,11 @@ export class WebChapter extends Chapter {
     out.focus = 600;
     out.aperture = 0;
     out.warp = (1 - ramp(t, 0, 1.3)) * 0.45;
+    // hundreds of bright knots: no lens streaks or ghosts across the frame
+    out.streak = 0.04;
+    out.flare = 0.04;
+    out.dirt = 0.3;
+    out.grade = { lift: [0.004, 0.003, 0.012], gamma: [1, 1, 1.03], gain: [1, 0.99, 1.02], saturation: 1.1 };
   }
 }
 
