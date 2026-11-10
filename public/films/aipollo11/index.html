@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIPOLLO 11 — すべてコードで描いた短編アニメーション</title>
+<meta name="description" content="Claude・GPT・Gemini・Grok が力を合わせて月へ行く、アポロ 11 号のパロディ短編。絵も動きも煙も地球も音も、すべてコードがその場で作っています（three.js WebGPU / TSL / WebAudio）。">
+<meta property="og:title" content="AIPOLLO 11">
+<meta property="og:description" content="4 つの AI が月をめざす。絵も音も、すべてコードがその場で作る短編アニメーション。">
+<meta property="og:image" content="https://xenithone.github.io/unfiled/images/aipollo11.webp">
+<meta property="og:type" content="video.other">
+<style>
+  html, body { margin: 0; height: 100%; background: #000; color: #e8e6e1; overflow: hidden;
+    font-family: "BIZ UDPGothic", "Yu Gothic UI", "Meiryo", sans-serif; }
+  #stage { position: fixed; inset: 0; display: grid; place-items: center; }
+  #view { display: block; background: #000; aspect-ratio: 16 / 9; width: min(100vw, 177.78vh); height: auto; }
+  #start { position: fixed; inset: 0; display: grid; place-items: center; background: radial-gradient(ellipse at 50% 35%, #101a33 0%, #000 70%); z-index: 5; }
+  #start[hidden], #hud[hidden] { display: none !important; }
+  #start .box { text-align: center; }
+  #start h1 { font: 700 64px/1 "Cascadia Mono", Consolas, monospace; letter-spacing: 0.14em; margin: 0 0 10px; color: #fff; }
+  #start p { margin: 6px 0; opacity: 0.75; font-size: 15px; }
+  #play { margin-top: 26px; font: 700 20px "BIZ UDPGothic", "Yu Gothic UI", sans-serif; color: #111; background: #e8834a; border: 0; border-radius: 999px;
+    padding: 14px 44px; cursor: pointer; }
+  #play:disabled { background: #555; color: #999; cursor: default; }
+  #start a { color: #f0a070; }
+  #hud { position: fixed; left: 12px; bottom: 10px; font: 13px Consolas, monospace; color: #9aa; z-index: 4; text-shadow: 0 1px 2px #000; }
+  #msg { position: fixed; left: 0; right: 0; top: 40%; text-align: center; color: #f88; font-size: 16px; white-space: pre-wrap; z-index: 6; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three/build/three.webgpu.js",
+    "three/webgpu": "./vendor/three/build/three.webgpu.js",
+    "three/tsl": "./vendor/three/build/three.tsl.js",
+    "three/addons/": "./vendor/three/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="stage"><canvas id="view" width="1920" height="1080"></canvas></div>
+<div id="start">
+  <div class="box">
+    <h1>AIPOLLO 11</h1>
+    <p>すべてコードで描いた短編アニメーション（three.js WebGPU / TSL / WebAudio）</p>
+    <p>画像生成・動画生成・素材ファイルは使っていません（約 4 分）</p>
+    <button id="play" disabled>読み込み中…</button>
+    <p style="margin-top:14px;font-size:13px;opacity:.7">画質：<a id="qlo" href="?">標準</a>　／　<a id="qhi" href="?q=high">高品質（性能の高い GPU 向け）</a></p>
+    <p style="margin-top:14px;font-size:13px"><a href="../../">← UNFILED へ戻る</a></p>
+    <p style="margin-top:18px;font-size:13px;opacity:.55">スペース：一時停止　←→：5 秒移動　H：時刻表示　F：全画面</p>
+  </div>
+</div>
+<div id="hud" hidden></div>
+<div id="msg"></div>
+<script>window.__AUDIO_JSON = "./audio.json"; window.__AUDIO_FILE = "./audio.opus";</script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

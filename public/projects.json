@@ -1,5 +1,16 @@
 [
   {
+    "id": "aipollo11",
+    "title": "AIPOLLO 11",
+    "subtitle": "4 つの AI、月へ行く。",
+    "description": "Claude・GPT・Gemini・Grok が、失敗を重ねながら力を合わせてロケットを作り、月をめざす。アポロ 11 号のパロディ短編（約 4 分）。地球と雲、打ち上げの煙（GPU の流体シミュレーション）、炎、月面、そして音楽まで、すべてコードがその場で作る。画像生成・動画生成・素材ファイルは使っていない。WebGPU 対応のパソコン向け。",
+    "category": "REAL-TIME SHORT FILM",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/films/aipollo11/",
+    "cover": "images/aipollo11.webp",
+    "accent": "#e8834a"
+  },
+  {
     "id": "myriad",
     "title": "MYRIAD",
     "subtitle": "塵から、宇宙の果てまで。",
