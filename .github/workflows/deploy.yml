@@ -41,6 +41,9 @@ jobs:
       - name: Check railway simulation
         run: npm run test:alpine
 
+      - name: Check FUDE paint tool parts
+        run: npm run test:fude
+
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v4
         with:

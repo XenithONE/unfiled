@@ -1,5 +1,17 @@
 [
   {
+    "id": "fude",
+    "title": "FUDE",
+    "subtitle": "人も、AIも、同じ筆で。",
+    "description": "Gペン・鉛筆・透明水彩・油彩・エアブラシ・散らし筆など36の筆、28の合成モードとクリッピング・マスクのレイヤー、隙間を閉じる塗りつぶし、選択範囲、変形、対称とパースの定規、21のフィルター。PSDやORAでレイヤーごと書き出せる、ブラウザのお絵描きツール。AIに指示を渡すと、同じ筆で1画ずつ描く様子を再生できる。",
+    "category": "AI PAINT STUDIO",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/tools/fude/",
+    "source": "https://github.com/XenithONE/unfiled/tree/main/tools/fude",
+    "cover": "images/fude.webp",
+    "accent": "#fa512c"
+  },
+  {
     "id": "aipollo11",
     "title": "AIPOLLO 11",
     "subtitle": "4 つの AI、月へ行く。",

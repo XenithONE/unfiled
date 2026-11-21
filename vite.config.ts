@@ -20,6 +20,7 @@ export default defineConfig({
         everest: "games/everest/index.html",
         alpine: "games/alpine-rail/index.html",
         myriad: "experiments/myriad/index.html",
+        fude: "tools/fude/index.html",
       },
     },
   },
