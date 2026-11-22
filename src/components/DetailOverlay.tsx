@@ -3,6 +3,7 @@ import gsap from "gsap";
 import { ArrowLeft, ArrowRight, ArrowUpRight, X } from "lucide-react";
 import { assetUrl } from "../data";
 import type { Project } from "../types";
+import { fitDisplay, useFontsReady, useViewportWidth } from "../fit";
 
 interface Props {
   project: Project | null;
@@ -32,6 +33,8 @@ export default function DetailOverlay({
   const root = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const open = Boolean(project);
+  const vw = useViewportWidth();
+  useFontsReady();
 
   useEffect(() => {
     if (!open) return;
@@ -82,6 +85,13 @@ export default function DetailOverlay({
   }, [project, reduced]);
 
   if (!project) return null;
+  const column = narrow ? vw - 36 : Math.min(vw * 0.46, 640) - 62;
+  const titleSize = fitDisplay(
+    project.title,
+    column,
+    Math.max(34, Math.min(60, vw * 0.036)),
+    24,
+  );
   return (
     <div
       ref={root}
@@ -116,7 +126,11 @@ export default function DetailOverlay({
           </button>
         </header>
 
-        <h2 id="detail-title" className="detail-title dt-anim">
+        <h2
+          id="detail-title"
+          className="detail-title dt-anim"
+          style={{ fontSize: `${titleSize.toFixed(1)}px` }}
+        >
           {project.title}
         </h2>
         <p className="detail-sub dt-anim">{project.subtitle}</p>

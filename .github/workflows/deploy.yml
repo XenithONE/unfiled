@@ -44,6 +44,9 @@ jobs:
       - name: Check FUDE paint tool parts
         run: npm run test:fude
 
+      - name: Check hub layout
+        run: npm run test:hub
+
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v4
         with:

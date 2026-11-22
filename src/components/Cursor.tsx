@@ -1,14 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 
+interface Props {
+  /** Label while the pointer is over something in the 3D scene. */
+  label?: string;
+  /** A second line under the ring (the title of the work pointed at). */
+  caption?: string;
+}
+
 /**
  * A small ring cursor for fine pointers. Elements with `data-cursor="LABEL"`
- * expand it and show the label; the native cursor is hidden by CSS while
- * `html.has-cursor` is set.
+ * expand it and show the label; a work under the pointer in the scene does
+ * the same through `label` / `caption`. The native cursor is hidden by CSS
+ * while `html.has-cursor` is set.
  */
-export default function Cursor() {
+export default function Cursor({ label = "", caption = "" }: Props) {
   const ring = useRef<HTMLDivElement>(null);
   const dot = useRef<HTMLDivElement>(null);
-  const [label, setLabel] = useState("");
+  const [dom, setDom] = useState<{ hover: boolean; label: string }>({ hover: false, label: "" });
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
@@ -19,28 +27,21 @@ export default function Cursor() {
     const pos = { x: innerWidth / 2, y: innerHeight / 2 };
     const cur = { x: pos.x, y: pos.y };
     let raf = 0;
-    let hovering = false;
-    let down = false;
+    let last = { hover: false, label: "" };
     const move = (e: PointerEvent) => {
       pos.x = e.clientX;
       pos.y = e.clientY;
       const target = (e.target as HTMLElement | null)?.closest<HTMLElement>(
         "[data-cursor], a, button, [role=button]",
       );
-      const next = target?.dataset.cursor ?? (target ? "" : "");
-      hovering = Boolean(target);
-      setLabel(next ?? "");
-      ring.current?.classList.toggle("is-hover", hovering);
-      ring.current?.classList.toggle("has-label", Boolean(next));
+      const next = { hover: Boolean(target), label: target?.dataset.cursor ?? "" };
+      if (next.hover !== last.hover || next.label !== last.label) {
+        last = next;
+        setDom(next);
+      }
     };
-    const press = () => {
-      down = true;
-      ring.current?.classList.add("is-down");
-    };
-    const release = () => {
-      down = false;
-      ring.current?.classList.remove("is-down");
-    };
+    const press = () => ring.current?.classList.add("is-down");
+    const release = () => ring.current?.classList.remove("is-down");
     const leave = () => ring.current?.classList.add("is-out");
     const enter = () => ring.current?.classList.remove("is-out");
     const tick = () => {
@@ -66,15 +67,25 @@ export default function Cursor() {
       document.documentElement.removeEventListener("mouseleave", leave);
       document.documentElement.removeEventListener("mouseenter", enter);
       document.documentElement.classList.remove("has-cursor");
-      void down;
     };
   }, []);
 
   if (!enabled) return null;
+  const scene = !dom.hover && Boolean(label);
+  const shown = dom.hover ? dom.label : label;
+  const cls = [
+    "cursor-ring",
+    dom.hover || scene ? "is-hover" : "",
+    shown ? "has-label" : "",
+    scene ? "is-scene" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   return (
     <>
-      <div ref={ring} className="cursor-ring" aria-hidden="true">
-        <span className="cursor-label mono">{label}</span>
+      <div ref={ring} className={cls} aria-hidden="true">
+        <span className="cursor-label mono">{shown}</span>
+        <span className="cursor-caption mono">{scene ? caption : ""}</span>
       </div>
       <div ref={dot} className="cursor-dot" aria-hidden="true" />
     </>

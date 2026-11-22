@@ -34,7 +34,9 @@ export default function HeroCopy({ count, year, status, reduced, revealed, onEnt
     const stamp = el.querySelector<HTMLElement>(".stamp");
     const tl = gsap.timeline();
     if (reduced) {
-      tl.set([chars, rest, stamp], { opacity: 1, y: 0, scale: 1, rotate: -11 });
+      // only the stamp is tilted; the copy stays level
+      tl.set([chars, rest], { opacity: 1, y: 0, yPercent: 0, rotateX: 0 });
+      tl.set(stamp, { opacity: 0.92, scale: 1, rotate: -11 });
       return;
     }
     tl.fromTo(
@@ -69,7 +71,7 @@ export default function HeroCopy({ count, year, status, reduced, revealed, onEnt
           <i aria-hidden="true" />
           <span>VOL. {year}</span>
           <i aria-hidden="true" />
-          <span>{String(count || 32).padStart(2, "0")} WORKS</span>
+          <span>{String(count || 35).padStart(2, "0")} WORKS</span>
           <i aria-hidden="true" />
           <span>
             {status.state === "ready"
@@ -94,7 +96,7 @@ export default function HeroCopy({ count, year, status, reduced, revealed, onEnt
         <p className="hero-sub hero-reveal">
           AIとつくった、まだ分類できないものたち。
           <br />
-          {kanjiCount(count || 32)}の実験を、ひとつの粒子の場に並べました。
+          {kanjiCount(count || 35)}の実験を、ひとつの水鏡に並べました。
         </p>
         <div className="hero-actions hero-reveal">
           <button type="button" className="enter-button" onClick={onEnter} data-cursor="ENTER">
@@ -103,10 +105,10 @@ export default function HeroCopy({ count, year, status, reduced, revealed, onEnt
           </button>
           <p className="hero-hint mono">
             {unsupported
-              ? "この環境では粒子を描けません。作品一覧はそのまま使えます。"
+              ? "この環境では水鏡を描けません。作品一覧はそのまま使えます。"
               : reduced
-                ? "動きを抑えた表示です。触れると粒子がゆっくり逃げます。"
-                : "触れると、粒子が逃げる。進むと、表紙が塵から組み上がる。"}
+                ? "動きを抑えた表示です。進むと、夜が更けていきます。"
+                : "触れると、水面が揺れる。進むと、夜が更けていく。"}
           </p>
         </div>
       </div>

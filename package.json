@@ -11,7 +11,8 @@
     "test:everest": "node tools/test-everest.mjs",
     "test:alpine": "node tools/test-alpine-rail.mjs",
     "test:alice": "node tools/test-alice-games.mjs",
-    "test:fude": "node tools/test-fude.mjs"
+    "test:fude": "node tools/test-fude.mjs",
+    "test:hub": "node tools/test-hub.mjs"
   },
   "dependencies": {
     "@fontsource/anton": "^5.2.8",

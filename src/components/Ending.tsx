@@ -55,8 +55,8 @@ export default function Ending({ count, stats, status, year, onTop, onIndex }: P
           <div>
             <dt>FIELD</dt>
             <dd>
-              three.js WebGPURenderer + TSL compute ·{" "}
-              {stats ? stats.count.toLocaleString("en-US") : "—"} particles · {backend}
+              three.js WebGPURenderer + TSL · 空も、星も、水面も、数式がその場で描く · {backend}
+              {stats ? ` · ${stats.clock}` : ""}
             </dd>
           </div>
           <div>
@@ -65,7 +65,7 @@ export default function Ending({ count, stats, status, year, onTop, onIndex }: P
           </div>
           <div>
             <dt>MADE WITH</dt>
-            <dd>人とAIの共同制作。コードも、粒子も、言葉も、まだ途中。</dd>
+            <dd>人とAIの共同制作。コードも、景色も、言葉も、まだ途中。</dd>
           </div>
         </dl>
         <div className="ending-actions">

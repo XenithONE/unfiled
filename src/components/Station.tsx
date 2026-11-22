@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ArrowUpRight } from "lucide-react";
 import type { Project } from "../types";
+import { fitDisplay, useFontsReady, useViewportWidth } from "../fit";
 
 interface Props {
   project: Project | null;
@@ -14,14 +15,17 @@ interface Props {
 }
 
 /**
- * The fixed caption of the work at the focus point. When the work changes,
- * the old title tears away and the new one assembles letter by letter.
+ * The fixed caption of the work the camera has stopped at. When the work
+ * changes, the old title tears away and the new one assembles letter by
+ * letter.
  */
 export default function Station({ project, index, total, visible, reduced, narrow, onOpen }: Props) {
   const root = useRef<HTMLDivElement>(null);
   const [shown, setShown] = useState<{ project: Project; index: number } | null>(null);
   const pending = useRef<{ project: Project; index: number } | null>(null);
   const animating = useRef(false);
+  const vw = useViewportWidth();
+  useFontsReady();
 
   // queue the change; the out-animation swaps `shown` when done
   useEffect(() => {
@@ -87,12 +91,13 @@ export default function Station({ project, index, total, visible, reduced, narro
   if (!shown) return null;
   const { project: p, index: i } = shown;
   const words = p.title.split(" ");
-  // Syne ExtraBold advances about 1em per glyph; fit the longest word into
-  // the caption column (46vw desktop / 92vw narrow) and cap the size.
-  const longest = Math.max(4, ...words.map((w) => Array.from(w).length));
+  // the caption column: beside the slab on wide screens, clear of the
+  // floating controls on narrow ones
+  const gutter = Math.max(18, Math.min(56, vw * 0.032));
+  const column = narrow ? vw - gutter * 2 - 64 : Math.min(vw * 0.44, 700);
   const size = narrow
-    ? `clamp(28px, ${Math.min(11, 80 / longest)}vw, 64px)`
-    : `clamp(36px, ${Math.min(7.4, 40 / longest)}vw, 132px)`;
+    ? fitDisplay(p.title, column, Math.min(64, vw * 0.15), 24)
+    : fitDisplay(p.title, column, Math.min(112, vw * 0.062), 34);
 
   return (
     <div
@@ -107,7 +112,11 @@ export default function Station({ project, index, total, visible, reduced, narro
         <span>{String(total).padStart(2, "0")}</span>
         <span className="st-cat">{p.category}</span>
       </p>
-      <h2 className="st-title" style={{ fontSize: size }} aria-label={p.title}>
+      <h2
+        className="st-title"
+        style={{ fontSize: `${size.toFixed(1)}px`, maxWidth: `${Math.round(column)}px` }}
+        aria-label={p.title}
+      >
         {words.map((word, wi) => (
           <span className="word" key={wi}>
             {Array.from(word).map((c, ci) => (
@@ -115,7 +124,6 @@ export default function Station({ project, index, total, visible, reduced, narro
                 {c}
               </span>
             ))}
-            {wi < words.length - 1 ? <span className="space"> </span> : null}
           </span>
         ))}
       </h2>

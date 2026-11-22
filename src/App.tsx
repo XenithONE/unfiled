@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { assetUrl, loadProjects } from "./data";
+import { HERO_PROGRESS } from "./types";
 import type { Project } from "./types";
 import gsap from "gsap";
 import { useStage } from "./stage/useStage";
@@ -39,10 +40,17 @@ function useReducedMotion() {
   return reduced;
 }
 
+/**
+ * Tall and narrow: the picture is stacked (the work above, its words below).
+ * A phone on its side keeps the wide picture, only smaller. The stage frames
+ * its shots by the same rule (Stage.view).
+ */
+const NARROW_QUERY = "(max-width: 899px) and (max-aspect-ratio: 21/20)";
+
 function useNarrow() {
-  const [narrow, setNarrow] = useState(() => window.innerWidth < 900);
+  const [narrow, setNarrow] = useState(() => window.matchMedia(NARROW_QUERY).matches);
   useEffect(() => {
-    const query = window.matchMedia("(max-width: 899px)");
+    const query = window.matchMedia(NARROW_QUERY);
     const update = () => setNarrow(query.matches);
     update();
     query.addEventListener("change", update);
@@ -56,10 +64,10 @@ const smooth = (a: number, b: number, x: number) => {
   return t * t * (3 - 2 * t);
 };
 
-/** Scroll geometry: hero, then one station per work, then the ending. */
+/** Scroll geometry: hero, then one stop per work, then the ending. */
 function geometry(vh: number, count: number, narrow: boolean) {
   const heroH = vh;
-  const stationH = Math.round(vh * (narrow ? 0.85 : 0.7));
+  const stationH = Math.round(vh * (narrow ? 0.8 : 0.66));
   const railStart = Math.round(heroH * 0.85);
   const railLength = count * stationH;
   const spacer = Math.max(0, railStart + railLength + Math.round(vh * 0.45) - heroH);
@@ -72,10 +80,13 @@ export default function App() {
   const [attempt, setAttempt] = useState(0);
   const [mode, setMode] = useState<Mode>("hero");
   const [active, setActive] = useState<number | null>(null);
+  const [hover, setHover] = useState<number | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [indexOpen, setIndexOpen] = useState(false);
   const [loaderDone, setLoaderDone] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [touring, setTouring] = useState(false);
+  const [bare, setBare] = useState(false);
   const [soundOn, setSoundOn] = useState(false);
   const [scrollP, setScrollP] = useState(0);
   const [dissolve, setDissolve] = useState(0);
@@ -148,10 +159,13 @@ export default function App() {
       const doc = document.documentElement;
       const max = Math.max(1, doc.scrollHeight - window.innerHeight);
       setScrollP(Math.min(1, y / max));
-      stage?.setScroll(y);
 
       const n = count;
-      const p = (y - geo.railStart) / geo.stationH;
+      // the opening shot holds at the top of the page whatever the screen shape
+      const p =
+        y < geo.railStart
+          ? (1 - y / geo.railStart) * HERO_PROGRESS
+          : (y - geo.railStart) / geo.stationH;
       let next: Mode = "hero";
       let nextActive: number | null = null;
       if (n > 0 && p >= -0.5 && p < n - 0.5) {
@@ -160,14 +174,13 @@ export default function App() {
       } else if (n > 0 && p >= n - 0.5) {
         next = "end";
       }
-      const d = smooth(0.04, 0.62, y / (geo.heroH * 0.9));
-      setDissolve(d);
+      setDissolve(smooth(0.04, 0.5, y / (geo.heroH * 0.9)));
 
       if (stage) {
-        stage.setProgress(n > 0 ? p : -1);
-        stage.setHeroDissolve(d, (y / Math.max(1, vh)) * stage.visibleHeight * 0.6);
+        // before the works arrive the camera simply holds the opening shot
+        stage.setProgress(n > 0 ? p : -9);
         if (next !== modeRef.current) stage.setMode(next);
-        if (next === "archive" && nextActive !== activeRef.current) {
+        if (nextActive !== activeRef.current) {
           stage.setActive(nextActive);
           if (activeRef.current !== null && nextActive !== null)
             soundRef.current?.tick(nextActive);
@@ -233,7 +246,7 @@ export default function App() {
 
   useEffect(() => {
     stage?.setDetail(Boolean(detailId));
-  }, [stage, detailId]);
+  }, [stage, detailId, active]);
 
   // deep link: #id opens that work
   const hashHandled = useRef(false);
@@ -293,6 +306,10 @@ export default function App() {
       if (indexOpen) return;
       if (e.key === "i" || e.key === "I") {
         setIndexOpen(true);
+      } else if (e.key === "t" || e.key === "T") {
+        setTouring((v) => !v);
+      } else if (e.key === "h" || e.key === "H") {
+        setBare((v) => !v);
       } else if (e.key === "ArrowDown" || e.key === "ArrowRight" || e.key === "PageDown") {
         e.preventDefault();
         stepStation(1);
@@ -300,6 +317,8 @@ export default function App() {
         e.preventDefault();
         stepStation(-1);
       } else if (e.key === "Enter" && activeProject && modeRef.current === "archive") {
+        // a focused control keeps its own Enter
+        if (target?.closest("a, button")) return;
         openDetail(activeProject);
       } else if (e.key === "Home") {
         e.preventDefault();
@@ -325,36 +344,121 @@ export default function App() {
   ]);
 
   /* ------------------------------------------------------------------ */
-  /* pointer                                                             */
+  /* pointer: ripples, hover, and walking up to a work by clicking it    */
   /* ------------------------------------------------------------------ */
+  const projectsRef = useRef(projects);
+  projectsRef.current = projects;
+  const openDetailRef = useRef(openDetail);
+  openDetailRef.current = openDetail;
+  const scrollToStationRef = useRef(scrollToStation);
+  scrollToStationRef.current = scrollToStation;
+
   useEffect(() => {
     if (!stage) return;
+    stage.onHover(setHover);
+    const overUi = (target: EventTarget | null) =>
+      Boolean((target as HTMLElement | null)?.closest?.("a, button, [role=dialog], .ending-body"));
+    let downAt: { x: number; y: number; t: number } | null = null;
     const move = (e: PointerEvent) => {
       if (e.pointerType === "touch") return;
-      stage.setPointer(e.clientX, e.clientY);
+      if (overUi(e.target)) stage.clearPointer();
+      else stage.setPointer(e.clientX, e.clientY);
     };
-    const touch = (e: TouchEvent) => {
-      const t = e.touches[0];
-      if (t) stage.setPointer(t.clientX, t.clientY);
-    };
+    const leave = () => stage.clearPointer();
     const down = (e: PointerEvent) => {
-      if ((e.target as HTMLElement | null)?.closest("a, button, [role=dialog]")) return;
-      stage.setPointer(e.clientX, e.clientY);
-      stage.pulse(0.9);
+      downAt = null;
+      if (overUi(e.target) || e.button !== 0) return;
+      downAt = { x: e.clientX, y: e.clientY, t: performance.now() };
+      if (e.pointerType !== "touch") {
+        stage.setPointer(e.clientX, e.clientY);
+        if (stage.pulse(1) && stage.pick(e.clientX, e.clientY) === null) soundRef.current?.drop();
+      }
+    };
+    const up = (e: PointerEvent) => {
+      const start = downAt;
+      downAt = null;
+      if (!start || overUi(e.target)) return;
+      // a tap, not a drag or a scroll
+      if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 8) return;
+      if (performance.now() - start.t > 600) return;
+      const index = stage.pick(e.clientX, e.clientY);
+      if (index === null) {
+        // a finger on the water (the mouse already rippled on the way down)
+        if (e.pointerType === "touch") {
+          stage.setPointer(e.clientX, e.clientY);
+          if (stage.pulse(1)) soundRef.current?.drop();
+          stage.clearPointer();
+        }
+        return;
+      }
+      const project = projectsRef.current[index];
+      if (!project) return;
+      if (index === activeRef.current && modeRef.current === "archive") openDetailRef.current(project);
+      else scrollToStationRef.current(index);
     };
     window.addEventListener("pointermove", move, { passive: true });
-    window.addEventListener("touchmove", touch, { passive: true });
     window.addEventListener("pointerdown", down, { passive: true });
+    window.addEventListener("pointerup", up, { passive: true });
+    document.documentElement.addEventListener("mouseleave", leave);
     return () => {
+      stage.onHover(null);
       window.removeEventListener("pointermove", move);
-      window.removeEventListener("touchmove", touch);
       window.removeEventListener("pointerdown", down);
+      window.removeEventListener("pointerup", up);
+      document.documentElement.removeEventListener("mouseleave", leave);
     };
   }, [stage]);
 
   useEffect(() => {
     stage?.setPaused(paused);
   }, [stage, paused]);
+
+  // The tour: the whole night walked for you. It lets go the moment the
+  // visitor takes over (wheel, touch, keys), opens something or reaches dawn.
+  useEffect(() => {
+    if (!touring) return;
+    if (unsupported || count === 0 || detailId || indexOpen || paused) {
+      setTouring(false);
+      return;
+    }
+    const perWork = reduced ? 7 : 5.2; // seconds
+    let raf = 0;
+    let last = performance.now();
+    let y = window.scrollY;
+    const frame = (now: number) => {
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      // the opening shot is left a little faster than the works are passed
+      const speed = (y < geo.railStart ? geo.railStart / 3.4 : geo.stationH / perWork) * dt;
+      y = Math.min(max, y + speed);
+      window.scrollTo(0, y);
+      if (y >= max - 1) {
+        setTouring(false);
+        return;
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    const stop = () => setTouring(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (/^(Arrow|Page|Home|End| |Escape)/.test(e.key)) stop();
+    };
+    window.addEventListener("wheel", stop, { passive: true });
+    window.addEventListener("touchstart", stop, { passive: true });
+    window.addEventListener("keydown", onKey);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("wheel", stop);
+      window.removeEventListener("touchstart", stop);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [touring, unsupported, count, detailId, indexOpen, paused, reduced, geo]);
+
+  // the opening move starts when the loader lifts
+  useEffect(() => {
+    if (stage && loaderDone) stage.intro();
+  }, [stage, loaderDone]);
 
   // test seam: headless checks drive GSAP by hand when no frame fires
   useEffect(() => {
@@ -407,6 +511,7 @@ export default function App() {
     const id = window.setInterval(() => {
       const v = Math.min(1, Math.abs(stage.velocity) / 1.6);
       soundRef.current?.setIntensity(v);
+      soundRef.current?.setHour(stage.hour);
     }, 100);
     return () => window.clearInterval(id);
   }, [stage]);
@@ -417,6 +522,13 @@ export default function App() {
   /* ------------------------------------------------------------------ */
   const year = new Date().getFullYear();
   const showStations = !unsupported && count > 0;
+  const hoverProject = hover !== null ? (projects[hover] ?? null) : null;
+  const canvasLabel =
+    hoverProject && !detailId && !indexOpen
+      ? hover === active && mode === "archive"
+        ? "OPEN"
+        : String((hover ?? 0) + 1).padStart(2, "0")
+      : "";
   const siteClass = [
     "site",
     unsupported ? "is-static" : "",
@@ -425,6 +537,9 @@ export default function App() {
     `mode-${mode}`,
     detailId ? "has-detail" : "",
     indexOpen ? "has-index" : "",
+    narrow ? "is-narrow" : "",
+    bare ? "is-bare" : "",
+    touring ? "is-touring" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -432,7 +547,6 @@ export default function App() {
   return (
     <div className={siteClass} style={{ "--dissolve": dissolve } as CSSProperties}>
       <canvas ref={canvasRef} className="stage-canvas" aria-hidden="true" />
-      <div className="stage-grid" aria-hidden="true" />
       <div
         className="scroll-progress"
         aria-hidden="true"
@@ -536,6 +650,8 @@ export default function App() {
         soundOn={soundOn}
         reducedMotion={reduced}
         onTogglePaused={() => setPaused((p) => !p)}
+        touring={touring}
+        onToggleTour={() => setTouring((v) => !v)}
         onToggleSound={toggleSound}
         onIndex={() => setIndexOpen(true)}
         onTop={scrollToTop}
@@ -572,7 +688,7 @@ export default function App() {
       ) : null}
 
       <Loader works={count} status={status} reduced={reduced} onDone={() => setLoaderDone(true)} />
-      <Cursor />
+      <Cursor label={canvasLabel} caption={hoverProject && canvasLabel ? hoverProject.title : ""} />
     </div>
   );
 }

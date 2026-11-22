@@ -12,9 +12,9 @@ interface Props {
 const bootLines = (works: number) => [
   "UNFILED / FIELD BOOT",
   "> adapter ............ probing",
-  "> particles .......... allocating",
-  "> shaders ............ compiling",
-  `> archive ............ filing ${works || "the"} works`,
+  "> sky ................ one night, sunset to sunrise",
+  "> water .............. settling",
+  `> works .............. standing ${works || "the"} slabs`,
 ];
 
 const MIN_MS = 1700;
@@ -64,35 +64,22 @@ export default function Loader({ works, status, reduced, onDone }: Props) {
     const id = window.setTimeout(() => {
       finished.current = true;
       const el = root.current;
-      if (!el) {
+      const done = () => {
         setGone(true);
         onDone();
+      };
+      if (!el) {
+        done();
         return;
       }
-      const tl = gsap.timeline({
-        onComplete: () => {
-          setGone(true);
-          onDone();
-        },
+      // the world fades up underneath, so the curtain only has to let go
+      onDone();
+      gsap.to(el, {
+        opacity: 0,
+        duration: reduced ? 0.3 : 0.9,
+        ease: "power2.out",
+        onComplete: () => setGone(true),
       });
-      if (reduced) {
-        tl.to(el, { opacity: 0, duration: 0.35, ease: "power2.out" });
-      } else {
-        tl.to(el.querySelector(".loader-panel"), {
-          opacity: 0,
-          y: -12,
-          duration: 0.3,
-          ease: "power2.in",
-        }).to(
-          el,
-          {
-            clipPath: "inset(0 0 100% 0)",
-            duration: 0.9,
-            ease: "expo.inOut",
-          },
-          "-=0.05",
-        );
-      }
     }, wait);
     return () => window.clearTimeout(id);
   }, [status.state, reduced, onDone]);
@@ -106,7 +93,6 @@ export default function Loader({ works, status, reduced, onDone }: Props) {
       : status.state === "unsupported"
         ? "STATIC"
         : "…";
-  const count = status.state === "ready" ? status.count.toLocaleString("en-US") : "…";
 
   return (
     <div className="loader" ref={root} role="status" aria-live="polite">
@@ -114,9 +100,7 @@ export default function Loader({ works, status, reduced, onDone }: Props) {
         <div className="loader-lines">
           {lines.map((line, i) => (
             <div key={i} className={i === 0 ? "loader-head" : ""}>
-              {line
-                .replace("probing", status.state === "booting" ? "probing" : backend)
-                .replace("allocating", status.state === "booting" ? "allocating" : count)}
+              {line.replace("probing", status.state === "booting" ? "probing" : backend)}
             </div>
           ))}
         </div>
@@ -125,7 +109,7 @@ export default function Loader({ works, status, reduced, onDone }: Props) {
         </div>
         <div className="loader-foot">
           <span>WORK IN PROGRESS</span>
-          <span>粒子を組み立てています</span>
+          <span>水鏡を張っています</span>
         </div>
       </div>
     </div>

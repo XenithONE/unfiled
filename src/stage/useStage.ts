@@ -4,7 +4,7 @@ import type { Stage, StageStats } from "./Stage";
 
 export type StageStatus =
   | { state: "booting" }
-  | { state: "ready"; backend: "webgpu" | "webgl2"; count: number; gpu: string }
+  | { state: "ready"; backend: "webgpu" | "webgl2"; gpu: string }
   | { state: "unsupported"; reason: string };
 
 declare global {
@@ -20,7 +20,6 @@ declare global {
 interface Ready {
   stage: Stage;
   backend: "webgpu" | "webgl2";
-  count: number;
   gpu: string;
 }
 
@@ -36,8 +35,8 @@ interface Entry {
  * kill the context the second mount is about to use. So disposal is deferred
  * and cancelled when the canvas is reclaimed within the same tick.
  *
- * The stage module (three.js WebGPU + TSL, ~200 kB gzipped) is loaded lazily
- * so the page text renders before the field boots.
+ * The stage module (three.js WebGPU + TSL) is loaded lazily so the page text
+ * renders before the world boots.
  */
 const registry = new WeakMap<HTMLCanvasElement, Entry>();
 
@@ -64,7 +63,7 @@ function acquire(canvas: HTMLCanvasElement) {
   const ready = import("./Stage").then(async ({ Stage }) => {
     const stage = new Stage(canvas);
     const info = await stage.init({ forceWebGL, tier });
-    return { stage, ...info };
+    return { stage, backend: info.backend, gpu: info.gpu };
   });
   entry = { ready, refs: 1, disposeTimer: null };
   registry.set(canvas, entry);
@@ -106,7 +105,11 @@ export function useStage(
         return false;
       }
     })();
-    if (!("gpu" in navigator) && !hasWebGL2) {
+    // ?dbg=static shows what a browser without WebGL gets
+    const forceStatic = (new URLSearchParams(window.location.search).get("dbg") ?? "")
+      .split(",")
+      .includes("static");
+    if (forceStatic || (!("gpu" in navigator) && !hasWebGL2)) {
       setStatus({ state: "unsupported", reason: "no-webgl2" });
       return;
     }
@@ -135,12 +138,7 @@ export function useStage(
           step: (dt = 1 / 60) => instance.step(dt),
         };
         setStage(instance);
-        setStatus({
-          state: "ready",
-          backend: info.backend,
-          count: info.count,
-          gpu: info.gpu,
-        });
+        setStatus({ state: "ready", backend: info.backend, gpu: info.gpu });
       })
       .catch((err: unknown) => {
         console.error("UNFILED: stage failed", err);

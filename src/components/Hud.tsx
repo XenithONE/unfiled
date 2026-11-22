@@ -1,4 +1,4 @@
-import { ArrowUp, LayoutGrid, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { ArrowUp, Footprints, LayoutGrid, Pause, Play, Square, Volume2, VolumeX } from "lucide-react";
 import type { StageStats } from "../stage/Stage";
 import type { StageStatus } from "../stage/useStage";
 
@@ -11,7 +11,9 @@ interface Props {
   paused: boolean;
   soundOn: boolean;
   reducedMotion: boolean;
+  touring: boolean;
   onTogglePaused: () => void;
+  onToggleTour: () => void;
   onToggleSound: () => void;
   onIndex: () => void;
   onTop: () => void;
@@ -28,7 +30,9 @@ export default function Hud({
   paused,
   soundOn,
   reducedMotion,
+  touring,
   onTogglePaused,
+  onToggleTour,
   onToggleSound,
   onIndex,
   onTop,
@@ -41,15 +45,15 @@ export default function Hud({
     : status.state === "booting"
       ? "BOOT"
       : "STATIC";
-  const count = stats?.count ?? (ready ? status.count : 0);
   return (
     <>
       <div className="hud mono" aria-hidden="true">
         <div className="hud-line">
           <span className="hud-key">SYS</span>
           <span className={`hud-chip ${ready ? "is-on" : ""}`}>{backend}</span>
-          <span>{count ? `${count.toLocaleString("en-US")} PTC` : "—"}</span>
-          <span>{stats ? `${String(stats.fps).padStart(3, " ")} FPS` : ""}</span>
+          <span className="hud-clock">{stats ? stats.clock : "--:--"}</span>
+          <span className="hud-phase">{stats ? stats.phase : ""}</span>
+          <span className="hud-faint">{stats ? `${String(stats.fps).padStart(3, " ")} FPS` : ""}</span>
           <span className="hud-faint">
             {stats && stats.renderScale < 1 ? `×${stats.renderScale.toFixed(2)}` : ""}
           </span>
@@ -68,7 +72,8 @@ export default function Hud({
           <span>↑↓ MOVE</span>
           <span>↵ OPEN</span>
           <span>I INDEX</span>
-          <span>ESC BACK</span>
+          <span>T TOUR</span>
+          <span>H HIDE</span>
         </div>
         <div className="hud-line hud-faint">
           <span className="hud-key">BLD</span>
@@ -91,6 +96,23 @@ export default function Hud({
         </button>
         <button
           type="button"
+          className={`hud-button ${touring ? "is-on" : ""}`}
+          onClick={onToggleTour}
+          disabled={!ready}
+          aria-pressed={touring}
+          aria-label={touring ? "おまかせ散歩を止める" : "おまかせ散歩を始める（一晩を自動で歩く）"}
+          title={touring ? "おまかせ散歩を止める（T）" : "おまかせ散歩：一晩を自動で歩く（T）"}
+          data-cursor={touring ? "STOP" : "TOUR"}
+        >
+          {touring ? (
+            <Square size={13} fill="currentColor" strokeWidth={1.4} />
+          ) : (
+            <Footprints size={15} strokeWidth={1.6} />
+          )}
+          <span className="mono">TOUR</span>
+        </button>
+        <button
+          type="button"
           className="hud-button"
           onClick={onIndex}
           aria-label="作品の索引"
@@ -106,7 +128,7 @@ export default function Hud({
           onClick={onTogglePaused}
           disabled={!ready}
           aria-pressed={paused}
-          aria-label={paused ? "粒子の動きを再生" : "粒子の動きを停止"}
+          aria-label={paused ? "景色の動きを再生" : "景色の動きを停止"}
           title={
             reducedMotion
               ? "端末設定に合わせて動きを抑えています"
