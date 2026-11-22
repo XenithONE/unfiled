@@ -101,6 +101,8 @@ export interface MotesHost {
 /** The block of air the free motes live in (metres); it follows the camera. */
 const BOX = new Vector3(60, 6.4, 60);
 const BOX_Y = 3.3;
+/** Beyond this (metres from the middle of that block) a called mote is "far off". */
+const FAR = 64;
 
 export class Motes {
   readonly count: number;
@@ -426,9 +428,13 @@ export class Motes {
       // Free motes wrap round a block of air that travels with the camera,
       // so the walk never runs out of them. A mote still on its way to or
       // from a picture is left alone (it fades where it is before wrapping).
+      // But one called to a new picture from far off (the visitor jumped
+      // across the walk while it held the last one) would be seconds in
+      // coming: it sets off from the air near the camera instead.
       const local = moved.sub(uBoxCenter).toVar();
       const wrapped = uBoxCenter.add(local.sub(local.div(box).add(0.5).floor().mul(box))).toVar();
-      const newPos = select(bound.lessThan(0.02), wrapped, moved).toVar();
+      const stranded = justSwitched.and(length(local.xz).greaterThan(FAR));
+      const newPos = select(bound.lessThan(0.02).or(stranded), wrapped, moved).toVar();
 
       const colRate = float(1).sub(exp(uDt.negate().mul(3.5)));
       const newCol = mix(col, unpackColor(packedRaw), colRate).toVar();
