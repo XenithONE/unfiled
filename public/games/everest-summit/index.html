@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#10263b" />
+    <link rel="icon" href="data:," />
+    <meta name="description" content="エベレストの南東稜線を登り、山頂からウィングスーツで飛ぶ一人称3Dゲーム。" />
+    <title>EVEREST — SUMMIT | エベレスト登頂と滑空</title>
+    <link rel="canonical" href="https://xenithone.github.io/unfiled/games/everest-summit/" />
+    <meta property="og:title" content="EVEREST — SUMMIT" />
+    <meta property="og:description" content="強風の稜線を登り、エベレスト山頂からウィングスーツで滑空する一人称3Dゲーム。" />
+    <meta property="og:image" content="https://xenithone.github.io/unfiled/images/everest-summit.webp" />
+    <meta property="og:url" content="https://xenithone.github.io/unfiled/games/everest-summit/" />
+    <script type="module" crossorigin src="./assets/index-BqS3O26p.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-unnFRhW2.css">
+  </head>
+  <body data-mode="intro">
+    <main id="experience">
+      <canvas id="landscape" aria-label="エベレスト山頂周辺の3D地形"></canvas>
+      <div class="vignette" aria-hidden="true"></div>
+      <div class="transition" id="transition" aria-hidden="true"></div>
+
+      <header class="topbar">
+        <div class="location">
+          <span class="mountain-mark" aria-hidden="true"></span>
+          <div><strong>HIMALAYA</strong><span>ネパール・中国国境</span></div>
+        </div>
+        <nav class="tools" aria-label="散策メニュー">
+          <button id="map-button" class="tool walking-only ground-only" aria-controls="map-panel" aria-expanded="false">地図</button>
+          <button id="photo-button" class="tool walking-only" aria-pressed="false">撮影</button>
+          <button id="sound-button" class="tool" aria-pressed="false">音声 オフ</button>
+          <button id="help-button" class="tool" aria-haspopup="dialog">操作・出典</button>
+          <button id="pause-button" class="tool walking-only touch-only" aria-label="一時停止">Ⅱ</button>
+        </nav>
+      </header>
+
+      <section class="intro" aria-labelledby="title">
+        <p class="place-label">エベレスト山頂散策</p>
+        <h1 id="title">EVEREST</h1>
+        <p class="description">雪と岩の稜線をたどり、<br />ヒマラヤの最高点へ。</p>
+        <button class="primary" id="start-button" disabled>
+          <span id="start-label">地形を読み込み中</span><span class="arrow" aria-hidden="true">→</span>
+        </button>
+        <p class="load-error" id="load-error" role="alert" hidden></p>
+      </section>
+
+      <aside class="summit-stat" aria-label="山頂の標高">
+        <span>山頂標高</span>
+        <strong>8,848<span>.86</span><small> m</small></strong>
+      </aside>
+
+      <footer class="intro-footer">
+        <span class="coordinates">27°59′17″N &nbsp; 86°55′31″E</span>
+        <span>南東稜線</span>
+      </footer>
+
+      <div class="compass walking-only" aria-label="方位と風速">
+        <span class="compass-needle" id="compass-needle" aria-hidden="true"></span>
+        <span id="heading">北西 315°</span>
+        <span class="wind-reading">風速 <span id="wind-speed">—</span> m/s</span>
+      </div>
+
+      <div class="status walking-only ground-only" aria-label="現在地">
+        <div>
+          <span class="status-label">現在の標高</span>
+          <strong><span id="altitude">—</span><small> m</small></strong>
+        </div>
+        <div class="status-target">
+          <span class="status-label" id="target-label">山頂まで</span>
+          <strong><span id="distance">—</span><small id="distance-unit"> m</small></strong>
+          <span id="target-arrow" aria-hidden="true">↑</span>
+        </div>
+      </div>
+      <div class="status walking-only flight-only" id="flight-status" aria-label="飛行情報">
+        <div>
+          <span class="status-label">速度</span>
+          <strong><span id="flight-speed">0</span><small> km/h</small></strong>
+        </div>
+        <div class="status-target">
+          <span class="status-label">地表まで</span>
+          <strong><span id="flight-clearance">0</span><small> m</small></strong>
+        </div>
+        <div class="status-target">
+          <span class="status-label">飛行距離</span>
+          <strong><span id="flight-distance">0</span><small> m</small></strong>
+        </div>
+      </div>
+      <div class="hints walking-only ground-only" id="keyboard-hints">
+        <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移動</span>
+        <span><kbd>マウス</kbd> 視点</span>
+        <span><kbd>R</kbd> 出発地点</span>
+      </div>
+      <div class="hints walking-only flight-only">
+        <span><kbd>マウス</kbd><kbd>A</kbd><kbd>D</kbd> 旋回</span>
+        <span><kbd>W</kbd> 降下</span>
+        <span><kbd>S</kbd> 減速</span>
+      </div>
+      <div class="game-actions walking-only" aria-label="現在できる操作">
+        <div id="balance-panel" class="balance-panel" hidden>
+          <span id="balance-label">体勢</span>
+          <progress id="balance" aria-label="体勢の安定度" max="1" value="1"></progress>
+        </div>
+        <span id="air-label" class="air-label" hidden></span>
+        <button type="button" id="rope-action" class="tool action" aria-pressed="false" hidden>
+          <kbd class="action-key">E</kbd><span id="rope-label">ロープをつかむ</span>
+        </button>
+        <button type="button" id="launch-action" class="tool action" hidden>
+          <kbd class="action-key">F</kbd><span>ウィングスーツで飛ぶ</span>
+        </button>
+        <button type="button" id="chute-action" class="tool action" hidden>
+          <kbd class="action-key">Space</kbd><span>パラシュートを開く</span>
+        </button>
+      </div>
+      <div id="joystick" class="joystick walking-only" aria-label="移動パッド"><span></span></div>
+
+      <section id="map-panel" class="map-panel" aria-labelledby="map-title" hidden>
+        <div class="panel-title"><h2 id="map-title">山頂の稜線</h2><button id="map-close" class="tool" aria-label="地図を閉じる">×</button></div>
+        <canvas id="route-map" width="480" height="480" aria-label="現在地と山頂を示す等高線の地図"></canvas>
+        <div class="map-legend"><span><i class="legend-player"></i>現在地</span><span><i class="legend-goal"></i>山頂</span></div>
+        <button id="reference-view-button" class="tool reference-view-button" hidden>実写と同じ視点</button>
+      </section>
+
+      <section class="pause-panel" id="pause-panel" aria-labelledby="pause-title" hidden>
+        <h2 id="pause-title">一時停止中</h2>
+        <button class="primary" id="resume-button"><span>続ける</span><span class="arrow" aria-hidden="true">→</span></button>
+        <button class="tool" id="restart-button">出発地点に戻る</button>
+      </section>
+
+      <section class="pause-panel outcome-panel" id="outcome-panel" aria-labelledby="outcome-title" hidden>
+        <h2 id="outcome-title"></h2>
+        <p id="outcome-description"></p>
+        <button class="primary" id="retry-button"><span id="retry-label">もう一度登る</span><span class="arrow" aria-hidden="true">→</span></button>
+        <button class="tool" id="outcome-restart" hidden>出発地点に戻る</button>
+      </section>
+
+      <p class="notice" role="status" id="notice" hidden></p>
+
+      <dialog id="help-dialog" aria-labelledby="help-title">
+        <div class="panel-title"><h2 id="help-title">操作・出典</h2><form method="dialog"><button class="tool" aria-label="閉じる">×</button></form></div>
+        <dl>
+          <div><dt>歩く・視点を動かす</dt><dd>W / A / S / D、マウス</dd></div>
+          <div><dt>速足</dt><dd>Shift</dd></div>
+          <div><dt>近くの固定ロープ</dt><dd>E でつかむ・離す</dd></div>
+          <div><dt>ウィングスーツ</dt><dd>山頂で F。A / D で旋回、W で降下、S で減速。</dd></div>
+          <div><dt>パラシュート</dt><dd>飛行中に Space。緩やかな地面に着地できます。</dd></div>
+          <div><dt>マウスが固定されない場合</dt><dd>画面をドラッグ。← / → でも回転。</dd></div>
+          <div><dt>タッチ操作</dt><dd>左のパッドで移動、画面をスワイプして視点操作。</dd></div>
+          <div><dt>地図・表示を消す・出発地点</dt><dd>M / P / R</dd></div>
+          <div><dt>一時停止</dt><dd>Esc</dd></div>
+          <div><dt>実写の画角で見る</dt><dd>山頂で V、または地図の「実写と同じ視点」</dd></div>
+        </dl>
+        <h3>地形と資料</h3>
+        <p>広域の標高を地球の曲率に沿って配置しています。山頂と歩行ルートの細部は、登頂写真をもとに補っています。</p>
+        <p class="credit">produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved</p>
+        <p class="credit">Contains modified Copernicus Sentinel data 2024. Far terrain color from NASA Earth Observatory Blue Marble via NASA EOSDIS GIBS. Distant elevations © Mapzen, NASA SRTM, USGS GMTED2010 and other contributors. Snow 01, Rock Face and Boulder 01 by Poly Haven (CC0).</p>
+        <div class="source-links">
+          <a href="https://youtu.be/JQEjVCX5PIw?t=228" target="_blank" rel="noopener noreferrer">GoPro 登頂映像 ↗</a>
+          <a href="https://www.youtube.com/watch?v=0pIyIMqwu0E" target="_blank" rel="noopener noreferrer">DJI 空撮 ↗</a>
+          <a href="https://www.nationalgeographic.com/adventure/article/mount-everest-aerial-north-side-drone-photography" target="_blank" rel="noopener noreferrer">北壁の空撮写真 ↗</a>
+          <a href="https://www.flickr.com/photos/markhorrell/albums/72157653693710001/page4" target="_blank" rel="noopener noreferrer">登頂・山頂の写真 ↗</a>
+          <a href="https://live.staticflickr.com/8834/18247920876_a32d31733d_h.jpg" target="_blank" rel="noopener noreferrer">実写の比較カット ↗</a>
+          <a href="https://www.pbs.org/wgbh/nova/everest/climb/summitstill.html" target="_blank" rel="noopener noreferrer">山頂の全周写真 ↗</a>
+          <a href="https://repository.library.noaa.gov/view/noaa/54014" target="_blank" rel="noopener noreferrer">山頂付近の風の観測 ↗</a>
+          <a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md" target="_blank" rel="noopener noreferrer">遠方標高の出典 ↗</a>
+        </div>
+      </dialog>
+    </main>
+  </body>
+</html>

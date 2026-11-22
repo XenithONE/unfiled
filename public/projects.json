@@ -211,6 +211,17 @@
     "accent": "#f7754d"
   },
   {
+    "id": "everest-summit",
+    "title": "EVEREST — SUMMIT",
+    "subtitle": "稜線を登り、雲海へ飛ぶ。",
+    "description": "実測の標高データで描いたエベレストの南東稜線。動く雲海を見下ろし、強風の中で固定ロープをつかみながら標高8,848.86 mの山頂を目指す。登頂後はウィングスーツで飛び立ち、パラシュートを開いて着地する。滑落、山頂からの再挑戦、飛行距離の記録がある一人称3Dゲーム。",
+    "category": "FIRST-PERSON MOUNTAINEERING GAME",
+    "year": "2026",
+    "url": "https://xenithone.github.io/unfiled/games/everest-summit/",
+    "cover": "images/everest-summit.webp",
+    "accent": "#9ed0ed"
+  },
+  {
     "id": "alpine-rail",
     "title": "ALPINE LINE",
     "subtitle": "赤い列車で、氷河の谷へ。",
