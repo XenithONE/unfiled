@@ -104,11 +104,15 @@ export default function HeroCopy({ count, year, status, reduced, revealed, onEnt
             <span className="mono">SCROLL / ↓</span>
           </button>
           <p className="hero-hint mono">
-            {unsupported
-              ? "この環境では水鏡を描けません。作品一覧はそのまま使えます。"
+            {/* one sentence per span: a narrow screen breaks between them */}
+            {(unsupported
+              ? ["この環境では水鏡を描けません。", "作品一覧はそのまま使えます。"]
               : reduced
-                ? "動きを抑えた表示です。進むと、夜が更けていきます。"
-                : "触れると、水面が揺れ、光の粒が舞う。進むと、夜が更けていく。"}
+                ? ["動きを抑えた表示です。", "進むと、夜が更けていきます。"]
+                : ["触れると、水面が揺れ、光の粒が舞う。", "進むと、夜が更けていく。"]
+            ).map((sentence) => (
+              <span key={sentence}>{sentence}</span>
+            ))}
           </p>
         </div>
       </div>

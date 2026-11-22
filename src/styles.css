@@ -513,6 +513,13 @@ main {
   max-width: 360px;
   line-height: 1.8;
 }
+.hero-hint span {
+  display: inline-block;
+}
+/* keep clear of the column of controls at the right edge */
+.is-narrow .hero-hint {
+  max-width: calc(100% - 64px);
+}
 .stamp {
   position: absolute;
   right: clamp(24px, 9vw, 160px);
@@ -1584,6 +1591,29 @@ main {
   }
   .hud-line:first-child span:nth-child(5),
   .hud-line:first-child span:nth-child(6) {
+    display: none;
+  }
+}
+
+/* narrow phones: the top bar gives a little so its links still fit */
+@media (max-width: 400px) {
+  .topbar {
+    gap: 12px;
+  }
+  .topbar nav {
+    gap: 12px;
+  }
+}
+@media (max-width: 384px) {
+  .topbar .wordmark {
+    font-size: 17px;
+  }
+  .topbar nav {
+    gap: 10px;
+  }
+}
+@media (max-width: 340px) {
+  .topbar .github-link {
     display: none;
   }
 }
