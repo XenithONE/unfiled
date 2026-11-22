@@ -14,6 +14,7 @@ const bootLines = (works: number) => [
   "> adapter ............ probing",
   "> sky ................ one night, sunset to sunrise",
   "> water .............. settling",
+  "> motes .............. adrift",
   `> works .............. standing ${works || "the"} slabs`,
 ];
 

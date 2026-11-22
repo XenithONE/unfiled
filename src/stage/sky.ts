@@ -424,7 +424,8 @@ export class Sky {
       const present = step(density.oneMinus(), r4);
       const mag = pow(max(r5, 0.0016), -0.9).mul(0.022).min(4.2).toVar();
       const size = radius.mul(smoothstep(0.4, 3.2, mag).mul(0.55).add(1));
-      const core = smoothstep(size, size.mul(0.2), dist);
+      // (never hand smoothstep its edges backwards: that is undefined in WGSL)
+      const core = smoothstep(size.mul(0.2), size, dist).oneMinus();
       const twinkle = sin(uTime.mul(r1.mul(3).add(1.5)).add(r2.mul(6.2832)))
         .mul(0.22)
         .mul(uTwinkle)
@@ -472,7 +473,7 @@ export class Sky {
       const shade = clamp(thick.oneMinus().mul(0.55).add(toward.mul(0.6)).sub(0.05), 0, 1).mul(near);
       const rim = pow(max(cs, 0), 6).mul(cov.oneMinus()).mul(cov).mul(4);
       // low cloud is seen through more air: it takes the colour of the horizon
-      const low = smoothstep(0.34, 0.03, d.y);
+      const low = smoothstep(0.03, 0.34, d.y).oneMinus();
       const lit = mix(uCloudLit, uHorSun.mul(0.92), low.mul(0.55));
       const cloud = mix(uCloudDark, lit, shade).add(uCloudRim.mul(rim)).toVar();
       const veil = cov
@@ -528,7 +529,8 @@ export class Sky {
       const seg = head.sub(tail);
       const along = clamp(dot(d.sub(tail), seg).div(max(dot(seg, seg), 1e-6)), 0, 1);
       const off = length(d.sub(normalize(tail.add(seg.mul(along)))));
-      const streak = smoothstep(0.0026, 0.0, off)
+      const streak = smoothstep(0.0, 0.0026, off)
+        .oneMinus()
         .mul(along.mul(along))
         .mul(uMeteorT.mul(3.1416).sin().max(0));
       stars.addAssign(vec3(0.85, 0.93, 1.0).mul(streak).mul(uMeteorOn).mul(3.5));

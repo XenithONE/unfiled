@@ -55,7 +55,8 @@ export default function Ending({ count, stats, status, year, onTop, onIndex }: P
           <div>
             <dt>FIELD</dt>
             <dd>
-              three.js WebGPURenderer + TSL · 空も、星も、水面も、数式がその場で描く · {backend}
+              three.js WebGPURenderer + TSL · 空も、星も、水面も、数式がその場で描く
+              {stats?.motes ? ` · 光の粒 ${stats.motes.toLocaleString("en-US")}` : ""} · {backend}
               {stats ? ` · ${stats.clock}` : ""}
             </dd>
           </div>

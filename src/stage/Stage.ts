@@ -8,6 +8,7 @@
  * post-processing and the pointer (ripples, hover, picking).
  */
 import {
+  Color,
   NeutralToneMapping,
   PerspectiveCamera,
   Plane,
@@ -36,14 +37,17 @@ import {
   vec4,
 } from "./tsl";
 import type { N } from "./tsl";
-import { Monoliths } from "./Monoliths";
+import { Monoliths, THICK } from "./Monoliths";
+import { Motes } from "./Motes";
+import { WORDMARK_BOX } from "./targets";
 import type { WorkItem } from "./Monoliths";
 import { Sky } from "./sky";
 import { Water } from "./Water";
-import { Wordmark } from "./Wordmark";
+import { DEPTH_EM, Wordmark } from "./Wordmark";
 import { makeNoiseTexture, makeRippleTexture } from "./noise";
 import {
   DEG,
+  SLAB_FOOT,
   Tour,
   azimuthAt,
   buildMonument,
@@ -68,6 +72,8 @@ export interface StageStats {
   /** The hour over the mirror, "18:42" … "05:52". */
   clock: string;
   phase: string;
+  /** How many motes are in the air. */
+  motes: number;
 }
 
 interface TierSpec {
@@ -76,17 +82,33 @@ interface TierSpec {
   detail: 0 | 1 | 2;
   salt: boolean;
   texture: number;
+  /** Grid of the mote field (columns × rows = how many motes). */
+  motes: [number, number];
 }
 
 const TIERS: Record<Tier, TierSpec> = {
-  ultra: { dpr: 2, reflection: 0.75, detail: 2, salt: true, texture: 1280 },
-  high: { dpr: 1.5, reflection: 0.6, detail: 2, salt: true, texture: 1024 },
-  mid: { dpr: 1.5, reflection: 0.5, detail: 1, salt: true, texture: 768 },
-  low: { dpr: 1, reflection: 0.4, detail: 0, salt: false, texture: 512 },
+  ultra: { dpr: 2, reflection: 0.75, detail: 2, salt: true, texture: 1280, motes: [640, 640] },
+  high: { dpr: 1.5, reflection: 0.6, detail: 2, salt: true, texture: 1024, motes: [512, 512] },
+  mid: { dpr: 1.5, reflection: 0.5, detail: 1, salt: true, texture: 768, motes: [384, 384] },
+  low: { dpr: 1, reflection: 0.4, detail: 0, salt: false, texture: 512, motes: [256, 256] },
 };
 
 /** Progress value of the opening shot (station 0 is 0, one unit per work). */
 const HERO_P = HERO_PROGRESS;
+
+/**
+ * Linear luminance over which a mote binds to a picture. Lettering is white on
+ * black; a cover binds almost everywhere, so even its shadows are drawn.
+ */
+const LUM_TEXT: [number, number] = [0.08, 0.5];
+const LUM_COVER: [number, number] = [0.004, 0.05];
+
+/**
+ * The gust that crosses the wordmark at rest: how much clings between gusts,
+ * how much more under the gust, its width and reach (shares of the wordmark's
+ * width), and its timing in seconds.
+ */
+const GUST = { rest: 0.1, amount: 0.9, width: 0.2, reach: 0.95, travel: 8, period: 12.5 };
 
 const clampNum = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 const smoothJs = (a: number, b: number, x: number) => {
@@ -109,6 +131,7 @@ export class Stage {
   private water!: Water;
   private monoliths!: Monoliths;
   private wordmark!: Wordmark;
+  private motes!: Motes;
 
   tier: Tier = "mid";
   backend: "webgpu" | "webgl2" = "webgpu";
@@ -169,6 +192,16 @@ export class Stage {
   private fovKick = 0;
   private fixedTau: number | null = null;
   private cloudDrift = 0;
+
+  // the motes: what they are gathering into, and how firmly
+  private gathering: "none" | "wordmark" | "cover" | "tagline" = "none";
+  private coverHold = 1;
+  private veilTimer: number | null = null;
+  private endView: { pose: CamPose; view: View } | null = null;
+  private forward = new Vector3(0, 0, -1);
+  private pointerEnergy = 0;
+  private lastPointerClient = new Vector2(NaN, NaN);
+  private focus = 12;
 
   // pointer
   private pointerTarget = new Vector2();
@@ -240,6 +273,16 @@ export class Stage {
       this.viewKey = "";
     };
     this.wordmark = new Wordmark(this.scene, this.sky, this.water.uFog);
+    this.motes = new Motes(
+      {
+        scene: this.scene,
+        pixelAngle: () =>
+          (2 * Math.tan((this.camera.fov * DEG) / 2)) /
+          Math.max(1, this.size.y * this.dpr * this.renderScale),
+      },
+      spec.motes,
+    );
+    this.motes.setMirror(spec.reflection);
 
     this.buildPost();
     this.setReducedMotion(this.reduced);
@@ -306,7 +349,11 @@ export class Stage {
 
       // a soft shade behind the page text: the lower-left corner on wide
       // screens, the foot of the frame on narrow ones
-      const corner = smoothstep(1.02, 0.12, length(vec2(p.x, float(1).sub(p.y)).mul(vec2(1.05, 1.5))));
+      const corner = smoothstep(
+        0.12,
+        1.02,
+        length(vec2(p.x, float(1).sub(p.y)).mul(vec2(1.05, 1.5))),
+      ).oneMinus();
       const band = smoothstep(0.36, 0.92, p.y).mul(1.25);
       hdr.mulAssign(float(1).sub(mix(corner, band, uScrimBand).mul(uScrim)));
 
@@ -365,6 +412,8 @@ export class Stage {
     while (azEnd > azStart) azEnd -= Math.PI * 2;
     this.sky.setSunPath(azStart, azEnd);
     this.uScrimBand.value = view.narrow ? 1 : 0;
+    this.endView = { pose: end, view };
+    this.arrange();
   }
 
   /** Scroll progress → the hour (0 sunset … 1 sunrise). */
@@ -390,7 +439,9 @@ export class Stage {
   }
 
   setMode(mode: Mode) {
+    if (mode === this.mode) return;
     this.mode = mode;
+    this.arrange();
   }
 
   /** Continuous position along the walk (0 = first work; one unit per work). */
@@ -403,6 +454,7 @@ export class Stage {
     if (index === this.activeIndex) return;
     this.activeIndex = index;
     this.monoliths.setActive(index);
+    this.arrange();
     if (index === null) return;
     this.fovKick = this.reduced ? 0 : 1;
     const pose = this.slabPoses[index];
@@ -431,6 +483,13 @@ export class Stage {
     this.pointerNdc.set(nx, ny);
     this.pointerDirty = true;
     this.pointerInside = true;
+    // a moving pointer stirs the motes; a still one lets them settle
+    const last = this.lastPointerClient;
+    if (!Number.isNaN(last.x)) {
+      const moved = Math.hypot(clientX - last.x, clientY - last.y);
+      this.pointerEnergy = Math.min(1, this.pointerEnergy + moved * 0.012);
+    }
+    last.set(clientX, clientY);
   }
 
   clearPointer() {
@@ -449,6 +508,7 @@ export class Stage {
 
   /** A touch on the water: a ring wave where the pointer is. */
   pulse(strength = 1) {
+    this.pointerEnergy = Math.min(1.6, this.pointerEnergy + 0.9 * strength);
     if (!this.waterPoint(this.pointerNdc)) return false;
     this.water.drop(this.hit.x, this.hit.z, 0.045 * strength * (this.reduced ? 0.5 : 1));
     return true;
@@ -465,6 +525,8 @@ export class Stage {
     this.uGrain.value = reduced ? 0.012 : 0.022;
     this.sky?.setReducedMotion(reduced);
     this.water?.setReducedMotion(reduced);
+    this.motes?.setReducedMotion(reduced);
+    this.arrange();
   }
 
   setPaused(paused: boolean) {
@@ -491,6 +553,187 @@ export class Stage {
   /** 0 sunset … 1 sunrise. */
   get hour() {
     return this.sky?.tau ?? 0;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* the motes: what they gather into                                    */
+  /* ------------------------------------------------------------------ */
+
+  /** Decide what the motes should be gathering into right now. */
+  private arrange() {
+    if (!this.motes) return;
+    // With reduced motion nothing swarms across the frame: beyond the
+    // opening's sprinkle on the letters, the motes stay in the air.
+    const still = this.reduced || this.debug.has("nomotes");
+    if (this.mode === "hero") this.gatherWordmark();
+    else if (this.mode === "end" && !still) void this.gatherTagline();
+    else if (this.mode === "archive" && this.activeIndex !== null && !still)
+      void this.gatherCover(this.activeIndex);
+    else {
+      this.clearVeilTimer();
+      this.gathering = "none";
+      this.motes.scatter();
+    }
+  }
+
+  /** Opening: the motes cling to the faces of the steel letters. */
+  private gatherWordmark() {
+    this.clearVeilTimer();
+    const painted = this.motes.painter.paintWordmark(LUM_TEXT);
+    const m = this.monument;
+    const em = m.width / (WORDMARK_BOX.xMax - WORDMARK_BOX.xMin);
+    const right = new Vector3(Math.cos(m.yaw), 0, -Math.sin(m.yaw));
+    const normal = new Vector3(Math.sin(m.yaw), 0, Math.cos(m.yaw));
+    // the letters stand with their baseline a little under the water
+    const baseline = -(-WORDMARK_BOX.yMin + 0.012) * em;
+    const centre = new Vector3(
+      m.x,
+      baseline + ((WORDMARK_BOX.yMin + WORDMARK_BOX.yMax) / 2) * em,
+      m.z,
+    ).addScaledVector(normal, (DEPTH_EM / 2) * em + 0.14);
+    this.gathering = "wordmark";
+    this.motes.setTarget({
+      key: "text:wordmark",
+      aspect: painted.aspect,
+      uvScale: painted.uvScale,
+      center: centre,
+      right,
+      up: new Vector3(0, 1, 0),
+      width: m.width,
+      lumLow: LUM_TEXT[0],
+      lumHigh: LUM_TEXT[1],
+      relief: 0.05,
+      thickness: 0.34,
+      feather: 0.004,
+      gain: 0.8,
+      cover: painted.cover,
+    });
+  }
+
+  /** At a stop: the motes fly to the slab and draw its cover in light. */
+  private async gatherCover(index: number) {
+    const item = this.items[index];
+    if (!item || !this.slabPoses[index]) return;
+    // the walk may move on while the picture loads
+    const wanted = () =>
+      !this.disposed && this.mode === "archive" && this.activeIndex === index;
+    let painted;
+    try {
+      painted = await this.motes.painter.paintImageUrl(item.url, { lum: LUM_COVER, wanted });
+    } catch {
+      return; // the cover did not load: the motes stay where they are
+    }
+    const pose = this.slabPoses[index];
+    if (!painted || !pose) return;
+    const right = new Vector3(Math.cos(pose.yaw), 0, -Math.sin(pose.yaw));
+    const normal = new Vector3(Math.sin(pose.yaw), 0, Math.cos(pose.yaw));
+    const centre = new Vector3(pose.x, SLAB_FOOT + pose.height / 2, pose.z).addScaledVector(
+      normal,
+      THICK / 2 + 0.08,
+    );
+    const fresh = this.gathering !== "cover" || this.motes.target?.key !== `cover:${item.id}`;
+    this.gathering = "cover";
+    this.motes.setTarget({
+      key: `cover:${item.id}`,
+      aspect: painted.aspect,
+      uvScale: painted.uvScale,
+      center: centre,
+      right,
+      up: new Vector3(0, 1, 0),
+      width: pose.width,
+      lumLow: LUM_COVER[0],
+      lumHigh: LUM_COVER[1],
+      relief: 0.1,
+      thickness: 0.12,
+      feather: 0.03,
+      tint: new Color(item.accent).lerp(new Color(1, 1, 1), 0.9),
+      // drawn in light: a dark cover is lifted so its points still read,
+      // and a white one is held back so it does not flood the frame
+      gain: 0.9 * Math.min(2.4, Math.max(0.6, (0.2 / Math.max(0.01, painted.mean)) ** 0.6)),
+      cover: painted.cover,
+      delayRand: 0.25,
+      delaySweep: 0.4,
+    });
+    if (!fresh) return;
+    // the slab's own light steps back while the motes draw its cover
+    this.monoliths.draw(index);
+    // once the picture has drawn itself, most of the motes let go again and
+    // only a shimmering veil stays on the glass
+    this.clearVeilTimer();
+    this.coverHold = 1;
+    this.veilTimer = window.setTimeout(() => {
+      this.veilTimer = null;
+      this.coverHold = 0.07;
+    }, 1850);
+  }
+
+  /** Ending: the motes write the last line into the dawn sky. */
+  private async gatherTagline() {
+    this.clearVeilTimer();
+    // On a narrow screen the closing words fill the frame: there is no sky
+    // left to write on, so the motes stay in the air.
+    if (this.endView?.view.narrow) {
+      this.gathering = "none";
+      this.motes.scatter();
+      return;
+    }
+    const painted = await this.motes.painter.paintText(
+      "tagline",
+      "好奇心に、完成はない。",
+      {
+        font: '600 220px "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, "Noto Sans JP", sans-serif',
+        width: 2048,
+        height: 384,
+        fill: ["#f2f4ff", "#fff0dc"],
+      },
+      { lum: LUM_TEXT, wanted: () => !this.disposed && this.mode === "end" },
+    );
+    if (!painted || !this.endView) return;
+    const { pose, view } = this.endView;
+    const v = (pose.fov * DEG) / 2;
+    const h = Math.atan(Math.tan(v) * view.aspect);
+    const cy = Math.cos(pose.yaw);
+    const sy = Math.sin(pose.yaw);
+    const cp = Math.cos(pose.pitch);
+    const sp = Math.sin(pose.pitch);
+    const forward = new Vector3(-sy * cp, sp, -cy * cp);
+    const right = new Vector3(cy, 0, -sy);
+    const up = new Vector3(sy * sp, cp, cy * sp);
+    // high in the frame, where the sky is still dark enough to write on
+    const distance = 42;
+    const x0 = 0.4;
+    const y0 = 0.5;
+    const centre = new Vector3(pose.x, pose.y, pose.z)
+      .addScaledVector(forward, distance)
+      .addScaledVector(right, x0 * Math.tan(h) * distance)
+      .addScaledVector(up, y0 * Math.tan(v) * distance);
+    this.gathering = "tagline";
+    this.motes.setTarget({
+      key: "text:tagline",
+      aspect: painted.aspect,
+      uvScale: painted.uvScale,
+      center: centre,
+      right,
+      up,
+      width: 2 * Math.tan(h) * distance * 0.5,
+      lumLow: LUM_TEXT[0],
+      lumHigh: LUM_TEXT[1],
+      relief: 0.03,
+      thickness: 0.5,
+      feather: 0.004,
+      gain: 1.4,
+      cover: painted.cover,
+      // written from left to right, like a hand
+      delayRand: 0.2,
+      delaySweep: 1.4,
+    });
+  }
+
+  private clearVeilTimer() {
+    if (this.veilTimer !== null) {
+      window.clearTimeout(this.veilTimer);
+      this.veilTimer = null;
+    }
   }
 
   /* ------------------------------------------------------------------ */
@@ -672,6 +915,7 @@ export class Stage {
     this.monoliths.setFocus(clampNum(Math.round(this.smoothProgress), 0, Math.max(0, this.items.length - 1)));
     this.monoliths.update(dt, time);
     this.water.update(time, this.camera, this.sky);
+    this.updateMotes(dt, time);
 
     if (this.debug.has("nopost")) this.renderer.render(this.scene, this.camera);
     else this.pipeline.render();
@@ -702,6 +946,55 @@ export class Stage {
     }
   }
 
+  /** The motes: how firmly they hold their picture, the pointer, the hour. */
+  private updateMotes(dt: number, time: number) {
+    const motes = this.motes;
+    let wave = 0;
+    let wavePos = 0;
+    if (this.debug.has("nomotes")) {
+      motes.setFormedScale(0);
+      motes.scatter();
+    } else if (this.gathering === "wordmark") {
+      // Gathered on the letters while the curtain is down; once the camera
+      // lands only a sprinkle stays, and now and then a gust of them crosses
+      // the letters and lets go again. All gone as the walk leaves.
+      const settle = smoothJs(0.72, 1, this.introT);
+      const stay = 1 - smoothJs(HERO_P, HERO_P * 0.45, this.smoothProgress);
+      motes.setFormedScale((1 - settle * (1 - GUST.rest)) * stay);
+      if (!this.reduced) {
+        const phase = (time % GUST.period) / GUST.travel;
+        wave = GUST.amount * settle * stay;
+        wavePos = -GUST.reach + 2 * GUST.reach * Math.min(1, phase);
+      }
+    } else if (this.gathering === "cover") {
+      motes.setFormedScale(this.detailGoal ? 0.03 : this.coverHold);
+    } else if (this.gathering === "tagline") {
+      motes.setFormedScale(1);
+    }
+    motes.setWave(wave, wavePos, GUST.width);
+
+    // the pointer, as a ray through the scene
+    this.pointerEnergy *= Math.exp(-dt * 2.4);
+    this.raycaster.setFromCamera(this.pointerSmoothed, this.camera);
+    motes.setPointer(
+      this.raycaster.ray.origin,
+      this.raycaster.ray.direction,
+      this.pointerInside ? this.pointerEnergy : 0,
+    );
+    motes.setStir(this.reduced ? 0 : clampNum(Math.abs(this.progressVel) * 0.8, 0, 2.2));
+    motes.setAmbient(this.sky.starlight, this.sky.sunDirection, this.sky.glitterColor);
+
+    // the lens follows what the motes are doing: near for a cover, far otherwise
+    const target = motes.target;
+    const want =
+      this.gathering !== "none" && target ? this.camera.position.distanceTo(target.center) : 14;
+    this.focus += (want - this.focus) * (1 - Math.exp(-dt * 2.5));
+    motes.setFocus(this.focus);
+
+    this.forward.set(-Math.sin(this.camera.rotation.y), 0, -Math.cos(this.camera.rotation.y));
+    motes.update(this.renderer as never, time, dt, this.camera, this.forward);
+  }
+
   private emitStats() {
     this.statsCb?.({
       backend: this.backend,
@@ -710,6 +1003,7 @@ export class Stage {
       gpu: this.gpuName,
       clock: this.sky.clock,
       phase: this.sky.phase,
+      motes: this.debug.has("nomotes") ? 0 : (this.motes?.count ?? 0),
     });
   }
 
@@ -724,6 +1018,7 @@ export class Stage {
       sky: this.sky,
       water: this.water,
       monoliths: this.monoliths,
+      motes: this.motes,
       slabs: this.slabPoses,
       /** Freeze the hour (0..1) regardless of scroll; null follows the walk. */
       setHour: (tau: number | null) => {
@@ -741,6 +1036,8 @@ export class Stage {
   dispose() {
     this.disposed = true;
     this.stop();
+    this.clearVeilTimer();
+    this.motes?.dispose();
     this.monoliths?.dispose();
     this.wordmark?.dispose();
     this.water?.dispose();

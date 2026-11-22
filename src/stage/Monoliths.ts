@@ -57,7 +57,8 @@ export interface WorkItem {
 
 const BEZEL = 0.075;
 const SUNK = 0.4;
-const THICK = 0.2;
+/** Thickness of a slab's body (metres). */
+export const THICK = 0.2;
 
 interface Slab {
   item: WorkItem;
@@ -73,12 +74,32 @@ interface Slab {
   uImage: { value: number };
   uSweep: { value: number };
   uHover: { value: number };
+  uLit: { value: number };
+  /** Seconds since this slab became the active one (-1: it is not). */
+  wake: number;
+  /** The motes draw the cover before the light box comes on. */
+  drawn: boolean;
   activeGoal: number;
   imageGoal: number;
   hoverGoal: number;
   sweepT: number;
   sweeping: boolean;
 }
+
+/** How bright a slab's picture glows while no one stands before it. */
+const IDLE = 0.52;
+
+/**
+ * When the motes draw the cover, the light box steps back for them: it holds
+ * a moment, dims, stays dark while the picture is drawn in points of light,
+ * then comes on in full.
+ */
+const WAKE = { hold: 0.2, dark: 0.5, rise: 1.75, full: 2.8, floor: 0.05 };
+
+const smoothJs = (a: number, b: number, x: number) => {
+  const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
 
 const placeholder = (() => {
   const canvas = document.createElement("canvas");
@@ -140,6 +161,7 @@ export class Monoliths {
     const uImage = uniform(0);
     const uSweep = uniform(-2);
     const uHover = uniform(0);
+    const uLit = uniform(IDLE);
     const uAccent = uniform(new Color(item.accent));
     const texNode = texture(placeholder);
     const { uGain, uTime } = this;
@@ -168,19 +190,19 @@ export class Monoliths {
         max(iu.negate(), iu.sub(1)).mul(uDims.z),
         max(iv.negate(), iv.sub(1)).mul(uDims.w),
       ).toVar();
-      const inside = smoothstep(0.004, -0.004, out);
+      const inside = smoothstep(-0.004, 0.004, out).oneMinus();
       const picture = texNode.sample(vec2(iu, iv)).rgb;
       const idle = uAccent
         .mul(0.07)
         .mul(float(1).add(dot(vec2(iu, iv), vec2(0.6, 0.8)).mul(3).add(uTime.mul(0.8)).sin().mul(0.25)));
       const lit = mix(idle, picture, uImage)
         .mul(uGain)
-        .mul(mix(float(0.52), float(1), uActive).add(uHover.mul(0.14)));
-      const sweepAt = iu.mul(0.8).add(iv.mul(0.45)).sub(uSweep).mul(6);
-      const sweep = vec3(1, 0.96, 0.9).mul(exp(sweepAt.mul(sweepAt).negate())).mul(0.3).mul(uImage);
+        .mul(uLit.add(uHover.mul(0.14)));
+      const sweepAt = iu.mul(0.8).add(iv.mul(0.45)).sub(uSweep).mul(9);
+      const sweep = vec3(1, 0.96, 0.9).mul(exp(sweepAt.mul(sweepAt).negate())).mul(0.17).mul(uImage);
       const glass = env.mul(fres.mul(0.9).add(0.035));
       // a hairline of the work's colour around the picture
-      const line = smoothstep(0.004, 0.01, out).mul(smoothstep(0.027, 0.019, out));
+      const line = smoothstep(0.004, 0.01, out).mul(smoothstep(0.019, 0.027, out).oneMinus());
       const lamp = uAccent.mul(line).mul(uActive.mul(1.3).add(uHover.mul(0.8)).add(0.35));
       const frame = vec3(0.012, 0.013, 0.016).add(lamp);
       const face = mix(frame, lit.add(sweep), inside).add(glass);
@@ -215,6 +237,9 @@ export class Monoliths {
       uImage,
       uSweep,
       uHover,
+      uLit,
+      wake: -1,
+      drawn: false,
       activeGoal: 0,
       imageGoal: 0,
       hoverGoal: 0,
@@ -248,17 +273,34 @@ export class Monoliths {
   /* state                                                               */
   /* ------------------------------------------------------------------ */
 
+  /** The slab the visitor has stopped at: it comes on, with a sweep of light. */
   setActive(index: number | null) {
     if (index === this.activeIndex) return;
     this.activeIndex = index;
     this.slabs.forEach((slab, i) => {
       slab.activeGoal = i === index ? 1 : 0;
+      slab.wake = i === index ? 0 : -1;
+      slab.drawn = false;
       if (i === index) {
         slab.sweepT = -0.9;
         slab.sweeping = true;
       }
     });
     if (index !== null) this.setFocus(index);
+  }
+
+  /**
+   * The motes are on their way to draw the active slab's cover: its light
+   * steps back for them first (see WAKE), and there is no sweep.
+   */
+  draw(index: number) {
+    const slab = this.slabs[index];
+    if (!slab || index !== this.activeIndex) return;
+    slab.drawn = true;
+    slab.wake = 0;
+    slab.sweeping = false;
+    slab.sweepT = -2;
+    slab.uSweep.value = -2;
   }
 
   setHover(index: number | null) {
@@ -342,6 +384,21 @@ export class Monoliths {
       cur + (goal - cur) * (1 - Math.exp(-dt * rate));
     for (const slab of this.slabs) {
       slab.uActive.value = ease(slab.uActive.value, slab.activeGoal, slab.activeGoal ? 3.2 : 4.5);
+      if (slab.wake < 0) {
+        slab.uLit.value = ease(slab.uLit.value, IDLE, 4.5);
+      } else if (!slab.drawn) {
+        slab.wake += dt;
+        slab.uLit.value = ease(slab.uLit.value, 1, 3.2);
+      } else {
+        slab.wake += dt;
+        const t = slab.wake;
+        const dim = smoothJs(WAKE.hold, WAKE.dark, t);
+        const rise = smoothJs(WAKE.rise, WAKE.full, t);
+        const goal = IDLE + (WAKE.floor - IDLE) * dim + (1 - WAKE.floor) * rise;
+        // follow the curve, but never jump (a slab can be left half-way).
+        // No sweep of light here: the motes letting go is the arrival.
+        slab.uLit.value = ease(slab.uLit.value, goal, 14);
+      }
       slab.uImage.value = ease(slab.uImage.value, slab.imageGoal, 2.4);
       slab.uHover.value = ease(slab.uHover.value, slab.hoverGoal, 9);
       if (slab.sweeping) {

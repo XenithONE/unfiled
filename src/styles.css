@@ -268,7 +268,7 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-height: 120px;
+  min-height: 152px;
 }
 .loader-lines div {
   opacity: 0;
@@ -1498,6 +1498,16 @@ main {
 }
 .is-narrow .ending::before {
   background: linear-gradient(180deg, rgba(4, 5, 10, 0.5) 0%, rgba(4, 5, 10, 0.8) 100%);
+}
+/* the closing words are taller than a narrow screen and pass under the top
+   bar: it steps aside for them (they carry their own way to the index) */
+.is-narrow.mode-end .topbar {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition-delay: 0s;
+}
+.is-narrow.mode-end .topbar > * {
+  pointer-events: none;
 }
 
 /* short and wide (a phone on its side): only the essentials */

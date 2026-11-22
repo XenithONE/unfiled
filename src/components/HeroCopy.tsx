@@ -108,7 +108,7 @@ export default function HeroCopy({ count, year, status, reduced, revealed, onEnt
               ? "この環境では水鏡を描けません。作品一覧はそのまま使えます。"
               : reduced
                 ? "動きを抑えた表示です。進むと、夜が更けていきます。"
-                : "触れると、水面が揺れる。進むと、夜が更けていく。"}
+                : "触れると、水面が揺れ、光の粒が舞う。進むと、夜が更けていく。"}
           </p>
         </div>
       </div>

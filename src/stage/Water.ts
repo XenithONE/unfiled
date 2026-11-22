@@ -193,9 +193,11 @@ export class Water {
         const bp = xz.add(slope.mul(5)).mul(0.82);
         const edge = crust(bp);
         const grain = texture(noise, bp.mul(0.21)).a;
-        const ridge = smoothstep(0.1, 0.0, edge).mul(grain.mul(0.7).add(0.3));
+        const ridge = smoothstep(0.0, 0.1, edge).oneMinus().mul(grain.mul(0.7).add(0.3));
         // only the first few metres are ever seen steeply enough to matter
-        bottom.addAssign(vec3(0.2, 0.2, 0.22).mul(ridge).mul(smoothstep(22, 3, dist)));
+        bottom.addAssign(
+          vec3(0.2, 0.2, 0.22).mul(ridge).mul(smoothstep(3, 22, dist).oneMinus()),
+        );
       }
       bottom.mulAssign(uAmbient);
 

@@ -40,7 +40,8 @@ interface WordmarkData {
   glyphs: Array<{ char: string; paths: Command[][] }>;
 }
 
-const DEPTH_EM = 0.2;
+/** How deep the letters are extruded, in em. */
+export const DEPTH_EM = 0.2;
 
 export class Wordmark {
   readonly mesh: Mesh;
